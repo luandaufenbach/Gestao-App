@@ -9,7 +9,7 @@
 services:
   # ── API ─────────────────────────────────────────────────────
   - type: web
-    name: gestao-financeira-api
+    name: gestao-app-api
     runtime: node
     plan: free
     rootDir: backend
@@ -35,25 +35,24 @@ services:
       # aconteceu com esta própria API, que virou ...-api-jpdi. Um valor
       # chutado aqui só faz o navegador barrar as requisições por CORS.
       - key: CORS_ORIGINS
-        value: https://gestao-financeira-web-pmey.onrender.com
+        value: https://gestao-app-web.onrender.com
 
   # ── Frontend ────────────────────────────────────────────────
   - type: web
-    name: gestao-financeira-web
+    name: gestao-app-web
     runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     envVars:
-      # Endereço REAL da API, copiado do painel — não o nome que está acima.
-      # gestao-financeira-api.onrender.com, sem sufixo, é de outra conta: o
-      # frontend apontado para lá mandaria as credenciais de login para um
-      # servidor desconhecido.
+      # CONFIRA no painel depois do primeiro deploy: se o Render tiver
+      # acrescentado sufixo ao nome da API, este valor aponta para o serviço de
+      # outra pessoa — e o frontend mandaria as credenciais de login para lá.
       #
       # Lida em tempo de BUILD pelo Vite e embutida no bundle: mudar este valor
       # exige um novo deploy, não basta reiniciar.
       - key: VITE_API_URL
-        value: https://gestao-financeira-api-jpdi.onrender.com
+        value: https://gestao-app-api.onrender.com
     routes:
       # O router usa createWebHistory, então /transactions é uma rota do
       # navegador, não um arquivo. Sem este rewrite, abrir a URL direto ou dar

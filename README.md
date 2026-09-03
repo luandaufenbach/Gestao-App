@@ -5,7 +5,7 @@ compras parceladas no cartão, categorias, metas de economia e um dashboard mens
 
 Multi-usuário, com autenticação por JWT — cada conta enxerga apenas os próprios dados.
 
-**[Acessar a aplicação](https://gestao-financeira-web-pmey.onrender.com)**
+**[Acessar a aplicação](https://gestao-app-web.onrender.com)**
 
 > Hospedada no plano gratuito do Render, onde a API hiberna sem tráfego. A
 > primeira visita depois de um período parado espera cerca de 50 segundos
@@ -321,9 +321,8 @@ gerado pelo próprio Render e nunca passa pelo git.
 
 O subdomínio `.onrender.com` é único entre todas as contas do Render. Quando o
 nome já pertence a alguém, o Render **não avisa**: ele acrescenta um sufixo
-aleatório e segue. Foi o que aconteceu com a API deste projeto, que ficou em
-`gestao-financeira-api-jpdi.onrender.com` porque `gestao-financeira-api` é de
-outra conta.
+aleatório e segue. Os nomes deste blueprint foram verificados como livres, mas
+isso pode mudar.
 
 Isso importa mais do que parece. Um `VITE_API_URL` apontando para o nome sem
 sufixo mandaria as credenciais de login para o servidor de um terceiro. Copie
