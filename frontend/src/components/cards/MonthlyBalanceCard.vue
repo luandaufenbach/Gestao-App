@@ -50,6 +50,7 @@ const { formatCurrency } = useFormatters();
 
 const EMPTY = {
   balanceInCents: 0,
+  previousBalanceInCents: 0,
   netResultInCents: 0,
   incomeInCents: 0,
   expenseInCents: 0,
@@ -72,17 +73,36 @@ const netResult = field("netResultInCents");
 /**
  * Só as linhas que realmente têm valor entram, para o card não virar uma
  * tabela de zeros na maioria dos meses.
+ *
+ * O saldo anterior abre a lista: o total exibido em cima é acumulado, então
+ * sem essa linha a composição não fecharia — o leitor somaria receitas menos
+ * despesas e chegaria a um número diferente do que está no topo do card.
  */
 const lines = computed(() => {
   const s = summary.value ?? EMPTY;
 
-  return [
+  const movement = [
     { label: "Receitas", value: s.incomeInCents, sign: "+", color: "text-emerald-600" },
     { label: "Despesas no débito", value: s.debitExpenseInCents, sign: "−", color: "text-red-500" },
     { label: "Guardado", value: s.savedInCents, sign: "−", color: "text-blue-500" },
     { label: "Resgatado", value: s.withdrawnInCents, sign: "+", color: "text-sky-600" },
     { label: "Fatura paga", value: s.invoicePaidInCents, sign: "−", color: "text-amber-600" },
   ].filter((line, index) => index === 0 || line.value > 0);
+
+  const previous = s.previousBalanceInCents ?? 0;
+  if (previous === 0) return movement;
+
+  return [
+    {
+      label: "Saldo anterior",
+      // O valor vai em módulo porque o sinal é exibido à parte. Saldo anterior
+      // negativo é possível: basta o mês passado ter fechado no vermelho.
+      value: Math.abs(previous),
+      sign: previous > 0 ? "+" : "−",
+      color: previous > 0 ? "text-emerald-600" : "text-red-500",
+    },
+    ...movement,
+  ];
 });
 
 /** Só faz sentido mostrar quando difere do saldo. */

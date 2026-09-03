@@ -69,11 +69,14 @@ describe("efeito no saldo do mês", () => {
 		const marco = await buscar("/dashboard/monthly-balance?year=2026&month=3");
 		expect(marco.body.balanceInCents).toBe(30_000);
 
-		// Mês 4: sem receita, resgata 200 -> disponível 200.
+		// Mês 4: sem receita, resgata 200. O saldo soma os 300 que vieram de
+		// março com os 200 que voltaram da reserva.
 		await resgatar(20_000, "2026-04-10").expect(201);
 
 		const abril = await buscar("/dashboard/monthly-balance?year=2026&month=4");
-		expect(abril.body.balanceInCents).toBe(20_000);
+		expect(abril.body.previousBalanceInCents).toBe(30_000);
+		expect(abril.body.monthCashFlowInCents).toBe(20_000);
+		expect(abril.body.balanceInCents).toBe(50_000);
 		expect(abril.body.withdrawnInCents).toBe(20_000);
 
 		// O resgate não é receita: o resultado do mês continua zero.

@@ -47,19 +47,63 @@ const monthMatch = (userId, query) => {
  *
  * As transferências (guardar, resgatar, pagar fatura) nunca entram na
  * competência: não alteram patrimônio, só movem dinheiro de bolso.
+ *
+ * SALDO ANTERIOR — o que sobrou dos meses passados:
+ *
+ *   O saldo era calculado só com as transações DENTRO do mês, e por isso
+ *   zerava toda virada: quem terminasse agosto com R$ 50 na conta começava
+ *   setembro com R$ 0, como se o dinheiro tivesse evaporado. Só que dinheiro
+ *   em conta não expira no dia 31.
+ *
+ *   Agora o saldo é acumulado: soma tudo que aconteceu até o fim do mês
+ *   escolhido. O previousBalanceInCents é devolvido à parte para o card
+ *   poder exibi-lo como a primeira linha da composição — sem ele, a soma das
+ *   linhas não bateria com o total mostrado em cima.
  */
+
+/**
+ * Efeito de uma transação no dinheiro DISPONÍVEL em conta.
+ *
+ * A compra no crédito vale 0: no dia da compra o dinheiro continua na conta.
+ * Ela só afeta o caixa quando a fatura é paga, e aí entra como invoice_payment.
+ */
+const CASH_EFFECT = {
+	$switch: {
+		branches: [
+			{ case: { $in: ["$type", ["income", "withdrawal"]] }, then: "$valueInCents" },
+			{
+				case: { $in: ["$type", ["debit", "savings", "invoice_payment"]] },
+				then: { $multiply: ["$valueInCents", -1] },
+			},
+		],
+		default: 0,
+	},
+};
+
 const getMonthlyBalance = asyncHandler(async (req, res) => {
-	const match = monthMatch(req.userId, req.validatedQuery);
+	const { start, end } = getMonthRangeUTC(req.validatedQuery.year, req.validatedQuery.month);
+	const userId = toObjectId(req.userId);
+
+	const isBeforeMonth = { $lt: ["$date", start] };
+	const isInMonth = { $gte: ["$date", start] };
 
 	const sumIf = (condition) => ({
-		$sum: { $cond: [condition, "$valueInCents", 0] },
+		$sum: { $cond: [{ $and: [isInMonth, condition] }, "$valueInCents", 0] },
 	});
 
+	/**
+	 * Uma agregação só, não duas: o $match pega tudo até o fim do mês e o
+	 * $cond separa o que é anterior do que é do mês. Ida única ao banco, e o
+	 * índice { user, date } continua servindo o filtro.
+	 */
 	const [result] = await Transaction.aggregate([
-		{ $match: match },
+		{ $match: { user: userId, date: { $lte: end } } },
 		{
 			$group: {
 				_id: null,
+				previousBalanceInCents: {
+					$sum: { $cond: [isBeforeMonth, CASH_EFFECT, 0] },
+				},
 				incomeInCents: sumIf({ $eq: ["$type", "income"] }),
 				debitExpenseInCents: sumIf({ $eq: ["$type", "debit"] }),
 				creditExpenseInCents: sumIf({ $eq: ["$type", "credit"] }),
@@ -70,6 +114,7 @@ const getMonthlyBalance = asyncHandler(async (req, res) => {
 		},
 	]);
 
+	const previousBalanceInCents = result?.previousBalanceInCents ?? 0;
 	const incomeInCents = result?.incomeInCents ?? 0;
 	const debitExpenseInCents = result?.debitExpenseInCents ?? 0;
 	const creditExpenseInCents = result?.creditExpenseInCents ?? 0;
@@ -80,13 +125,17 @@ const getMonthlyBalance = asyncHandler(async (req, res) => {
 	// Total gasto no mês, para as categorias e o gráfico (visão de competência).
 	const expenseInCents = debitExpenseInCents + creditExpenseInCents;
 
+	// Movimento de caixa do mês, isolado do que veio de trás.
+	const monthCashFlowInCents =
+		incomeInCents - debitExpenseInCents - savedInCents + withdrawnInCents - invoicePaidInCents;
+
 	return res.json({
-		balanceInCents:
-			incomeInCents -
-			debitExpenseInCents -
-			savedInCents +
-			withdrawnInCents -
-			invoicePaidInCents,
+		balanceInCents: previousBalanceInCents + monthCashFlowInCents,
+		previousBalanceInCents,
+		monthCashFlowInCents,
+
+		// Competência continua sendo do mês: "vivi dentro do que ganhei em
+		// setembro?" não deve ser respondido com o que sobrou de agosto.
 		netResultInCents: incomeInCents - expenseInCents,
 
 		incomeInCents,

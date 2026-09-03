@@ -152,7 +152,92 @@ describe("GET /dashboard/monthly-balance", () => {
 		const abril = await buscar("/dashboard/monthly-balance?year=2026&month=4");
 
 		expect(marco.body.balanceInCents).toBe(100_000);
-		expect(abril.body.balanceInCents).toBe(200_000);
+
+		// O movimento de abril é só o de abril...
+		expect(abril.body.monthCashFlowInCents).toBe(200_000);
+		// ...mas o saldo carrega o que sobrou de março.
+		expect(abril.body.previousBalanceInCents).toBe(100_000);
+		expect(abril.body.balanceInCents).toBe(300_000);
+	});
+
+	/**
+	 * BUG CORRIGIDO: o saldo era calculado só com as transações DENTRO do mês.
+	 * Quem fechasse agosto com R$ 50 abria setembro com R$ 0, como se o dinheiro
+	 * tivesse evaporado na virada.
+	 */
+	it("o que sobra de um mês abre o mês seguinte", async () => {
+		await lancar({
+			type: "income",
+			description: "Salário",
+			totalValueInCents: 100_000,
+			date: "2026-08-05",
+		});
+		await lancar({
+			type: "debit",
+			description: "Mercado",
+			totalValueInCents: 95_000,
+			date: "2026-08-10",
+			category: categoryId,
+		});
+
+		const agosto = await buscar("/dashboard/monthly-balance?year=2026&month=8");
+		expect(agosto.body.balanceInCents).toBe(5_000);
+
+		// Setembro não teve lançamento nenhum: o saldo é exatamente o que sobrou.
+		const setembro = await buscar("/dashboard/monthly-balance?year=2026&month=9");
+		expect(setembro.body.previousBalanceInCents).toBe(5_000);
+		expect(setembro.body.monthCashFlowInCents).toBe(0);
+		expect(setembro.body.balanceInCents).toBe(5_000);
+	});
+
+	it("saldo negativo também é carregado", async () => {
+		await lancar({
+			type: "income",
+			description: "Salário",
+			totalValueInCents: 10_000,
+			date: "2026-08-05",
+		});
+		await lancar({
+			type: "debit",
+			description: "Conserto",
+			totalValueInCents: 30_000,
+			date: "2026-08-10",
+			category: categoryId,
+		});
+
+		const setembro = await buscar("/dashboard/monthly-balance?year=2026&month=9");
+		expect(setembro.body.previousBalanceInCents).toBe(-20_000);
+		expect(setembro.body.balanceInCents).toBe(-20_000);
+	});
+
+	it("compra no crédito não entra no saldo anterior; o pagamento da fatura sim", async () => {
+		await lancar({
+			type: "credit",
+			description: "Compra",
+			totalValueInCents: 40_000,
+			date: "2026-08-10",
+			category: categoryId,
+		});
+
+		// A compra ficou em agosto e não tirou dinheiro da conta.
+		const setembro = await buscar("/dashboard/monthly-balance?year=2026&month=9");
+		expect(setembro.body.previousBalanceInCents).toBe(0);
+	});
+
+	it("o mês anterior não vira competência do mês atual", async () => {
+		await lancar({
+			type: "income",
+			description: "Salário",
+			totalValueInCents: 100_000,
+			date: "2026-08-05",
+		});
+
+		const setembro = await buscar("/dashboard/monthly-balance?year=2026&month=9");
+
+		// O saldo carrega, mas "vivi dentro do que ganhei em setembro?" não.
+		expect(setembro.body.balanceInCents).toBe(100_000);
+		expect(setembro.body.netResultInCents).toBe(0);
+		expect(setembro.body.incomeInCents).toBe(0);
 	});
 
 	it("mantém a soma exata em centavos após parcelamento", async () => {
