@@ -11,7 +11,7 @@ const {
 	getInvoice,
 } = require("../controllers/bankCardController");
 const { createBankCardSchema, updateBankCardSchema } = require("../validators/resourceValidators");
-const { idParam, objectId, cycleKey } = require("../validators/common");
+const { idParam, objectId, cycleKey, monthQuery } = require("../validators/common");
 const validate = require("../middlewares/validate");
 
 const router = express.Router();
@@ -26,7 +26,8 @@ router.get(
 	"/:id/invoices",
 	validate({
 		params: idParam,
-		query: z.object({ limit: z.coerce.number().int().min(1).max(24).optional() }),
+		// year/month ancoram a lista num mês específico; sem eles, a âncora é hoje.
+		query: monthQuery.extend({ limit: z.coerce.number().int().min(1).max(24).optional() }),
 	}),
 	listInvoicesForCard
 );

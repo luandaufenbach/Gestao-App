@@ -57,6 +57,8 @@
             <MonthlyBalanceCard ref="balanceCard" :year="selectedYear" :month="selectedMonth" />
             <InvoicesCard
               ref="invoicesCard"
+              :year="selectedYear"
+              :month="selectedMonth"
               @open-invoice="openInvoice"
               @pay-invoice="openPayment"
             />

@@ -70,9 +70,17 @@ async function loadCardWithCycle(cardId, userId) {
 
 const listInvoicesForCard = asyncHandler(async (req, res) => {
 	const card = await loadCardWithCycle(req.params.id, req.userId);
-	const { limit } = req.validatedQuery;
+	const { limit, year, month } = req.validatedQuery;
 
-	const invoices = await listInvoices(req.userId, card, limit ?? 6);
+	/**
+	 * Com year e month, a lista termina naquele mês — é o que faz o card
+	 * acompanhar a navegação do dashboard em vez de ficar preso em hoje.
+	 * O ciclo é nomeado pelo ano-mês do VENCIMENTO (ver models/Transaction).
+	 */
+	const reference =
+		year && month ? `${year}-${String(month).padStart(2, "0")}` : new Date();
+
+	const invoices = await listInvoices(req.userId, card, limit ?? 6, reference);
 
 	return res.json({
 		card: {

@@ -50,8 +50,14 @@ export const deleteBankCard = (id) => http.delete(`/bank-cards/${id}`);
 
 // ── Faturas ───────────────────────────────────────────────────
 /** Faturas recentes de um cartão, da mais nova para a mais antiga. */
-export const getCardInvoices = (cardId, limit = 6) =>
-	http.get(`/bank-cards/${cardId}/invoices`, { params: { limit } });
+/**
+ * Faturas recentes de um cartão.
+ *
+ * year/month ancoram a lista: a fatura daquele mês vem primeiro, seguida das
+ * anteriores. Sem eles, a âncora é o mês corrente.
+ */
+export const getCardInvoices = (cardId, { limit = 6, year, month } = {}) =>
+	http.get(`/bank-cards/${cardId}/invoices`, { params: { limit, year, month } });
 
 /** @param {string} cycle - Ciclo no formato "2026-08" (ano-mês do vencimento). */
 export const getCardInvoice = (cardId, cycle) =>

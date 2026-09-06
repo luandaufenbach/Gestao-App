@@ -126,12 +126,21 @@ function cycleRange(cycle, { closingDay, dueDay }) {
 }
 
 /**
- * Os N ciclos mais recentes, do mais novo para o mais antigo, incluindo o que
- * está aberto agora.
+ * N ciclos consecutivos, do mais novo para o mais antigo, terminando na âncora.
+ *
+ * A âncora é hoje por padrão, mas pode ser um ciclo ("2026-11"). É o que
+ * permite navegar para um mês futuro e ver a fatura que ele já tem formada:
+ * as parcelas de uma compra em 5x nascem como cinco transações datadas, então
+ * a fatura de dezembro já existe no banco no dia em que a compra é lançada —
+ * só faltava uma forma de pedi-la.
  */
-function recentCycles(card, count = 6, referenceDate = new Date()) {
-	const current = cycleForPurchase(referenceDate, card);
-	const parsed = parseCycleKey(current.cycle);
+function recentCycles(card, count = 6, reference = new Date()) {
+	const anchor =
+		typeof reference === "string" && parseCycleKey(reference)
+			? reference
+			: cycleForPurchase(reference instanceof Date ? reference : new Date(), card).cycle;
+
+	const parsed = parseCycleKey(anchor);
 
 	return Array.from({ length: count }, (_, index) =>
 		cycleRange(toCycleKey(new Date(Date.UTC(parsed.year, parsed.monthIndex - index, 1))), card)

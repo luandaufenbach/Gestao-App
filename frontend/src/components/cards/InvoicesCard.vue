@@ -109,6 +109,16 @@ import { useFormatters } from "@/services/useFormatters";
 
 const emit = defineEmits(["open-invoice", "pay-invoice"]);
 
+/**
+ * O card acompanha o mês do dashboard.
+ *
+ * Antes a lista era ancorada em "hoje", então navegar para novembro continuava
+ * mostrando a fatura de outubro. Como as parcelas de uma compra já nascem
+ * gravadas nos meses futuros, ancorar no mês selecionado é o que revela quanto
+ * o cartão já tem comprometido lá na frente.
+ */
+const props = defineProps({ year: Number, month: Number });
+
 const { formatCurrency, formatDate } = useFormatters();
 
 // Mesma lista dos outros dois lugares que mostram cartões: um GET atende os
@@ -198,7 +208,11 @@ async function loadInvoices() {
   error.value = "";
 
   try {
-    const data = await getCardInvoices(selectedCardId.value, 6);
+    const data = await getCardInvoices(selectedCardId.value, {
+      limit: 6,
+      year: props.year,
+      month: props.month,
+    });
     invoices.value = data.invoices ?? [];
   } catch (err) {
     error.value = err.displayMessage ?? "Erro ao carregar faturas";
@@ -219,6 +233,7 @@ async function refetch() {
 }
 
 watch(selectedCardId, loadInvoices);
+watch(() => [props.year, props.month], loadInvoices);
 onMounted(refetch);
 
 defineExpose({ refetch });

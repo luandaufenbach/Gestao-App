@@ -387,3 +387,89 @@ describe("validações", () => {
 		await outro.auth(request(app).get(`/bank-cards/${cardId}/invoices`)).expect(404);
 	});
 });
+
+/**
+ * Faturas futuras.
+ *
+ * As parcelas de uma compra nascem como transações datadas nos meses
+ * seguintes, então a fatura de dezembro já existe no banco no dia em que a
+ * compra em 5x é lançada. O que faltava era pedi-la: a lista era sempre
+ * ancorada em "hoje", e navegar para um mês futuro no dashboard continuava
+ * mostrando a fatura do mês corrente.
+ */
+describe("lista ancorada em um mês", () => {
+	const listarEm = (year, month) =>
+		user
+			.auth(request(app).get(`/bank-cards/${cardId}/invoices?limit=6&year=${year}&month=${month}`))
+			.expect(200);
+
+	/** Compra de R$ 1.000 em 5x, feita em agosto: R$ 200 por mês. */
+	const comprarParcelado = () =>
+		user
+			.auth(request(app).post("/transactions"))
+			.send({
+				type: "credit",
+				description: "Notebook",
+				totalValueInCents: 100_000,
+				date: "2026-08-10",
+				category: categoryId,
+				bankCard: cardId,
+				installments: 5,
+			})
+			.expect(201);
+
+	it("a lista começa no mês pedido e desce para os anteriores", async () => {
+		const resposta = await listarEm(2026, 11);
+		const ciclos = resposta.body.invoices.map((invoice) => invoice.cycle);
+
+		expect(ciclos.slice(0, 4)).toEqual(["2026-11", "2026-10", "2026-09", "2026-08"]);
+	});
+
+	it("a fatura de um mês futuro já traz a parcela daquele mês", async () => {
+		await comprarParcelado();
+
+		// Compra em 10/08 cai na fatura de setembro; a 4a parcela, em 10/11,
+		// cai na de dezembro.
+		const resposta = await listarEm(2026, 12);
+		const dezembro = resposta.body.invoices.find((invoice) => invoice.cycle === "2026-12");
+
+		expect(dezembro.totalInCents).toBe(20_000);
+		expect(dezembro.transactionCount).toBe(1);
+	});
+
+	it("cada mês do parcelamento tem a sua parcela, nem mais nem menos", async () => {
+		await comprarParcelado();
+
+		const resposta = await listarEm(2027, 1);
+		const porCiclo = Object.fromEntries(
+			resposta.body.invoices.map((invoice) => [invoice.cycle, invoice.totalInCents])
+		);
+
+		// Cinco parcelas de 200, de setembro a janeiro.
+		expect(porCiclo["2026-09"]).toBe(20_000);
+		expect(porCiclo["2026-10"]).toBe(20_000);
+		expect(porCiclo["2026-11"]).toBe(20_000);
+		expect(porCiclo["2026-12"]).toBe(20_000);
+		expect(porCiclo["2027-01"]).toBe(20_000);
+	});
+
+	it("fatura futura ainda não vencida aparece como aberta", async () => {
+		await comprarParcelado();
+
+		const resposta = await listarEm(2027, 1);
+		const janeiro = resposta.body.invoices.find((invoice) => invoice.cycle === "2027-01");
+
+		expect(janeiro.status).toBe("aberta");
+		expect(janeiro.paidInCents).toBe(0);
+	});
+
+	it("sem year e month, a âncora continua sendo o mês corrente", async () => {
+		const semAncora = await faturas().expect(200);
+		const hoje = new Date();
+		const cicloCorrente = `${hoje.getUTCFullYear()}-${String(hoje.getUTCMonth() + 1).padStart(2, "0")}`;
+
+		// O ciclo é nomeado pelo mês do vencimento, então o primeiro da lista é
+		// o do mês corrente ou o do seguinte, conforme o dia de fechamento.
+		expect(semAncora.body.invoices[0].cycle >= cicloCorrente).toBe(true);
+	});
+});

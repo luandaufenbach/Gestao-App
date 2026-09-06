@@ -118,13 +118,15 @@ async function sumPaymentsByCycle(userId, cardId, cycles) {
 }
 
 /**
- * Lista as faturas mais recentes de um cartão.
+ * Lista faturas de um cartão, da mais nova para a mais antiga.
  *
  * @param {object} card - Documento do BankCard, com closingDay e dueDay.
- * @param {number} count - Quantos ciclos trazer, do mais novo para o mais antigo.
+ * @param {number} count - Quantos ciclos trazer.
+ * @param {Date|string} [reference] - Ciclo ("2026-11") ou data em que a lista
+ *   termina. Padrão: hoje.
  */
-async function listInvoices(userId, card, count = 6) {
-	const ranges = recentCycles(card, count);
+async function listInvoices(userId, card, count = 6, reference = new Date()) {
+	const ranges = recentCycles(card, count, reference);
 	const cycles = ranges.map((range) => range.cycle);
 
 	const [purchases, payments] = await Promise.all([
