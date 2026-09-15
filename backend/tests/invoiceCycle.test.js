@@ -3,6 +3,7 @@ import {
 	cycleForPurchase,
 	cycleRange,
 	recentCycles,
+	cycleForMonth,
 	cycleLabel,
 } from "../src/utils/invoiceCycle.js";
 
@@ -129,6 +130,38 @@ describe("recentCycles", () => {
 		const cycles = recentCycles(CARD, 3, at("2027-01-10"));
 
 		expect(cycles.map((c) => c.cycle)).toEqual(["2027-02", "2027-01", "2026-12"]);
+	});
+
+	it("em 15/09 começa pela fatura de outubro, a que vence em 05/10", () => {
+		/**
+		 * Cenário relatado: em setembro, a fatura que recebe as compras do mês é
+		 * a de outubro. A de setembro fechou em 01/09 (compras de agosto) e já
+		 * venceu em 05/09 — não é mais a próxima a pagar.
+		 */
+		const cycles = recentCycles(CARD, 3, at("2026-09-15"));
+
+		expect(cycles.map((c) => c.cycle)).toEqual(["2026-10", "2026-09", "2026-08"]);
+		expect(cycles[0].dueDate.toISOString().slice(0, 10)).toBe("2026-10-05");
+	});
+});
+
+describe("cycleForMonth — qual fatura recebe as compras do mês", () => {
+	it("cartão que fecha 01: as compras de setembro vão para a fatura de outubro", () => {
+		expect(cycleForMonth(2026, 9, CARD)).toBe("2026-10");
+	});
+
+	it("cartão que fecha 28 e vence 05: setembro também cai em outubro", () => {
+		// Fecha 28/09 e vence 05/10 — quase todo o mês está nesse ciclo.
+		expect(cycleForMonth(2026, 9, CARD_28_05)).toBe("2026-10");
+	});
+
+	it("vencimento no mesmo mês do fechamento: o mês fica com a própria fatura", () => {
+		// Fecha 20/09 e vence 27/09: as compras de 01 a 20 são desta fatura.
+		expect(cycleForMonth(2026, 9, { closingDay: 20, dueDay: 27 })).toBe("2026-09");
+	});
+
+	it("dezembro atravessa a virada de ano", () => {
+		expect(cycleForMonth(2026, 12, CARD)).toBe("2027-01");
 	});
 });
 

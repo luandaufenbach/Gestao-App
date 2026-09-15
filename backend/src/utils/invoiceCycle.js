@@ -169,8 +169,31 @@ function cycleLabel(cycle) {
 	return `${MONTH_NAMES[parsed.monthIndex]} de ${parsed.year}`;
 }
 
+/**
+ * Qual fatura recebe as compras de um mês do calendário?
+ *
+ * Não é a fatura com o mesmo nome: o ciclo é nomeado pelo mês do VENCIMENTO.
+ * Num cartão que fecha dia 01 e vence dia 05, as compras de setembro vão para a
+ * fatura que vence em 05/10 — a "de outubro". A "de setembro" guarda as de agosto.
+ *
+ * Um mês quase sempre se divide entre dois ciclos, antes e depois do
+ * fechamento. Vale o que cobre a maior parte dele, que é o ciclo do dia do
+ * meio: é onde cai a maioria das compras daquele mês.
+ *
+ * @param {number} year
+ * @param {number} month - 1 a 12
+ * @returns {string} Chave do ciclo, ex. "2026-10".
+ */
+function cycleForMonth(year, month, card) {
+	const monthIndex = month - 1;
+	const middleDay = Math.ceil(lastDayOfMonth(year, monthIndex) / 2);
+
+	return cycleForPurchase(new Date(Date.UTC(year, monthIndex, middleDay)), card).cycle;
+}
+
 module.exports = {
 	cycleForPurchase,
+	cycleForMonth,
 	cycleRange,
 	recentCycles,
 	toCycleKey,

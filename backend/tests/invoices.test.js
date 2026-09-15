@@ -400,7 +400,11 @@ describe("validações", () => {
 describe("lista ancorada em um mês", () => {
 	const listarEm = (year, month) =>
 		user
-			.auth(request(app).get(`/bank-cards/${cardId}/invoices?limit=6&year=${year}&month=${month}`))
+			.auth(
+				request(app).get(
+					`/bank-cards/${cardId}/invoices?limit=6&year=${year}&month=${month}`
+				)
+			)
 			.expect(200);
 
 	/** Compra de R$ 1.000 em 5x, feita em agosto: R$ 200 por mês. */
@@ -418,11 +422,33 @@ describe("lista ancorada em um mês", () => {
 			})
 			.expect(201);
 
-	it("a lista começa no mês pedido e desce para os anteriores", async () => {
+	it("a lista começa na fatura que recebe as compras do mês pedido", async () => {
+		// Compras de novembro fecham em 01/12 e vencem em 05/12: fatura de dezembro.
 		const resposta = await listarEm(2026, 11);
 		const ciclos = resposta.body.invoices.map((invoice) => invoice.cycle);
 
-		expect(ciclos.slice(0, 4)).toEqual(["2026-11", "2026-10", "2026-09", "2026-08"]);
+		expect(ciclos.slice(0, 4)).toEqual(["2026-12", "2026-11", "2026-10", "2026-09"]);
+	});
+
+	/**
+	 * Regressão do bug relatado: com setembro selecionado, o card listava
+	 * julho, agosto e setembro. A âncora era o nome do próprio mês, mas a fatura
+	 * é nomeada pelo VENCIMENTO — a "de setembro" vence em 05/09 e guarda as
+	 * compras de agosto. As compras de setembro estão na fatura de outubro.
+	 */
+	it("em setembro, começa pela fatura de outubro, que recebe as compras do mês", async () => {
+		await comprar(30_000, "2026-08-20", "Compra de agosto");
+		await comprar(10_000, "2026-09-10", "Compra de setembro");
+
+		const resposta = await listarEm(2026, 9);
+		const [primeira, segunda] = resposta.body.invoices;
+
+		expect(primeira.cycle).toBe("2026-10");
+		expect(primeira.totalInCents).toBe(10_000);
+		expect(primeira.dueDate.slice(0, 10)).toBe("2026-10-05");
+
+		expect(segunda.cycle).toBe("2026-09");
+		expect(segunda.totalInCents).toBe(30_000);
 	});
 
 	it("a fatura de um mês futuro já traz a parcela daquele mês", async () => {

@@ -3,20 +3,61 @@ const Transaction = require("../models/Transaction");
 const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const { listInvoices, getInvoiceDetail } = require("../services/invoiceService");
+const { cycleForMonth } = require("../utils/invoiceCycle");
 
+/**
+ * Favorito primeiro, depois os mais recentes.
+ *
+ * A ordem sai do backend para que toda tela que lista cartões concorde sobre
+ * qual é o primeiro — o card de Faturas e o formulário de transação usam essa
+ * posição para escolher o cartão pré-selecionado.
+ */
 const listBankCards = asyncHandler(async (req, res) => {
-	const cards = await BankCard.find({ user: req.userId }).sort({ createdAt: -1 }).lean();
+	const cards = await BankCard.find({ user: req.userId })
+		.sort({ starred: -1, createdAt: -1 })
+		.lean();
 
 	return res.json(cards);
 });
 
+/**
+ * Tira a estrela dos demais cartões do usuário.
+ *
+ * Precisa rodar ANTES de gravar o novo favorito: o índice único parcial aceita
+ * um só `starred: true` por usuário, então gravar primeiro violaria o índice.
+ */
+async function clearOtherFavorites(userId, exceptCardId = null) {
+	const filter = { user: userId, starred: true };
+	if (exceptCardId) filter._id = { $ne: exceptCardId };
+
+	await BankCard.updateMany(filter, { $set: { starred: false } });
+}
+
 const createBankCard = asyncHandler(async (req, res) => {
+	if (req.body.starred === true) {
+		await clearOtherFavorites(req.userId);
+	}
+
 	const created = await BankCard.create({ ...req.body, user: req.userId });
 
 	return res.status(201).json(created);
 });
 
 const updateBankCard = asyncHandler(async (req, res) => {
+	if (req.body.starred === true) {
+		/**
+		 * A posse é conferida antes de mexer nos outros cartões. Sem isso, um
+		 * PATCH num id alheio desmarcaria o favorito do próprio usuário e só
+		 * depois responderia 404 — efeito colateral de uma requisição recusada.
+		 */
+		const owned = await BankCard.exists({ _id: req.params.id, user: req.userId });
+		if (!owned) {
+			throw AppError.notFound("Cartão não encontrado");
+		}
+
+		await clearOtherFavorites(req.userId, req.params.id);
+	}
+
 	const updated = await BankCard.findOneAndUpdate(
 		{ _id: req.params.id, user: req.userId },
 		req.body,
@@ -73,12 +114,16 @@ const listInvoicesForCard = asyncHandler(async (req, res) => {
 	const { limit, year, month } = req.validatedQuery;
 
 	/**
-	 * Com year e month, a lista termina naquele mês — é o que faz o card
-	 * acompanhar a navegação do dashboard em vez de ficar preso em hoje.
-	 * O ciclo é nomeado pelo ano-mês do VENCIMENTO (ver models/Transaction).
+	 * Com year e month, a lista começa na fatura que recebe as compras daquele
+	 * mês — é o que faz o card acompanhar a navegação do dashboard.
+	 *
+	 * BUG CORRIGIDO: a âncora era a string "AAAA-MM" do próprio mês. Como o
+	 * ciclo é nomeado pelo mês do VENCIMENTO, selecionar setembro mostrava a
+	 * fatura que vence em 05/09, que guarda as compras de agosto. A lista saía
+	 * julho, agosto e setembro, e a fatura das compras de setembro — outubro —
+	 * ficava de fora.
 	 */
-	const reference =
-		year && month ? `${year}-${String(month).padStart(2, "0")}` : new Date();
+	const reference = year && month ? cycleForMonth(year, month, card) : new Date();
 
 	const invoices = await listInvoices(req.userId, card, limit ?? 6, reference);
 
