@@ -61,7 +61,7 @@
     >
       <option value="">Selecione o cartão</option>
       <option v-for="card in creditCards" :key="card._id" :value="card._id">
-        {{ card.bank || card.name }}
+        {{ card.starred ? "★ " : "" }}{{ card.bank || card.name }}
         <template v-if="card.lastFourDigits">· {{ card.lastFourDigits }}</template>
       </option>
     </select>
@@ -195,14 +195,23 @@ const { creditCards, load: loadCards } = useBankCards();
 onMounted(loadCards);
 
 /**
- * Com um cartão só, escolher não é decisão — é digitação. Seleciona sozinho,
- * e o campo continua visível para deixar claro onde a compra foi lançada.
+ * Pré-seleciona o cartão quando a escolha é previsível: o favorito, ou o único
+ * cartão de crédito. Com vários e nenhum favorito o campo fica em branco —
+ * chutar o primeiro lançaria compras no cartão errado sem ninguém perceber.
+ *
+ * Só age com o campo vazio, então nunca sobrescreve o cartão de uma transação
+ * aberta para edição.
  */
 watch(
   [requiresBankCard, creditCards],
   () => {
-    if (requiresBankCard.value && !bankCardId.value && creditCards.value.length === 1) {
-      bankCardId.value = creditCards.value[0]._id;
+    if (!requiresBankCard.value || bankCardId.value) return;
+
+    const favorite = creditCards.value.find((card) => card.starred);
+    const suggestion = favorite ?? (creditCards.value.length === 1 ? creditCards.value[0] : null);
+
+    if (suggestion) {
+      bankCardId.value = suggestion._id;
     }
   },
   { immediate: true }

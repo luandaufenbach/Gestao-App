@@ -46,6 +46,7 @@ export const deleteGoal = (id) => http.delete(`/goals/${id}`);
 // ── Bank Cards ────────────────────────────────────────────────
 export const getBankCards = () => http.get("/bank-cards");
 export const createBankCard = (card) => http.post("/bank-cards", card);
+export const updateBankCard = (id, card) => http.patch(`/bank-cards/${id}`, card);
 export const deleteBankCard = (id) => http.delete(`/bank-cards/${id}`);
 
 // ── Faturas ───────────────────────────────────────────────────
@@ -53,8 +54,9 @@ export const deleteBankCard = (id) => http.delete(`/bank-cards/${id}`);
 /**
  * Faturas recentes de um cartão.
  *
- * year/month ancoram a lista: a fatura daquele mês vem primeiro, seguida das
- * anteriores. Sem eles, a âncora é o mês corrente.
+ * year/month ancoram a lista: vem primeiro a fatura que recebe as compras
+ * daquele mês — num cartão que fecha dia 01, as de setembro estão na fatura de
+ * outubro —, seguida das anteriores. Sem eles, a âncora é o mês corrente.
  */
 export const getCardInvoices = (cardId, { limit = 6, year, month } = {}) =>
 	http.get(`/bank-cards/${cardId}/invoices`, { params: { limit, year, month } });

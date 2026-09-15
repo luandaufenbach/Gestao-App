@@ -79,6 +79,15 @@ const BankCardSchema = new mongoose.Schema(
 			maxlength: 60,
 			default: "",
 		},
+
+		/**
+		 * Cartão favorito: o que vem selecionado no card de Faturas e no
+		 * formulário de transação. No máximo um por usuário — ver o índice abaixo.
+		 */
+		starred: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{ timestamps: true }
 );
@@ -100,6 +109,19 @@ BankCardSchema.methods.hasInvoiceCycle = function hasInvoiceCycle() {
 
 // Listagem dos cartões do usuário (A4).
 BankCardSchema.index({ user: 1, createdAt: -1 });
+
+/**
+ * Um único favorito por usuário, garantido pelo banco.
+ *
+ * Se a regra vivesse só no controller, duas requisições simultâneas marcando
+ * cartões diferentes terminariam com dois favoritos. Com o índice único parcial
+ * — que só considera os documentos com `starred: true` —, a segunda falha com
+ * 409 em vez de deixar o dado inconsistente.
+ */
+BankCardSchema.index(
+	{ user: 1 },
+	{ unique: true, partialFilterExpression: { starred: true }, name: "one_starred_per_user" }
+);
 
 module.exports = mongoose.model("BankCard", BankCardSchema);
 module.exports.CARD_TYPES = CARD_TYPES;

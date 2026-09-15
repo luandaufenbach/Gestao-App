@@ -4,8 +4,8 @@
       <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">Faturas</span>
 
       <!--
-        Seletor de cartão. Com um cartão só ele fica escondido; a estrutura já
-        está pronta para quando houver mais de um.
+        Seletor de cartão. Com um cartão só ele fica escondido. O favorito vem
+        primeiro e marcado com estrela, e é o selecionado por padrão.
       -->
       <select
         v-if="creditCards.length > 1"
@@ -14,7 +14,7 @@
         class="text-xs rounded-lg border border-slate-200 px-2 py-1 text-slate-600 cursor-pointer"
       >
         <option v-for="card in creditCards" :key="card._id" :value="card._id">
-          {{ card.bank || card.name }}
+          {{ card.starred ? "★ " : "" }}{{ card.bank || card.name }}
         </option>
       </select>
       <span v-else-if="currentCard" class="text-xs font-medium text-slate-500">
@@ -142,6 +142,9 @@ const currentCard = computed(
   () => creditCards.value.find((card) => card._id === selectedCardId.value) ?? null
 );
 
+/** O favorito entre os cartões de crédito, se houver. */
+const favoriteCardId = computed(() => creditCards.value.find((card) => card.starred)?._id ?? "");
+
 /** O cartão existe mas ainda não tem os dias de fechamento/vencimento. */
 const needsCycleSetup = computed(
   () => Boolean(currentCard.value) && (!currentCard.value.closingDay || !currentCard.value.dueDay)
@@ -194,8 +197,9 @@ function datesLabel(invoice) {
 async function loadCards() {
   await loadBankCards();
 
-  if (!selectedCardId.value && creditCards.value.length > 0) {
-    selectedCardId.value = creditCards.value[0]._id;
+  // Mantém a escolha enquanto o cartão existir; senão, o favorito ou o primeiro.
+  if (!currentCard.value && creditCards.value.length > 0) {
+    selectedCardId.value = favoriteCardId.value || creditCards.value[0]._id;
   }
 }
 
@@ -231,6 +235,14 @@ async function refetch() {
     loading.value = false;
   }
 }
+
+/**
+ * Marcar a estrela em outro cartão troca as faturas exibidas na hora, sem
+ * precisar mexer no seletor: o favorito é, por definição, o que se quer ver.
+ */
+watch(favoriteCardId, (id) => {
+  if (id) selectedCardId.value = id;
+});
 
 watch(selectedCardId, loadInvoices);
 watch(() => [props.year, props.month], loadInvoices);

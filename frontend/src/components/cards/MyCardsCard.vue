@@ -13,9 +13,28 @@
           <span class="text-xs font-semibold opacity-80 uppercase tracking-wide">
             {{ card.bank || card.name }}
           </span>
-          <span class="text-xs font-medium opacity-70">
-            {{ card.type === "credit" ? "Crédito" : "Débito" }}
-          </span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium opacity-70">
+              {{ card.type === "credit" ? "Crédito" : "Débito" }}
+            </span>
+            <!--
+              Favorito: o cartão que vem selecionado no card de Faturas e no
+              formulário de transação. Um por vez — marcar outro troca.
+            -->
+            <button
+              type="button"
+              class="-m-1 p-1 rounded-md transition-colors cursor-pointer disabled:opacity-50"
+              :class="card.starred ? 'text-amber-300' : 'text-white/40 hover:text-white/80'"
+              :aria-pressed="Boolean(card.starred)"
+              :aria-label="card.starred ? 'Remover dos favoritos' : 'Marcar como favorito'"
+              :title="card.starred ? 'Cartão favorito' : 'Marcar como favorito'"
+              :disabled="starringId === card._id"
+              @click="toggleStar(card)"
+            >
+              <StarSolidIcon v-if="card.starred" class="h-4 w-4" aria-hidden="true" />
+              <StarOutlineIcon v-else class="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <p class="font-mono text-sm tracking-widest opacity-90">
           •••• •••• •••• {{ card.lastFourDigits }}
@@ -46,7 +65,8 @@
       class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 text-slate-400 hover:border-green-400 hover:text-green-600 rounded-xl py-2.5 text-sm font-medium transition-colors cursor-pointer"
       @click="toggleForm"
     >
-      <span>+</span> Adicionar cartão
+      <PlusIcon class="h-4 w-4" aria-hidden="true" />
+      Adicionar cartão
     </button>
 
     <form
@@ -160,6 +180,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from "vue";
+import { PlusIcon, StarIcon as StarSolidIcon } from "@heroicons/vue/20/solid";
+import { StarIcon as StarOutlineIcon } from "@heroicons/vue/24/outline";
 import { useBankCards } from "@/stores/bankCards";
 import { useDeleteConfirmation } from "@/services/useDeleteConfirmation";
 import ConfirmDialog from "../ConfirmDialog.vue";
@@ -179,6 +201,7 @@ const {
   error,
   load: loadBankCards,
   create: createNew,
+  setStarred,
   remove,
 } = useBankCards();
 const deleteConfirmation = useDeleteConfirmation(remove);
@@ -186,6 +209,9 @@ const deleteConfirmation = useDeleteConfirmation(remove);
 const showForm = ref(false);
 const saving = ref(false);
 const errorMessage = ref("");
+
+/** Id do cartão com a estrela sendo salva, para travar cliques repetidos. */
+const starringId = ref(null);
 
 const form = reactive({
   name: "",
@@ -210,6 +236,19 @@ function resetForm() {
 function toggleForm() {
   showForm.value = !showForm.value;
   errorMessage.value = "";
+}
+
+async function toggleStar(card) {
+  errorMessage.value = "";
+  starringId.value = card._id;
+
+  try {
+    await setStarred(card._id, !card.starred);
+  } catch (err) {
+    errorMessage.value = err.displayMessage ?? "Erro ao atualizar o cartão favorito.";
+  } finally {
+    starringId.value = null;
+  }
 }
 
 async function saveCard() {

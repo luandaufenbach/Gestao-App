@@ -60,6 +60,8 @@ const bankCardFields = z
 		bank: z.string().trim().max(60).optional(),
 		closingDay: dayOfMonth.nullish(),
 		dueDay: dayOfMonth.nullish(),
+		/** Favorito. Marcar um cartão desmarca os demais (ver bankCardController). */
+		starred: z.boolean().optional(),
 	})
 	.strict();
 
