@@ -60,9 +60,10 @@
           @click="showCategoryModal = true"
         >
           <span
-            class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-lime-300 text-sm leading-none"
-            >+</span
+            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
           >
+            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
           Criar categoria
         </button>
 
@@ -72,9 +73,10 @@
           @click="showModal = true"
         >
           <span
-            class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-lime-300 text-sm leading-none"
-            >+</span
+            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
           >
+            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
           Nova transação
         </button>
       </div>
@@ -147,6 +149,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
+import { PlusIcon } from "@heroicons/vue/20/solid";
 import Navbar from "../components/navbar.vue";
 import AppTabs from "../components/AppTabs.vue";
 import TransactionRow from "../components/TransactionRow.vue";

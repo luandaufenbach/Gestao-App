@@ -43,10 +43,16 @@
           class="group ml-auto inline-flex h-9 w-9 items-center justify-center gap-2 rounded-full border border-lime-300 bg-lime-400 text-slate-900 font-semibold shadow-sm transition-all hover:bg-lime-300 hover:border-lime-200 cursor-pointer sm:h-auto sm:w-auto sm:px-5 sm:py-2"
           @click="showModal = true"
         >
+          <!--
+            Ícone SVG em vez do caractere "+": o glifo de texto é desenhado em
+            relação à linha de base da fonte, não ao centro da caixa, e por
+            isso ficava deslocado dentro do círculo.
+          -->
           <span
-            class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-lime-300 text-sm leading-none"
-            >+</span
+            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
           >
+            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
           <span class="hidden sm:inline">Nova transação</span>
         </button>
       </div>
@@ -123,6 +129,7 @@
 
 <script setup>
 import { ref, useTemplateRef } from "vue";
+import { PlusIcon } from "@heroicons/vue/20/solid";
 import Navbar from "../components/navbar.vue";
 import AppTabs from "../components/AppTabs.vue";
 import MonthlyBalanceCard from "../components/cards/MonthlyBalanceCard.vue";

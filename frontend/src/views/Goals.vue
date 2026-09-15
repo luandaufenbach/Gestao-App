@@ -15,9 +15,10 @@
           @click="openCreate"
         >
           <span
-            class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-lime-300 text-sm leading-none"
-            >+</span
+            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
           >
+            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
           Nova meta
         </button>
       </div>
@@ -45,24 +46,30 @@
             >
               {{ goal.name }}
             </span>
-            <div class="flex items-center gap-2 text-slate-400 shrink-0">
+
+            <!--
+              Mesmos botões da lista de transações: ícone vazado numa área de
+              clique de 32px. As margens negativas encostam os botões no canto
+              do card, para que os 32px não aumentem a altura do cabeçalho.
+            -->
+            <div class="flex items-center shrink-0 -mt-1.5 -mr-1.5">
               <button
                 type="button"
                 title="Editar"
                 aria-label="Editar meta"
-                class="hover:text-slate-600 transition-colors cursor-pointer"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
                 @click="startEdit(goal)"
               >
-                <PencilIcon class="w-4 h-4" />
+                <PencilSquareIcon class="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 title="Excluir"
                 aria-label="Excluir meta"
-                class="hover:text-red-500 transition-colors cursor-pointer"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                 @click="deleteConfirmation.open(goal._id)"
               >
-                <TrashIcon class="w-4 h-4" />
+                <TrashIcon class="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -213,8 +220,9 @@
 </template>
 
 <script setup>
-import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import { onMounted, reactive, ref } from "vue";
+import { PlusIcon } from "@heroicons/vue/20/solid";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import Navbar from "../components/navbar.vue";
 import AppTabs from "../components/AppTabs.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";

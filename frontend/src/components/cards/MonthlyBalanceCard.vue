@@ -5,9 +5,12 @@
     <template #footer>
       <!--
         A composição fica visível de propósito: o saldo é o DISPONÍVEL, e
-        entender de onde ele vem exige ver as parcelas. Compras no crédito
-        aparecem à parte, marcadas como "não sai agora", porque elas não
-        afetam este número — só afetam quando a fatura é paga.
+        entender de onde ele vem exige ver as parcelas.
+
+        Compras no crédito ficam de fora: não mexem neste número até a fatura
+        ser paga, e o card de Faturas já mostra quanto está acumulado no
+        cartão. Repetir o valor aqui com uma nota dizendo que ele não conta era
+        mais ruído do que informação.
       -->
       <dl class="space-y-0.5 text-xs">
         <div v-for="line in lines" :key="line.label" class="flex justify-between text-slate-500">
@@ -17,14 +20,6 @@
           </dd>
         </div>
       </dl>
-
-      <div v-if="creditExpense > 0" class="mt-1.5 pt-1.5 border-t border-slate-100 space-y-0.5">
-        <div class="flex justify-between text-xs text-slate-400">
-          <dt>Compras no crédito</dt>
-          <dd class="font-medium">{{ formatCurrency(creditExpense) }}</dd>
-        </div>
-        <p class="text-[11px] text-slate-400">Não sai agora — entra na fatura do cartão.</p>
-      </div>
 
       <p
         v-if="showNetResult"
@@ -67,7 +62,6 @@ const { data: summary, refetch } = useCardFetch(props, getMonthlyBalance, null, 
 const field = (name) => computed(() => summary.value?.[name] ?? 0);
 
 const balanceInCents = field("balanceInCents");
-const creditExpense = field("creditExpenseInCents");
 const netResult = field("netResultInCents");
 
 /**
