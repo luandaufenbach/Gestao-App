@@ -43,6 +43,22 @@ fatura cada uma cai. Falta consulta e tela.
 
 ---
 
+## Fase 1.5 — Design system
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 1.3 | Tokens, fontes e ícones do design system | Tokens CSS e fontes locais carregando; um componente base migrado | `design-system` |
+| 1.4 | Telas migradas, uma a uma | Nenhuma tela mistura o visual antigo com o novo | `design-system` |
+
+A skill `gestaoapp-design` está em `.claude/skills/gestaoapp-design/`. Os componentes
+dela são React; o projeto é Vue — o trabalho é portar padrão, não copiar arquivo.
+
+Não bloqueia a Fase 0: cold start, recuperação de senha e monitoramento valem mais que
+aparência. Mas vale **antes** de ligar o paywall — a tela de pagamento é onde o visual
+vira conversão ou desistência.
+
+---
+
 ## Fase 2 — Monetização
 
 | # | Item | Aceite | Agente |
