@@ -75,9 +75,14 @@ export function useFormatters() {
 		return INFLOW_TYPES.includes(type);
 	}
 
-	function amountColor(type) {
-		return isInflow(type) ? "text-emerald-600" : "text-red-500";
-	}
+	/*
+	 * `amountColor` morava aqui e devolvia as classes `text-emerald-600` e
+	 * `text-red-500` do Tailwind. Saiu na ETAPA 1.4: o último consumidor era o
+	 * `TransactionRow`, que passou a resolver a cor por token
+	 * (`--feedback-success` / `--feedback-danger`) no próprio CSS. Uma função
+	 * de formatação devolvendo nome de classe de framework também era o lugar
+	 * errado para uma decisão de cor.
+	 */
 
 	/** "+" ou "−", conforme o efeito no saldo. */
 	function amountSign(type) {
@@ -144,7 +149,6 @@ export function useFormatters() {
 		formatCurrency,
 		formatDate,
 		formatDateForInput,
-		amountColor,
 		amountSign,
 		isInflow,
 		formatType,

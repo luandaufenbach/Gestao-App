@@ -1,84 +1,74 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="tx">
     <Navbar />
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <main class="tx__main">
       <AppTabs />
 
-      <div class="flex flex-wrap items-center gap-2">
-        <select
-          v-model.number="selectedMonth"
-          aria-label="Mês"
-          class="flex-1 min-w-32 sm:flex-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-700 shadow-sm cursor-pointer capitalize"
-        >
-          <option v-for="m in 12" :key="m" :value="m">{{ MONTH_NAMES[m - 1] }}</option>
-        </select>
+      <div class="tx__bar">
+        <div class="tx__filters">
+          <GaField v-slot="{ id }" select>
+            <select :id="id" v-model.number="selectedMonth" aria-label="Mês" class="tx__month">
+              <option v-for="m in 12" :key="m" :value="m">{{ MONTH_NAMES[m - 1] }}</option>
+            </select>
+          </GaField>
 
-        <select
-          v-model.number="selectedYear"
-          aria-label="Ano"
-          class="flex-1 min-w-32 sm:flex-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-700 shadow-sm cursor-pointer"
-        >
-          <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-        </select>
+          <GaField v-slot="{ id }" select>
+            <select :id="id" v-model.number="selectedYear" aria-label="Ano">
+              <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </GaField>
 
-        <select
-          v-model="typeFilter"
-          aria-label="Tipo"
-          class="flex-1 min-w-32 sm:flex-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-700 shadow-sm cursor-pointer"
-        >
-          <option value="all">Todos os tipos</option>
-          <option value="income">Receita</option>
-          <option value="debit">Débito</option>
-          <option value="credit">Crédito</option>
-          <option value="savings">Guardado</option>
-          <option value="withdrawal">Resgate</option>
-          <option value="invoice_payment">Fatura paga</option>
-        </select>
+          <GaField v-slot="{ id }" select>
+            <select :id="id" v-model="typeFilter" aria-label="Tipo">
+              <option value="all">Todos os tipos</option>
+              <option value="income">Receita</option>
+              <option value="debit">Débito</option>
+              <option value="credit">Crédito</option>
+              <option value="savings">Guardado</option>
+              <option value="withdrawal">Resgate</option>
+              <option value="invoice_payment">Fatura paga</option>
+            </select>
+          </GaField>
 
-        <select
-          v-model="categoryFilter"
-          aria-label="Categoria"
-          class="flex-1 min-w-32 sm:flex-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-700 shadow-sm cursor-pointer"
-        >
-          <option value="all">Todas as categorias</option>
-          <!--
-            BUG CORRIGIDO (M6): a opção "sem categoria" não existia. O filtro
-            comparava (t.category || "outros") com o nome da categoria, mas
-            "outros" nunca aparecia na lista de opções, então transações sem
-            categoria eram impossíveis de filtrar.
-          -->
-          <option value="none">Sem categoria</option>
-          <option v-for="cat in categories" :key="cat._id" :value="cat._id">
-            {{ cat.name }}
-          </option>
-        </select>
+          <GaField v-slot="{ id }" select>
+            <select :id="id" v-model="categoryFilter" aria-label="Categoria">
+              <option value="all">Todas as categorias</option>
+              <!--
+                BUG CORRIGIDO (M6): a opção "sem categoria" não existia. O filtro
+                comparava (t.category || "outros") com o nome da categoria, mas
+                "outros" nunca aparecia na lista de opções, então transações sem
+                categoria eram impossíveis de filtrar.
+              -->
+              <option value="none">Sem categoria</option>
+              <option v-for="cat in categories" :key="cat._id" :value="cat._id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </GaField>
+        </div>
 
-        <button
-          type="button"
-          class="flex-1 sm:flex-none sm:ml-auto inline-flex items-center justify-center gap-2 rounded-full border border-lime-300 bg-lime-400 px-5 py-2 text-slate-900 font-semibold shadow-sm transition-all hover:bg-lime-300 hover:border-lime-200 cursor-pointer"
-          @click="showCategoryModal = true"
-        >
-          <span
-            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
-          >
-            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
-          </span>
-          Criar categoria
-        </button>
+        <!--
+          Uma ação principal por tela, como a skill pede: lançar uma transação é
+          o que se vem fazer aqui, então ela fica no primário cobalt. Criar
+          categoria é apoio e vai na variante `secondary` — antes os dois
+          botões eram iguais, `bg-lime-400`, e disputavam a mesma atenção.
+        -->
+        <div class="tx__actions">
+          <GaButton variant="secondary" @click="showCategoryModal = true">
+            <template #icon>
+              <GaIcon name="tag" />
+            </template>
+            Criar categoria
+          </GaButton>
 
-        <button
-          type="button"
-          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full border border-lime-300 bg-lime-400 px-5 py-2 text-slate-900 font-semibold shadow-sm transition-all hover:bg-lime-300 hover:border-lime-200 cursor-pointer"
-          @click="showModal = true"
-        >
-          <span
-            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
-          >
-            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
-          </span>
-          Nova transação
-        </button>
+          <GaButton variant="primary" @click="showModal = true">
+            <template #icon>
+              <GaIcon name="plus" />
+            </template>
+            Nova transação
+          </GaButton>
+        </div>
       </div>
 
       <!--
@@ -87,27 +77,21 @@
         branco de px-5 py-4 com texto text-xl e valor text-3xl: a mesma
         informação do dashboard ocupando o triplo da altura.
       -->
-      <section
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-5 flex flex-col gap-4"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Transações
-          </span>
-          <span class="text-xs font-semibold text-slate-400">
-            {{ filteredTransactions.length }}
-          </span>
+      <section class="tx__list">
+        <div class="tx__listHead">
+          <span class="tx__label">Transações</span>
+          <span class="tx__total">{{ filteredTransactions.length }}</span>
         </div>
 
-        <p v-if="loading" class="text-sm text-slate-400 text-center py-4">Carregando...</p>
+        <p v-if="loading" class="tx__state">Carregando...</p>
 
-        <p v-else-if="error" class="text-sm text-red-600 text-center py-4">{{ error }}</p>
+        <p v-else-if="error" class="tx__state tx__state--error">{{ error }}</p>
 
-        <p v-else-if="!filteredTransactions.length" class="text-sm text-slate-400 text-center py-4">
+        <p v-else-if="!filteredTransactions.length" class="tx__state">
           Nenhuma transação para os filtros selecionados.
         </p>
 
-        <ul v-else class="flex flex-col gap-2">
+        <ul v-else class="tx__items">
           <TransactionRow
             v-for="t in filteredTransactions"
             :key="t._id"
@@ -148,8 +132,30 @@
 </template>
 
 <script setup>
+/**
+ * Transações.
+ *
+ * MIGRADA para o design system gestaoApp (ROADMAP 1.4). Nenhuma requisição,
+ * nenhum estado e nenhum evento mudou; as linhas da lista já vinham do
+ * `TransactionRow` migrado na primeira metade da etapa, e agora o chrome em
+ * volta delas combina com elas. O que mudou de significado:
+ *
+ * - Os DOIS botões eram `bg-lime-400` com um círculo escuro em volta do "+",
+ *   iguais entre si. A skill reserva o primário para UMA ação por tela: lançar
+ *   transação é a ação da tela, criar categoria é apoio. Primário cobalt e
+ *   `secondary`, respectivamente.
+ * - Os quatro filtros eram `<select>` solto com `rounded-xl border-slate-200`.
+ *   Agora são o `.ga-input` do sistema, com a seta `chevron-down` desenhada
+ *   pelo próprio campo: a caixa usa `appearance: none`, que apaga a seta
+ *   nativa.
+ * - O `capitalize` do filtro de mês saiu. Ele maiusculiza cada palavra, e o
+ *   que se quer é só a primeira letra do nome do mês — `::first-letter` faz
+ *   isso sem tocar no resto.
+ */
 import { computed, onMounted, ref, watch } from "vue";
-import { PlusIcon } from "@heroicons/vue/20/solid";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaField from "@/design-system/components/GaField.vue";
+import GaIcon from "@/design-system/components/GaIcon.vue";
 import Navbar from "../components/navbar.vue";
 import AppTabs from "../components/AppTabs.vue";
 import TransactionRow from "../components/TransactionRow.vue";
@@ -234,3 +240,136 @@ watch([selectedYear, selectedMonth], () => {
   loadTransactions({ year: selectedYear.value, month: selectedMonth.value });
 });
 </script>
+
+<style scoped>
+.tx {
+	min-height: 100vh;
+	background: var(--bg-app);
+	color: var(--text-primary);
+}
+
+.tx__main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	max-width: var(--content-max);
+	margin: 0 auto;
+	padding: var(--space-6) var(--page-pad-mobile);
+}
+@media (min-width: 768px) {
+	.tx__main {
+		padding: var(--space-8) var(--page-pad);
+	}
+}
+
+/* ── Filtros e ações ───────────────────────────────────────────────────── */
+.tx__bar {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+@media (min-width: 1024px) {
+	.tx__bar {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+}
+
+/*
+ * Em 375px os quatro filtros vão dois por linha: um por linha deixaria a tela
+ * com quatro faixas de 44px antes da primeira transação, e em quatro colunas
+ * cada campo ficaria com 78px — menos que "Todas as categorias" precisa.
+ */
+.tx__filters {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-2);
+}
+@media (min-width: 640px) {
+	.tx__filters {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+@media (min-width: 1024px) {
+	.tx__filters {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.tx__filters > * {
+		width: 150px;
+	}
+}
+
+/*
+ * `::first-letter`, e não a classe `capitalize`: a lista é de nomes de mês de
+ * uma palavra hoje, mas `capitalize` maiusculiza CADA palavra e quebraria no
+ * dia em que o rótulo tiver duas.
+ */
+.tx__month::first-letter {
+	text-transform: uppercase;
+}
+
+.tx__actions {
+	display: flex;
+	gap: var(--space-2);
+}
+.tx__actions > * {
+	flex: 1;
+}
+@media (min-width: 1024px) {
+	.tx__actions > * {
+		flex: none;
+	}
+}
+
+/* ── Card da lista ─────────────────────────────────────────────────────── */
+/* `.ga-card` da skill, igual ao card de últimas transações do dashboard. */
+.tx__list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+	padding: var(--card-pad);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-xs);
+}
+
+.tx__listHead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+.tx__label,
+.tx__total {
+	font: var(--type-label);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+.tx__total {
+	font-variant-numeric: tabular-nums;
+}
+
+.tx__state {
+	padding: var(--space-4) 0;
+	text-align: center;
+	font: var(--type-small);
+	color: var(--text-tertiary);
+}
+.tx__state--error {
+	color: var(--feedback-danger);
+}
+
+.tx__items {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+</style>

@@ -1,48 +1,33 @@
 <template>
-  <div>
-    <label :for="`${uid}-type`" class="block text-sm font-medium text-slate-600 mb-1">Tipo</label>
-    <select
-      :id="`${uid}-type`"
-      v-model="type"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300 cursor-pointer"
-    >
+  <GaField v-slot="{ id }" label="Tipo" select>
+    <select :id="id" v-model="type">
       <option value="debit">Débito</option>
       <option value="credit">Crédito</option>
       <option value="income">Adicionar saldo</option>
       <option value="savings">Guardar valor</option>
       <option value="withdrawal">Resgatar guardado</option>
     </select>
-  </div>
+  </GaField>
 
-  <div>
-    <label :for="`${uid}-date`" class="block text-sm font-medium text-slate-600 mb-1">Data</label>
-    <input
-      :id="`${uid}-date`"
-      v-model="date"
-      type="date"
-      required
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300"
-    />
-  </div>
+  <GaField v-slot="{ id }" label="Data" variant="date">
+    <input :id="id" v-model="date" type="date" required />
+  </GaField>
 
-  <div v-if="requiresCategory">
-    <label :for="`${uid}-category`" class="block text-sm font-medium text-slate-600 mb-1"
-      >Categoria</label
-    >
-    <select
-      :id="`${uid}-category`"
-      v-model="categoryId"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300 cursor-pointer"
-    >
+  <GaField
+    v-if="requiresCategory"
+    v-slot="{ id }"
+    label="Categoria"
+    select
+    :hint="categoryHint"
+    :tone="categoryHint ? 'warning' : 'default'"
+  >
+    <select :id="id" v-model="categoryId">
       <option value="">Selecione uma categoria</option>
       <option v-for="category in categories" :key="category._id" :value="category._id">
         {{ category.name }}
       </option>
     </select>
-    <p v-if="!categories.length" class="text-xs text-amber-600 mt-1">
-      Nenhuma categoria cadastrada. Crie uma na tela de Transações.
-    </p>
-  </div>
+  </GaField>
 
   <!--
     BUG CORRIGIDO: este campo não existia.
@@ -52,94 +37,79 @@
     pelo cartão, as compras simplesmente não apareciam nela — sem erro, sem
     aviso, só um card de Faturas vazio.
   -->
-  <div v-if="requiresBankCard">
-    <label :for="`${uid}-card`" class="block text-sm font-medium text-slate-600 mb-1">Cartão</label>
-    <select
-      :id="`${uid}-card`"
-      v-model="bankCardId"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300 cursor-pointer"
-    >
+  <GaField
+    v-if="requiresBankCard"
+    v-slot="{ id }"
+    label="Cartão"
+    select
+    :hint="cardHint"
+    :tone="cardHint ? 'warning' : 'default'"
+  >
+    <select :id="id" v-model="bankCardId">
       <option value="">Selecione o cartão</option>
       <option v-for="card in creditCards" :key="card._id" :value="card._id">
         {{ card.starred ? "★ " : "" }}{{ card.bank || card.name }}
         <template v-if="card.lastFourDigits">· {{ card.lastFourDigits }}</template>
       </option>
     </select>
-    <p v-if="!creditCards.length" class="text-xs text-amber-600 mt-1">
-      Nenhum cartão de crédito cadastrado. Adicione um no Dashboard, em "Meus cartões".
-    </p>
-  </div>
+  </GaField>
 
   <!--
     Meta de destino da reserva. Opcional de propósito: o vínculo diz para onde
     o dinheiro foi, mas guardar sem objetivo continua sendo guardar — e o total
     da reserva é o mesmo com ou sem meta.
   -->
-  <div v-if="supportsGoal">
-    <label :for="`${uid}-goal`" class="block text-sm font-medium text-slate-600 mb-1">Meta</label>
-    <select
-      :id="`${uid}-goal`"
-      v-model="goalId"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300 cursor-pointer"
-    >
+  <GaField
+    v-if="supportsGoal"
+    v-slot="{ id }"
+    label="Meta"
+    select
+    :hint="goalHint"
+  >
+    <select :id="id" v-model="goalId">
       <option value="">{{ noGoalLabel }}</option>
       <option v-for="goal in goals" :key="goal._id" :value="goal._id">
         {{ goal.name }}
       </option>
     </select>
-    <p v-if="!goals.length" class="text-xs text-slate-400 mt-1">
-      Nenhuma meta cadastrada. O valor vai para a reserva geral.
-    </p>
-  </div>
+  </GaField>
 
-  <div v-if="supportsInstallments">
-    <label :for="`${uid}-installments`" class="block text-sm font-medium text-slate-600 mb-1">
-      Parcelas
-    </label>
+  <GaField
+    v-if="supportsInstallments"
+    v-slot="{ id }"
+    label="Parcelas"
+    variant="number"
+    :disabled="lockInstallments"
+    :hint="lockInstallments ? 'O número de parcelas não pode ser alterado após a criação.' : ''"
+  >
     <input
-      :id="`${uid}-installments`"
+      :id="id"
       v-model.number="installments"
       type="number"
       min="1"
       :max="MAX_INSTALLMENTS"
       :disabled="lockInstallments"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300 disabled:bg-slate-50 disabled:text-slate-400"
     />
-    <p v-if="lockInstallments" class="text-xs text-slate-400 mt-1">
-      O número de parcelas não pode ser alterado após a criação.
-    </p>
-  </div>
+  </GaField>
 
-  <div>
-    <label :for="`${uid}-amount`" class="block text-sm font-medium text-slate-600 mb-1">
-      {{ isInstallmentPurchase ? "Valor total da compra" : "Valor" }}
-    </label>
-    <input
-      :id="`${uid}-amount`"
-      v-model="amount"
-      type="number"
-      step="0.01"
-      min="0"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300"
-    />
-    <p v-if="isInstallmentPurchase && perInstallment" class="text-xs text-slate-500 mt-1">
-      {{ installments }}x de aproximadamente {{ perInstallment }}
-    </p>
-  </div>
+  <GaField
+    v-slot="{ id }"
+    :label="isInstallmentPurchase ? 'Valor total da compra' : 'Valor'"
+    variant="number"
+    :hint="installmentHint"
+  >
+    <input :id="id" v-model="amount" type="number" step="0.01" min="0" />
+  </GaField>
 
-  <div class="md:col-span-2">
-    <label :for="`${uid}-description`" class="block text-sm font-medium text-slate-600 mb-1">
-      Descrição
-    </label>
+  <GaField v-slot="{ id }" class="fields__wide" label="Descrição" variant="area">
     <textarea
-      :id="`${uid}-description`"
+      :id="id"
       v-model="description"
       rows="2"
       maxlength="200"
-      class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-lime-300"
       placeholder="Ex: Mercado da semana"
     ></textarea>
-  </div>
+  </GaField>
 </template>
 
 <script setup>
@@ -153,8 +123,26 @@
  *
  * O rótulo do valor muda conforme o contexto: em compra parcelada fica
  * explícito que se trata do VALOR TOTAL — o ponto exato onde nascia o bug C1.
+ *
+ * ── MIGRADO para o design system gestaoApp (ROADMAP 1.4) ─────────────────
+ *
+ * Os oito campos eram `<label>` + controle com `rounded-xl border-slate-200
+ * focus:ring-lime-300` repetido em cada um. Agora cada campo é um `GaField`:
+ * o rótulo, a caixa, o foco cobalt e a dica vêm do sistema, e o que sobra em
+ * cada bloco é só o controle e o que ele tem de próprio.
+ *
+ * As três dicas em `text-amber-600` ("nenhuma categoria cadastrada", "nenhum
+ * cartão cadastrado") viraram `tone="warning"`: laranja é o sinal de atenção
+ * do sistema, então continuam laranja — o que muda é que a cor agora vem de
+ * `--feedback-warning` e não de um degrau solto do Tailwind. A dica de meta
+ * ("o valor vai para a reserva geral") fica neutra, como era: ela não é aviso,
+ * é explicação do que vai acontecer.
+ *
+ * As duas dicas que já eram neutras — parcelas travadas e prévia do valor da
+ * parcela — continuam neutras.
  */
-import { computed, onMounted, useId, watch } from "vue";
+import { computed, onMounted, watch } from "vue";
+import GaField from "@/design-system/components/GaField.vue";
 import { useFormatters } from "../services/useFormatters";
 import { useGoals } from "../services/useGoals";
 import { useBankCards } from "../stores/bankCards";
@@ -240,7 +228,6 @@ const noGoalLabel = computed(() =>
   type.value === "withdrawal" ? "Da reserva geral" : "Sem meta — só guardar"
 );
 
-const uid = useId();
 const { formatCurrency, parseCurrencyToCents } = useFormatters();
 
 const isInstallmentPurchase = computed(
@@ -256,4 +243,46 @@ const perInstallment = computed(() => {
 
   return formatCurrency(Math.floor(totalCents / count));
 });
+
+/*
+ * As dicas ficam aqui, e não dentro do atributo: três delas têm aspas no meio
+ * do texto, e aspas dentro de atributo exigem escape que o Prettier reformata
+ * de um jeito diferente a cada passada. Texto longo em expressão de template
+ * também não é legível.
+ */
+
+/** Vazia quando há categoria; preenchida, o campo fica em tom de atenção. */
+const categoryHint = computed(() =>
+  props.categories.length ? "" : "Nenhuma categoria cadastrada. Crie uma na tela de Transações."
+);
+
+const cardHint = computed(() =>
+  creditCards.value.length
+    ? ""
+    : 'Nenhum cartão de crédito cadastrado. Adicione um no Dashboard, em "Meus cartões".'
+);
+
+/** Neutra: não é aviso, é o que vai acontecer com o valor. */
+const goalHint = computed(() =>
+  goals.value.length ? "" : "Nenhuma meta cadastrada. O valor vai para a reserva geral."
+);
+
+const installmentHint = computed(() =>
+  isInstallmentPurchase.value && perInstallment.value
+    ? `${installments.value}x de aproximadamente ${perInstallment.value}`
+    : ""
+);
 </script>
+
+<style scoped>
+/*
+ * A descrição ocupa a linha inteira da grade do formulário. A grade é do
+ * `<form>` do modal que usa estes campos; o `grid-column` é propriedade do
+ * ITEM, então mora aqui, junto do campo que ele afeta.
+ */
+@media (min-width: 640px) {
+	.fields__wide {
+		grid-column: 1 / -1;
+	}
+}
+</style>

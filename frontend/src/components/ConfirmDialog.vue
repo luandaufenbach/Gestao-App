@@ -2,34 +2,29 @@
   <Teleport to="body">
     <div
       v-if="open"
-      class="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4"
+      class="ga-dialog-wrap"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
       @click.self="emit('cancel')"
     >
-      <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
-        <h3 :id="titleId" class="text-lg font-bold text-slate-800 mb-2">{{ title }}</h3>
-        <p class="text-sm text-slate-500 mb-6">
-          <slot>{{ message }}</slot>
-        </p>
-        <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm transition-colors cursor-pointer"
-            @click="emit('cancel')"
-          >
-            {{ cancelLabel }}
-          </button>
-          <button
-            ref="confirmButton"
-            type="button"
-            :disabled="busy"
-            class="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 text-sm transition-colors disabled:opacity-60 cursor-pointer"
-            @click="emit('confirm')"
-          >
+      <div class="ga-dialog ga-dialog--danger">
+        <span class="ga-dialog__icon">
+          <GaIcon name="trash-2" :size="20" />
+        </span>
+
+        <div>
+          <h3 :id="titleId" class="ga-dialog__title">{{ title }}</h3>
+          <p class="ga-dialog__desc">
+            <slot>{{ message }}</slot>
+          </p>
+        </div>
+
+        <div class="ga-dialog__actions">
+          <GaButton variant="ghost" @click="emit('cancel')">{{ cancelLabel }}</GaButton>
+          <GaButton ref="confirmButton" variant="danger" :disabled="busy" @click="emit('confirm')">
             {{ busy ? "Aguarde..." : confirmLabel }}
-          </button>
+          </GaButton>
         </div>
       </div>
     </div>
@@ -46,8 +41,30 @@
  *
  * De quebra, a versão duplicada não tinha nenhum tratamento de acessibilidade:
  * sem role/aria, sem foco inicial e sem fechar no Esc.
+ *
+ * ── MIGRADO para o design system gestaoApp (ROADMAP 1.4) ─────────────────
+ *
+ * Este é o `Dialog` da skill, ponto por ponto, e não uma casca nova: o
+ * `.ga-dialog` com `tone="danger"` de `components/overlays/`. O que isso traz,
+ * e por que cada peça está aqui:
+ *
+ * - O quadradinho vermelho com a lixeira é o `.ga-dialog--danger
+ *   .ga-dialog__icon`. É ele que carrega o peso de "isto não volta atrás".
+ * - Os botões seguem o `Dialog.prompt.md` ao pé da letra: `ghost` no cancelar
+ *   e `danger` no confirmar. O `danger` do sistema é VAZADO — fio vermelho
+ *   sobre branco —, então o botão destrutivo ficou menos chamativo que o
+ *   `bg-red-600` de antes, não mais. A gravidade passou para o ícone, o título
+ *   e o texto, que é onde a skill a coloca.
+ *
+ * O `z-index` do `.ga-dialog-wrap` fica acima do dos modais, porque este
+ * diálogo abre por cima do modal de categorias (ver overlays.css).
+ *
+ * O comportamento é o mesmo de antes: Esc cancela, o foco vai para o botão de
+ * confirmar ao abrir, clicar fora cancela.
  */
 import { ref, watch, nextTick, useId } from "vue";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaIcon from "@/design-system/components/GaIcon.vue";
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -73,7 +90,13 @@ watch(
     if (isOpen) {
       window.addEventListener("keydown", onKeydown);
       await nextTick();
-      confirmButton.value?.focus();
+      /**
+       * `$el`, e não o próprio ref: `confirmButton` agora aponta para a
+       * INSTÂNCIA do GaButton, não para o `<button>` do DOM, e instância de
+       * componente não tem `.focus()`. `$el` é o elemento raiz dela, que é o
+       * botão.
+       */
+      confirmButton.value?.$el?.focus();
     } else {
       window.removeEventListener("keydown", onKeydown);
     }

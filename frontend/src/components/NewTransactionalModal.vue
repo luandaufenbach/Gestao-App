@@ -1,58 +1,45 @@
 <template>
-  <div
-    class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="new-transaction-title"
-    @click.self="closeModal"
-  >
-    <div
-      class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto"
-    >
-      <div class="flex items-center justify-between mb-5">
-        <h2 id="new-transaction-title" class="text-xl font-semibold text-slate-900">
-          Nova transação
-        </h2>
-        <button
-          type="button"
-          aria-label="Fechar"
-          class="h-8 w-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-          @click="closeModal"
-        >
-          ×
-        </button>
-      </div>
+  <GaModal title="Nova transação" size="lg" @close="closeModal">
+    <form id="new-transaction-form" class="newtx__form" @submit.prevent="saveTransaction">
+      <TransactionFormFields :form="form" :categories="categories" />
 
-      <form class="grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="saveTransaction">
-        <TransactionFormFields :form="form" :categories="categories" />
+      <p v-if="form.errorMessage.value" class="newtx__error">
+        {{ form.errorMessage.value }}
+      </p>
+    </form>
 
-        <p v-if="form.errorMessage.value" class="md:col-span-2 text-sm text-red-600">
-          {{ form.errorMessage.value }}
-        </p>
-
-        <div class="flex justify-end gap-3 md:col-span-2 mt-1">
-          <button
-            type="button"
-            class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
-            @click="closeModal"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            :disabled="saving"
-            class="px-4 py-2 rounded-xl bg-lime-400 text-slate-900 font-semibold hover:bg-lime-300 transition-colors disabled:opacity-60 cursor-pointer"
-          >
-            {{ saving ? "Salvando..." : "Salvar" }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <template #footer>
+      <GaButton variant="secondary" @click="closeModal">Cancelar</GaButton>
+      <!-- Rótulo trocado e botão desabilitado: o estado de carregamento que o
+           app já usava. A skill não define nenhum. -->
+      <GaButton type="submit" form="new-transaction-form" variant="primary" :disabled="saving">
+        {{ saving ? "Salvando..." : "Salvar" }}
+      </GaButton>
+    </template>
+  </GaModal>
 </template>
 
 <script setup>
+/**
+ * MIGRADO para o design system gestaoApp (ROADMAP 1.4).
+ *
+ * A casca virou `GaModal`: centrada no desktop, folha que sobe no celular — o
+ * que a skill pede abaixo de 768px. O `backdrop-blur-[1px]` do fundo saiu, por
+ * regra explícita do readme ("desfoque só sobre imagem de marca, nunca no
+ * chrome do produto"), e o "×" de texto virou o ícone Lucide `x`.
+ *
+ * O botão "Salvar" era `bg-lime-400`; ação é cobalt. O "Cancelar" era
+ * `bg-slate-100` e virou a variante `secondary`, que é a ação ao lado da
+ * principal no sistema.
+ *
+ * O `form` fica no corpo rolável e os botões no rodapé fixo. O atributo
+ * `form="new-transaction-form"` no botão é o que mantém o envio funcionando
+ * com os dois em caixas separadas — sem ele, um `type="submit"` fora do
+ * `<form>` não envia nada.
+ */
 import { ref, onMounted } from "vue";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaModal from "@/design-system/components/GaModal.vue";
 import { useTransactions } from "../services/useTransactions";
 import { useCategories } from "../stores/categories";
 import { useTransactionForm } from "../services/useTransactionForm";
@@ -118,3 +105,26 @@ function closeModal() {
   emit("close");
 }
 </script>
+
+<style scoped>
+.newtx__form {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--space-4);
+}
+@media (min-width: 640px) {
+	.newtx__form {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.newtx__error {
+	font: var(--type-small);
+	color: var(--feedback-danger);
+}
+@media (min-width: 640px) {
+	.newtx__error {
+		grid-column: 1 / -1;
+	}
+}
+</style>

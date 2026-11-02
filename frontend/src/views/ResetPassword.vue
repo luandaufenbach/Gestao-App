@@ -1,125 +1,128 @@
 <template>
-  <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <div class="flex items-center justify-center gap-3 mb-8">
-        <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-          <span class="text-slate-900 font-bold">G</span>
-        </div>
-        <span class="text-2xl font-semibold text-slate-900">Gestão Financeira</span>
-      </div>
+  <AuthShell
+    :title="token ? 'Criar uma senha nova' : ''"
+    :subtitle="token ? 'Depois de trocar, você entra na conta com a senha nova.' : ''"
+  >
+    <!--
+      Sem token na URL não existe formulário possível: enviar a troca sem
+      token só renderia um 400 depois de o usuário digitar duas senhas. O
+      caminho honesto é explicar e oferecer um link novo.
+    -->
+    <div v-if="!token" class="reset__noToken">
+      <GaNote tone="warning" icon="triangle-alert" title="Link incompleto">
+        Este endereço chegou sem o código de recuperação. Alguns programas de e-mail cortam o link em
+        duas linhas — abra o link inteiro ou peça outro.
+      </GaNote>
 
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-        <!--
-          Sem token na URL não existe formulário possível: enviar a troca sem
-          token só renderia um 400 depois de o usuário digitar duas senhas. O
-          caminho honesto é explicar e oferecer um link novo.
-        -->
-        <div v-if="!token">
-          <div class="flex gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
-            <ExclamationTriangleIcon class="h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
-            <div class="text-sm text-amber-900">
-              <p class="font-semibold">Link incompleto</p>
-              <p class="mt-1">
-                Este endereço chegou sem o código de recuperação. Alguns programas de e-mail cortam
-                o link em duas linhas — abra o link inteiro ou peça outro.
-              </p>
-            </div>
-          </div>
-
-          <RouterLink
-            to="/forgot-password"
-            class="mt-5 block w-full rounded-xl bg-lime-400 px-4 py-2.5 text-center font-semibold text-slate-900 hover:bg-lime-300 transition-colors cursor-pointer"
-          >
-            Pedir um link novo
-          </RouterLink>
-        </div>
-
-        <template v-else>
-          <h1 class="text-xl font-semibold text-slate-900 mb-1">Criar uma senha nova</h1>
-          <p class="text-sm text-slate-500 mb-6">
-            Depois de trocar, você entra na conta com a senha nova.
-          </p>
-
-          <form class="space-y-4" @submit.prevent="submit">
-            <div>
-              <label for="password" class="block text-sm font-medium text-slate-600 mb-1">
-                Nova senha
-              </label>
-              <div class="relative">
-                <input
-                  id="password"
-                  v-model="password"
-                  :type="revealed ? 'text' : 'password'"
-                  autocomplete="new-password"
-                  required
-                  class="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-lime-300"
-                />
-                <!--
-                  Área de clique de 32px (h-8 w-8), maior que o desenho do
-                  ícone: digitar senha às cegas no celular é o que mais gera
-                  erro de confirmação.
-                -->
-                <button
-                  type="button"
-                  :aria-label="revealed ? 'Ocultar senha' : 'Mostrar senha'"
-                  :aria-pressed="revealed"
-                  class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
-                  @click="revealed = !revealed"
-                >
-                  <EyeSlashIcon v-if="revealed" class="h-5 w-5" aria-hidden="true" />
-                  <EyeIcon v-else class="h-5 w-5" aria-hidden="true" />
-                </button>
-              </div>
-              <!-- A mesma regra do cadastro: ver backend/src/validators/authValidators.js. -->
-              <p class="text-xs text-slate-400 mt-1">
-                Mínimo de 8 caracteres, com pelo menos uma letra e um número.
-              </p>
-            </div>
-
-            <div>
-              <label for="confirmation" class="block text-sm font-medium text-slate-600 mb-1">
-                Repita a nova senha
-              </label>
-              <input
-                id="confirmation"
-                v-model="confirmation"
-                :type="revealed ? 'text' : 'password'"
-                autocomplete="new-password"
-                required
-                class="w-full rounded-xl border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-lime-300"
-              />
-            </div>
-
-            <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
-
-            <button
-              type="submit"
-              :disabled="loading"
-              class="w-full rounded-xl bg-lime-400 px-4 py-2.5 font-semibold text-slate-900 hover:bg-lime-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {{ loading ? "Trocando..." : "Trocar senha" }}
-            </button>
-          </form>
-
-          <p class="text-sm text-slate-500 text-center mt-6">
-            Link expirado?
-            <RouterLink
-              to="/forgot-password"
-              class="font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"
-            >
-              Peça outro
-            </RouterLink>
-          </p>
-        </template>
-      </div>
+      <!--
+        `.ga-btn` direto no RouterLink, e não o `GaButton` com `href`: o botão
+        vira `<a href>` quando recebe `href`, e `<a href>` recarrega a página
+        inteira em vez de navegar pelo router. É o caso que o próprio
+        `GaButton` prevê no comentário do `<style>`.
+      -->
+      <RouterLink to="/forgot-password" class="ga-btn ga-btn--primary ga-btn--lg ga-btn--block">
+        Pedir um link novo
+      </RouterLink>
     </div>
-  </div>
+
+    <template v-else>
+      <form class="reset__form" @submit.prevent="submit">
+        <!-- A mesma regra do cadastro: ver backend/src/validators/authValidators.js. -->
+        <GaField
+          v-slot="{ id }"
+          label="Nova senha"
+          hint="Mínimo de 8 caracteres, com pelo menos uma letra e um número."
+        >
+          <input
+            :id="id"
+            v-model="password"
+            :type="revealed ? 'text' : 'password'"
+            autocomplete="new-password"
+            required
+          />
+          <!--
+            Alternador de visibilidade. Ver o comentário do script sobre o
+            ícone: o conjunto da skill não tem "olho cortado", então o estado
+            vai no `aria-pressed` e no fundo tingido do botão, e o campo em si
+            já mostra a senha em texto quando está ligado.
+          -->
+          <button
+            type="button"
+            :aria-label="revealed ? 'Ocultar senha' : 'Mostrar senha'"
+            :aria-pressed="revealed"
+            class="reset__reveal"
+            :class="{ 'reset__reveal--on': revealed }"
+            @click="revealed = !revealed"
+          >
+            <GaIcon name="eye" :size="16" />
+          </button>
+        </GaField>
+
+        <GaField v-slot="{ id }" label="Repita a nova senha">
+          <input
+            :id="id"
+            v-model="confirmation"
+            :type="revealed ? 'text' : 'password'"
+            autocomplete="new-password"
+            required
+          />
+        </GaField>
+
+        <p v-if="errorMessage" class="reset__error">{{ errorMessage }}</p>
+
+        <!-- Rótulo trocado e botão desabilitado: o estado de carregamento que
+             o app já usava. A skill não define nenhum. -->
+        <GaButton type="submit" variant="primary" size="lg" block :disabled="loading">
+          {{ loading ? "Trocando..." : "Trocar senha" }}
+        </GaButton>
+      </form>
+    </template>
+
+    <!-- Fora do `v-else` acima: `#footer` precisa ser filho direto do
+         AuthShell para cair no slot certo. -->
+    <template v-if="token" #footer>
+      Link expirado?
+      <RouterLink to="/forgot-password" class="reset__link">Peça outro</RouterLink>
+    </template>
+  </AuthShell>
 </template>
 
 <script setup>
+/**
+ * Troca de senha pelo link do e-mail.
+ *
+ * MIGRADA para o design system gestaoApp (ROADMAP 1.4). Comportamento
+ * idêntico; o que mudou de significado:
+ *
+ * - Os botões eram `bg-lime-400`. Ação é cobalt, pelo `GaButton`.
+ * - O aviso de link incompleto era `bg-amber-50`/`text-amber-900` e virou
+ *   `GaNote` de tom `warning`: laranja é o sinal de atenção do sistema, e era
+ *   laranja antes. Nada mudou de família.
+ * - "Peça outro" era `text-emerald-600`; link é cobalt.
+ *
+ * ── O ícone que o conjunto da skill não tem ──────────────────────────────
+ *
+ * O alternador de visibilidade usava `EyeIcon`/`EyeSlashIcon` do Heroicons. O
+ * conjunto da skill é fechado em 74 ícones Lucide e não tem "olho cortado", e
+ * desenhar um ícone novo é exatamente o que o design system existe para
+ * evitar. Diferente da seta de saída da lista de transações, que é a `arrow-up`
+ * girada meia volta, um olho cortado não sai de transformação CSS nenhuma.
+ *
+ * Então o ícone passa a dizer o ASSUNTO ("visibilidade da senha") e não o
+ * estado, e o estado é dito de três outras formas: `aria-pressed` para o leitor
+ * de tela, fundo cobalt tingido no botão quando ligado — o mesmo
+ * `--surface-selected` que a navbar usa na aba ativa —, e o próprio campo, que
+ * é a indicação mais direta que existe, porque mostra a senha em texto.
+ *
+ * Está anotado no relatório da etapa como pedido à skill.
+ */
 import { ref, computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { EyeIcon, EyeSlashIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/outline";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaField from "@/design-system/components/GaField.vue";
+import GaIcon from "@/design-system/components/GaIcon.vue";
+import GaNote from "@/design-system/components/GaNote.vue";
+import AuthShell from "../components/AuthShell.vue";
 import { resetPassword } from "@/services/api";
 import { useAuth } from "../stores/auth";
 
@@ -174,3 +177,89 @@ async function submit() {
   }
 }
 </script>
+
+<style scoped>
+.reset__form,
+.reset__noToken {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+
+/*
+ * `.ga-iconbtn--ghost` da skill, no tamanho pequeno, encaixado dentro da caixa
+ * do campo. A caixa tem 40px de altura e 12px de padding; o botão ocupa 28 e a
+ * margem negativa de 4px o aproxima da borda sem passar dela.
+ */
+.reset__reveal {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	flex-shrink: 0;
+	margin-right: -4px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--text-tertiary);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+.reset__reveal:hover {
+	background: var(--surface-sunken);
+	color: var(--text-primary);
+}
+/* Ligado: o mesmo par de tokens que a navbar usa no item ativo. */
+.reset__reveal--on,
+.reset__reveal--on:hover {
+	background: var(--surface-selected);
+	color: var(--brand-primary);
+}
+.reset__reveal:focus-visible {
+	outline: none;
+	box-shadow: var(--ring-focus);
+}
+/* Alvo de 44px no celular, sem engordar a caixa do campo. */
+@media (max-width: 767px) {
+	.reset__reveal {
+		position: relative;
+	}
+	.reset__reveal::after {
+		content: "";
+		position: absolute;
+		inset: -8px -6px;
+	}
+}
+
+.reset__error {
+	font: var(--type-small);
+	color: var(--feedback-danger);
+}
+
+.reset__link {
+	font: var(--fw-semibold) var(--fs-small) / 1.45 var(--font-ui);
+	color: var(--text-link);
+	text-decoration: none;
+	border-radius: var(--radius-sm);
+}
+.reset__link:hover {
+	color: var(--brand-primary-hover);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+@media (max-width: 767px) {
+	.reset__link {
+		position: relative;
+	}
+	.reset__link::after {
+		content: "";
+		position: absolute;
+		/* O retângulo de um elemento em linha é a caixa da FONTE (16px aqui),
+		   não a entrelinha: 16 + 2 × 15 passa dos 44px da regra. Medido. */
+		inset: -15px -8px;
+	}
+}
+</style>

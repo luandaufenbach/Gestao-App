@@ -1,0 +1,55 @@
+/*
+ * Cópia de `tokens/base.css` da skill gestaoapp-design, adotada na ETAPA 1.4
+ * depois que todas as telas foram migradas.
+ *
+ * O arquivo é idêntico ao da skill, sem nenhuma edição — como os outros
+ * `tokens/*.css`, para que uma atualização da skill possa ser comparada linha
+ * a linha. O que precisa de explicação é ONDE ele entra na cascata.
+ *
+ * ── Por que a layer `gestaoapp-base`, e não a `gestaoapp` dos tokens ──────
+ *
+ * Os tokens ficam numa layer ANTES das do Tailwind, de propósito: nos dezesseis
+ * nomes em conflito (`--radius-*`, `--shadow-*`, …) o tema do Tailwind precisa
+ * vencer enquanto houver utilitário em uso. Ver `../index.css`.
+ *
+ * Este arquivo precisa do contrário. Ele redefine `body`, `h1`–`h4`, `a`,
+ * `button` e `input`, e o preflight do Tailwind — que mora na layer `base`,
+ * DEPOIS de `gestaoapp` — zera exatamente essas mesmas propriedades
+ * (`a{color:inherit;text-decoration:inherit}`, `h1..h6{font-weight:inherit}`).
+ * Na layer dos tokens, o preflight venceria e nada disto valeria.
+ *
+ * Por isso `src/style.css` declara a ordem
+ *
+ *     gestaoapp, theme, base, gestaoapp-base, components, utilities
+ *
+ * e importa este arquivo em `gestaoapp-base`: depois do preflight, que ele
+ * precisa vencer, e antes de `utilities`, que ele NÃO deve vencer — um
+ * `a{color:…}` de elemento batendo uma classe utilitária seria o tipo de
+ * surpresa que ninguém consegue depurar.
+ *
+ * ── O que fica por cima disto ────────────────────────────────────────────
+ *
+ * Todo `<style>` de componente `.vue` é CSS sem layer, e declaração sem layer
+ * vence qualquer layer, independentemente de especificidade. Então as regras
+ * daqui são o PISO: `.topbar__brand { text-decoration: none }` continua
+ * valendo contra o `a:hover { text-decoration: underline }` abaixo, e cada
+ * componente que já trata o próprio foco (`.ga-btn`, `.inv__row`, `.tabs__tab`)
+ * continua mandando no próprio anel.
+ *
+ * O `:focus-visible` global é o ganho principal da adoção: todo elemento
+ * focável que NÃO tiver regra própria passa a mostrar o anel cobalt, em vez de
+ * ficar sem indicação nenhuma de foco.
+ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:var(--type-body);color:var(--text-primary);background:var(--bg-app);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:var(--fw-medium);letter-spacing:var(--ls-heading);margin:0;color:var(--text-primary)}
+p{margin:0;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:none;transition:color var(--dur-fast) var(--ease-out)}
+a:hover{color:var(--brand-primary-hover);text-decoration:underline;text-underline-offset:3px}
+button{font:inherit;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+::selection{background:var(--cobalt-100);color:var(--cobalt-800)}
+:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.ga-accent-italic{font-style:italic;color:var(--text-brand)}
+.ga-num{font-variant-numeric:tabular-nums}

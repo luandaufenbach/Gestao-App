@@ -1,67 +1,45 @@
 <template>
-  <div
-    class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="edit-transaction-title"
-    @click.self="closeModal"
-  >
-    <div
-      class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto"
-    >
-      <div class="flex items-center justify-between mb-5">
-        <h2 id="edit-transaction-title" class="text-xl font-semibold text-slate-900">
-          Editar transação
-        </h2>
-        <button
-          type="button"
-          aria-label="Fechar"
-          class="h-8 w-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-          @click="closeModal"
-        >
-          ×
-        </button>
-      </div>
+  <GaModal title="Editar transação" size="lg" @close="closeModal">
+    <GaNote v-if="isInstallment" tone="warning" icon="info" class="edittx__note">
+      Esta é a parcela {{ transaction.installment.current }} de
+      {{ transaction.installment.total }}. Alterações são aplicadas a
+      <strong>todas as parcelas</strong> da compra, e o valor total é redistribuído entre elas.
+    </GaNote>
 
-      <p
-        v-if="isInstallment"
-        class="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800"
-      >
-        Esta é a parcela {{ transaction.installment.current }} de
-        {{ transaction.installment.total }}. Alterações são aplicadas a
-        <strong>todas as parcelas</strong> da compra, e o valor total é redistribuído entre elas.
+    <form id="edit-transaction-form" class="edittx__form" @submit.prevent="saveTransaction">
+      <TransactionFormFields :form="form" :categories="categories" :lock-installments="true" />
+
+      <p v-if="form.errorMessage.value" class="edittx__error">
+        {{ form.errorMessage.value }}
       </p>
+    </form>
 
-      <form class="grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="saveTransaction">
-        <TransactionFormFields :form="form" :categories="categories" :lock-installments="true" />
-
-        <p v-if="form.errorMessage.value" class="md:col-span-2 text-sm text-red-600">
-          {{ form.errorMessage.value }}
-        </p>
-
-        <div class="flex justify-end gap-3 md:col-span-2 mt-1">
-          <button
-            type="button"
-            class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
-            @click="closeModal"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            :disabled="saving"
-            class="px-4 py-2 rounded-xl bg-lime-400 text-slate-900 font-semibold hover:bg-lime-300 transition-colors disabled:opacity-60 cursor-pointer"
-          >
-            {{ saving ? "Atualizando..." : "Atualizar" }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <template #footer>
+      <GaButton variant="secondary" @click="closeModal">Cancelar</GaButton>
+      <!-- Rótulo trocado e botão desabilitado: o estado de carregamento que o
+           app já usava. A skill não define nenhum. -->
+      <GaButton type="submit" form="edit-transaction-form" variant="primary" :disabled="saving">
+        {{ saving ? "Atualizando..." : "Atualizar" }}
+      </GaButton>
+    </template>
+  </GaModal>
 </template>
 
 <script setup>
+/**
+ * MIGRADO para o design system gestaoApp (ROADMAP 1.4), igual ao modal de
+ * criação — ver NewTransactionalModal.vue, que explica a casca, o botão e o
+ * atributo `form` do envio.
+ *
+ * O que é só daqui: o aviso de parcela era `bg-amber-50`/`border-amber-200`/
+ * `text-amber-800` e virou `GaNote` de tom `warning`. Continua laranja porque
+ * laranja é o sinal de atenção do sistema, e aqui ele avisa de um efeito
+ * colateral que o usuário não pediu — mexer numa parcela mexe nas doze.
+ */
 import { ref, computed, onMounted } from "vue";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaModal from "@/design-system/components/GaModal.vue";
+import GaNote from "@/design-system/components/GaNote.vue";
 import { useTransactions } from "../services/useTransactions";
 import { useCategories } from "../stores/categories";
 import { useTransactionForm } from "../services/useTransactionForm";
@@ -104,3 +82,30 @@ function closeModal() {
   emit("close");
 }
 </script>
+
+<style scoped>
+.edittx__note {
+	margin-bottom: var(--space-4);
+}
+
+.edittx__form {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--space-4);
+}
+@media (min-width: 640px) {
+	.edittx__form {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.edittx__error {
+	font: var(--type-small);
+	color: var(--feedback-danger);
+}
+@media (min-width: 640px) {
+	.edittx__error {
+		grid-column: 1 / -1;
+	}
+}
+</style>

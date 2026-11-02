@@ -1,0 +1,81 @@
+/*
+ * Sobreposições do design system gestaoApp (ROADMAP 1.4).
+ *
+ * Porte de `components/overlays/overlays.css` da skill. Sem layer, pelo mesmo
+ * motivo do `forms.css` e do `GaButton`.
+ *
+ * FORA, porque nenhuma tela usa: `.ga-drawer` (gaveta lateral de detalhe) e
+ * `.ga-toast`. O app não tem nem uma coisa nem outra.
+ *
+ * ── O que o app tem e a skill não desenha: o modal de formulário ─────────
+ *
+ * A skill tem `Dialog` (confirmação curta, 440px, centrada) e `BottomSheet`
+ * (folha que sobe no celular, para CRIAR coisa). Os cinco modais do app são
+ * formulários longos — nova transação, edição, fatura, pagamento, categorias —
+ * e precisam dos dois: centrados no desktop, folha no celular, com cabeçalho
+ * fixo, corpo rolável e rodapé de ações.
+ *
+ * `.ga-modal` é essa composição, montada com as peças que já existem: o painel
+ * e o raio vêm do `Dialog`, o comportamento abaixo de 768px vem do
+ * `BottomSheet` (`ga-sheet-up`, raio só em cima, `safe-area-inset-bottom`), e
+ * o rodapé com fio em cima vem do `.ga-drawer__foot`. Nenhum valor novo foi
+ * inventado.
+ *
+ * Em 375px isso troca um cartão de 343px espremido no meio da tela por uma
+ * folha de largura inteira: o formulário ganha 32px de largura útil e os
+ * campos deixam de encostar na borda.
+ */
+
+@keyframes ga-fade{from{opacity:0}to{opacity:1}}
+@keyframes ga-sheet-up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes ga-pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+
+/* ── Modal de formulário (ver o cabeçalho) ───────────────────────────────── */
+
+/*
+ * O fundo escuro é o próprio elemento que recebe o clique de fora, e não um
+ * `.ga-scrim` irmão: é assim que os modais do app já funcionam
+ * (`@click.self`), e separar em dois elementos trocaria um comportamento que
+ * esta etapa não deve mexer.
+ *
+ * Sem `backdrop-filter`. Os modais tinham `backdrop-blur-[1px]`; o readme da
+ * skill é explícito — desfoque só sobre imagem de marca, nunca no chrome do
+ * produto.
+ */
+.ga-modal-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;z-index:var(--z-modal);background:var(--surface-overlay);animation:ga-fade var(--dur-base) var(--ease-out)}
+.ga-modal{position:relative;display:flex;flex-direction:column;width:100%;max-width:var(--ga-modal-w,580px);max-height:100%;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-sheet);box-shadow:var(--shadow-xl);animation:ga-pop var(--dur-slow) var(--ease-out)}
+.ga-modal--sm{--ga-modal-w:420px}
+.ga-modal--md{--ga-modal-w:480px}
+.ga-modal--lg{--ga-modal-w:580px}
+.ga-modal--xl{--ga-modal-w:680px}
+.ga-modal__head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 20px 12px}
+.ga-modal__titles{min-width:0;display:flex;flex-direction:column;gap:3px}
+.ga-modal__title{font:var(--type-title);letter-spacing:var(--ls-title);color:var(--text-primary)}
+.ga-modal__subtitle{font:var(--type-caption);color:var(--text-tertiary)}
+/* `.ga-iconbtn--soft.ga-iconbtn--circle` da skill. */
+.ga-modal__close{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;border:0;border-radius:50%;background:var(--surface-sunken);color:var(--text-secondary);cursor:pointer;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast),transform var(--dur-fast) var(--ease-out)}
+.ga-modal__close:hover{background:var(--ink-100);color:var(--text-primary)}
+.ga-modal__close:active{transform:scale(.94)}
+.ga-modal__body{flex:1;min-height:0;overflow-y:auto;padding:4px 20px 20px}
+.ga-modal__foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--border-subtle)}
+@media (max-width:767px){
+	.ga-modal-wrap{align-items:flex-end;padding:0}
+	.ga-modal{max-width:none;max-height:92%;border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;border-bottom:0;animation:ga-sheet-up var(--dur-sheet) var(--ease-out)}
+	.ga-modal__foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+	.ga-modal__close{width:var(--hit-min);height:var(--hit-min)}
+}
+
+/* ── Diálogo de confirmação (`Dialog` da skill, sem mudança) ─────────────── */
+
+/*
+ * `z-index` acima do modal: o diálogo de excluir categoria abre POR CIMA do
+ * modal de categorias, e os dois são filhos diretos do `<body>` (o diálogo vai
+ * por `<Teleport>`). Com o mesmo valor, a ordem no DOM decidiria sozinha.
+ */
+.ga-dialog-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;z-index:calc(var(--z-modal) + 10);background:var(--surface-overlay);animation:ga-fade var(--dur-base) var(--ease-out)}
+.ga-dialog{position:relative;width:min(440px,100%);max-height:100%;overflow-y:auto;background:var(--surface-card);border-radius:var(--radius-2xl);box-shadow:var(--shadow-xl);padding:24px;display:flex;flex-direction:column;gap:16px;animation:ga-pop var(--dur-slow) var(--ease-out)}
+.ga-dialog__icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--brand-primary-soft);color:var(--brand-primary);flex-shrink:0}
+.ga-dialog--danger .ga-dialog__icon{background:var(--feedback-danger-bg);color:var(--feedback-danger)}
+.ga-dialog__title{font:var(--type-title);letter-spacing:var(--ls-title);color:var(--text-primary)}
+.ga-dialog__desc{font:var(--type-small);color:var(--text-secondary);margin-top:6px}
+.ga-dialog__actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}

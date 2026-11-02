@@ -1,15 +1,24 @@
 /*
- * A ordem das layers é definida pela primeira vez que cada nome aparece.
- * Declarar `gestaoapp` aqui, antes do Tailwind, coloca os tokens do design
- * system ABAIXO do tema do Tailwind: nos nomes que os dois usam
- * (`--radius-*`, `--shadow-*`, `--ease-*`, `--font-mono`) o Tailwind vence e
- * nenhum utilitário das telas atuais muda de valor. Ver
- * `design-system/index.css` para o raciocínio completo.
+ * A ordem das layers é definida pela primeira vez que cada nome aparece, e
+ * esta linha define as seis de uma vez — inclusive as quatro do Tailwind, que
+ * ele mesmo declararia depois na mesma ordem.
+ *
+ * `gestaoapp` (tokens) vem ANTES do tema do Tailwind. Era o que impedia os
+ * tokens de mudarem o valor de um utilitário enquanto as telas ainda usavam
+ * `rounded-*` e `shadow-*`. Hoje nenhum desses namespaces existe mais — o
+ * `@theme` logo abaixo os apaga —, e a ordem fica como registro do motivo.
+ * Ver `design-system/index.css`.
+ *
+ * `gestaoapp-base` (elementos: `body`, títulos, `a`, foco) vem DEPOIS de
+ * `base`, que é onde mora o preflight do Tailwind — o preflight zera
+ * `a{color}` e o peso dos títulos, e venceria. E vem ANTES de `utilities`,
+ * para que um seletor de elemento nunca bata uma classe utilitária. Ver
+ * `design-system/tokens/base.css`.
  *
  * Um `@layer` só com nomes pode vir antes dos `@import` — é a única regra,
  * junto do `@charset`, que a especificação permite nessa posição.
  */
-@layer gestaoapp;
+@layer gestaoapp, theme, base, gestaoapp-base, components, utilities;
 
 @import "tailwindcss";
 @import "./design-system/index.css";
@@ -32,16 +41,49 @@
  */
 @theme {
 	--ease-*: initial;
+
+	/*
+	 * ETAPA 1.4 — os outros três namespaces em conflito voltam para o design
+	 * system.
+	 *
+	 * A etapa 1.3 previu que isto aconteceria sozinho: "quando a etapa 1.4
+	 * tirar o último `rounded-xl` das telas, o Tailwind para de emitir
+	 * `--radius-xl`". Não acontece, e o motivo é o mesmo que já tinha obrigado
+	 * a apagar `--ease-*` ali em cima: o Tailwind 4 mantém a variável de tema
+	 * dele quando vê um `var()` com aquele nome em QUALQUER CSS que ele
+	 * processa — não só quando um utilitário é usado. Como o CSS do design
+	 * system é cheio de `var(--radius-card)`, e `--radius-card` é
+	 * `var(--radius-lg)`, o Tailwind continuava emitindo o `--radius-lg` dele.
+	 *
+	 * O efeito era visível e silencioso: os cards tinham 8px de raio em vez dos
+	 * 14 do sistema, os campos 6 em vez de 10, os modais 16 em vez de 24, e
+	 * `--shadow-xs` era a sombra preta genérica do Tailwind no lugar da sombra
+	 * fria da skill. Medido no navegador antes de apagar.
+	 *
+	 * Apagar os três namespaces é seguro AGORA, e não antes, porque não existe
+	 * mais uma única classe `rounded-*`, `shadow-*` ou `font-mono` em
+	 * `src/**` — foi conferido arquivo a arquivo ao fechar a etapa. As classes
+	 * `rounded-full` e `rounded-none` não dependem destes namespaces e
+	 * continuariam valendo de qualquer jeito.
+	 */
+	--radius-*: initial;
+	--shadow-*: initial;
+	--font-mono: initial;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-body {
-  background-color: #f1f5f9;
-  color: #0f172a;
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+/*
+ * O `box-sizing` e o `body` que ficavam aqui saíram: as duas regras estão,
+ * iguais, em `design-system/tokens/base.css`, agora adotado.
+ *
+ * O que elas diziam, e o que mudou ao sair:
+ *
+ *   background-color  #f1f5f9 (slate-100)  ->  --bg-app   (#FAFBFD, Cloud)
+ *   color             #0f172a              ->  --text-primary (#0B0D14, Ink)
+ *   font-family       'Inter', 'Segoe UI'  ->  --type-body (Outfit 14/1.45)
+ *
+ * A fonte era a parte que mais pesava: 'Inter' não está instalada no projeto e
+ * nunca foi carregada, então o navegador caía em 'Segoe UI' no Windows e em
+ * outra coisa em cada sistema. Outfit vem de `assets/fonts` do próprio
+ * projeto, igual para todos.
+ */
 

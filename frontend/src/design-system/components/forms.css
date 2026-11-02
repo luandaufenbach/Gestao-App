@@ -1,0 +1,111 @@
+/*
+ * Controles de formulário do design system gestaoApp (ROADMAP 1.4).
+ *
+ * Porte de `components/forms/forms.css` da skill. O CSS da skill é CSS puro e
+ * veio como está; o que mudou está marcado com "ACRESCENTADO" ou "FORA".
+ *
+ * Sem layer, como o `<style>` do `GaButton`: as classes já têm o prefixo
+ * `ga-`, e as telas usam `.ga-input` também em lugares que não passam pelo
+ * `GaField` (os filtros da tela de Transações, por exemplo). Em layer, um
+ * utilitário do Tailwind venceria a classe sem que isso fosse visível no
+ * template.
+ *
+ * FORA, porque nenhuma tela usa: `.ga-switch`, `.ga-seg` (controle
+ * segmentado) e `.ga-chip` (filtro em pílula). Entram quando houver tela que
+ * peça — copiar agora seria CSS morto no bundle, que é o mesmo motivo de a
+ * etapa 1.3 não ter usado `@theme`.
+ */
+
+.ga-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ga-field__label{font:var(--type-label);color:var(--text-secondary)}
+.ga-field__hint{font:var(--type-caption);color:var(--text-tertiary)}
+.ga-field__hint--error{color:var(--feedback-danger)}
+/*
+ * ACRESCENTADO À SKILL — dica de AVISO.
+ *
+ * A skill só prevê dica neutra e dica de erro. O app tem um terceiro caso, que
+ * não é nem um nem outro: "nenhum cartão de crédito cadastrado" não impede de
+ * salvar nem está errado, mas muda o que vai acontecer. Era `text-amber-600`;
+ * laranja é o sinal de atenção do sistema (`--feedback-warning`).
+ */
+.ga-field__hint--warning{color:var(--feedback-warning)}
+
+.ga-input{display:flex;align-items:center;gap:8px;height:var(--control-md);padding:0 12px;border-radius:var(--radius-control);border:1px solid var(--border-default);background:var(--surface-card);color:var(--text-primary);transition:border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out),background var(--dur-fast)}
+.ga-input:hover{border-color:var(--border-strong)}
+.ga-input:focus-within{border-color:var(--border-focus);box-shadow:var(--ring-focus)}
+.ga-input--sm{height:var(--control-sm);border-radius:8px;padding:0 10px}
+.ga-input--lg{height:var(--control-lg);border-radius:12px;padding:0 14px}
+.ga-input--sunken{background:var(--surface-sunken);border-color:transparent}
+.ga-input--sunken:hover{border-color:var(--border-default)}
+.ga-input--error{border-color:var(--red-500)}
+.ga-input--error:focus-within{border-color:var(--red-500);box-shadow:var(--ring-danger)}
+.ga-input--disabled{opacity:.55;pointer-events:none}
+.ga-input input,.ga-input select{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font:var(--type-body);color:inherit;padding:0;margin:0;appearance:none;-webkit-appearance:none}
+.ga-input input:focus-visible,.ga-input select:focus-visible{box-shadow:none}
+.ga-input input::placeholder{color:var(--text-tertiary)}
+.ga-input__icon{color:var(--text-tertiary);display:inline-flex}
+.ga-input select{cursor:pointer}
+.ga-input__chev{color:var(--text-tertiary);pointer-events:none;display:inline-flex}
+
+/*
+ * ACRESCENTADO À SKILL — alvo de toque no celular.
+ *
+ * O readme pede 44px abaixo de 768px e o token existe (`--hit-min`), mas
+ * nenhuma regra do `forms.css` o aplica: `--control-md` são 40. Mesma adição
+ * que o `GaButton` já faz pelo mesmo motivo.
+ */
+@media (max-width:767px){
+	.ga-input{min-height:var(--hit-min)}
+	/*
+	 * O controle precisa acompanhar a caixa esticada. Com o `height:100%` da
+	 * regra copiada da skill, o `<input>` media 42,4px dentro de uma caixa de
+	 * 44 — a porcentagem resolve contra a altura declarada (40), não contra a
+	 * mínima. Medido no navegador. `align-self:stretch` faz o controle ocupar
+	 * a altura real, e aí o alvo de toque é a caixa inteira.
+	 */
+	.ga-input input,.ga-input select{height:auto;align-self:stretch}
+}
+
+/*
+ * ACRESCENTADO À SKILL — três controles que a skill não desenha e o app usa.
+ *
+ * `--area` (textarea): a caixa cresce com as linhas em vez de ficar presa nos
+ * 40px de `--control-md`, e o alinhamento passa a ser pelo topo, senão o texto
+ * de duas linhas fica centralizado e descola do rótulo.
+ *
+ * `--number`/`--date`: o `appearance:none` das regras acima apaga, no Chrome,
+ * as setinhas do number e o ícone de calendário do date. Devolvê-los é o que
+ * mantém o campo utilizável — não é decoração.
+ *
+ * `--color`: o seletor de cor da meta e da categoria. O swatch nativo vem com
+ * borda quadrada do sistema; aqui ele ganha o raio e o fio do sistema e ocupa
+ * a caixa inteira. A cor em si é DADO (é a cor que o usuário escolhe), então
+ * nada aqui a define.
+ */
+.ga-input--area{height:auto;min-height:calc(var(--control-md) + 24px);align-items:stretch;padding:9px 12px}
+.ga-input--area textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;font:var(--type-body);color:inherit;padding:0;margin:0;resize:vertical}
+.ga-input--area textarea:focus-visible{box-shadow:none}
+.ga-input--area textarea::placeholder{color:var(--text-tertiary)}
+.ga-input--number input,.ga-input--date input{appearance:auto;-webkit-appearance:auto}
+.ga-input--date input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55}
+.ga-input--date input::-webkit-calendar-picker-indicator:hover{opacity:1}
+.ga-input--color{padding:4px}
+.ga-input--color input[type="color"]{height:100%;padding:0;border:0;background:transparent;cursor:pointer}
+.ga-input--color input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+.ga-input--color input[type="color"]::-webkit-color-swatch{border:1px solid var(--border-subtle);border-radius:7px}
+.ga-input--color input[type="color"]::-moz-color-swatch{border:1px solid var(--border-subtle);border-radius:7px}
+
+.ga-check{position:relative;display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;font:var(--type-body);color:var(--text-primary);user-select:none}
+.ga-check input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.ga-check__box{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1.5px solid var(--border-strong);background:var(--surface-card);color:#fff;transition:background var(--dur-fast) var(--ease-out),border-color var(--dur-fast),transform var(--dur-base) var(--ease-spring)}
+.ga-check:hover .ga-check__box{border-color:var(--brand-primary)}
+.ga-check input:checked+.ga-check__box{background:var(--brand-primary);border-color:var(--brand-primary)}
+.ga-check input:active+.ga-check__box{transform:scale(.88)}
+.ga-check input:focus-visible+.ga-check__box{box-shadow:var(--ring-focus)}
+.ga-check input:disabled+.ga-check__box{opacity:.45}
+.ga-check__text{display:flex;flex-direction:column;gap:2px}
+.ga-check__desc{font:var(--type-caption);color:var(--text-tertiary)}
+
+.ga-radio .ga-check__box{border-radius:50%}
+.ga-radio .ga-check__box::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;transform:scale(0);transition:transform var(--dur-base) var(--ease-spring)}
+.ga-radio input:checked+.ga-check__box::after{transform:scale(1)}

@@ -1,134 +1,105 @@
 <template>
-  <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <div class="flex items-center justify-center gap-3 mb-8">
-        <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-          <span class="text-slate-900 font-bold">G</span>
-        </div>
-        <span class="text-2xl font-semibold text-slate-900">Gestão Financeira</span>
-      </div>
+  <AuthShell
+    :title="isRegister ? 'Criar conta' : 'Entrar'"
+    :subtitle="isRegister ? 'Comece a organizar suas finanças.' : 'Bem-vindo de volta.'"
+  >
+    <!--
+      Aviso de volta da troca de senha. Sem ele a pessoa cai no login sem
+      saber se a troca deu certo — e tenta trocar de novo com um token que
+      já foi consumido.
+    -->
+    <GaNote v-if="passwordWasReset" tone="success" icon="circle-check">
+      Senha trocada. Entre com a senha nova.
+    </GaNote>
 
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-        <h1 class="text-xl font-semibold text-slate-900 mb-1">
-          {{ isRegister ? "Criar conta" : "Entrar" }}
-        </h1>
-        <p class="text-sm text-slate-500 mb-6">
-          {{ isRegister ? "Comece a organizar suas finanças." : "Bem-vindo de volta." }}
-        </p>
+    <!--
+      Volta da exclusão da conta. Sem o aviso, quem acabou de apagar a conta
+      cai numa tela de login idêntica à de sempre e não sabe se a exclusão
+      aconteceu — e tenta entrar de novo com a conta que já não existe.
+    -->
+    <GaNote v-if="accountWasDeleted" tone="neutral" icon="circle-check">
+      Conta excluída. Seus dados foram apagados e este e-mail está livre para um cadastro novo.
+    </GaNote>
+
+    <form class="login__form" @submit.prevent="submit">
+      <GaField v-if="isRegister" v-slot="{ id }" label="Nome">
+        <input :id="id" v-model="form.name" type="text" autocomplete="name" required />
+      </GaField>
+
+      <GaField v-slot="{ id }" label="E-mail">
+        <input :id="id" v-model="form.email" type="email" autocomplete="email" required />
+      </GaField>
+
+      <div class="login__password">
+        <GaField
+          v-slot="{ id }"
+          label="Senha"
+          :hint="isRegister ? 'Mínimo de 8 caracteres, com pelo menos uma letra e um número.' : ''"
+        >
+          <input
+            :id="id"
+            v-model="form.password"
+            type="password"
+            :autocomplete="isRegister ? 'new-password' : 'current-password'"
+            required
+          />
+        </GaField>
 
         <!--
-          Aviso de volta da troca de senha. Sem ele a pessoa cai no login sem
-          saber se a troca deu certo — e tenta trocar de novo com um token que
-          já foi consumido.
+          O link só aparece no modo de entrar: quem está criando a conta
+          ainda não tem senha para esquecer.
         -->
-        <div
-          v-if="passwordWasReset"
-          class="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3 mb-5"
-        >
-          <CheckCircleIcon class="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
-          <p class="text-sm text-emerald-800">Senha trocada. Entre com a senha nova.</p>
-        </div>
-
-        <!--
-          Volta da exclusão da conta. Sem o aviso, quem acabou de apagar a conta
-          cai numa tela de login idêntica à de sempre e não sabe se a exclusão
-          aconteceu — e tenta entrar de novo com a conta que já não existe.
-        -->
-        <div
-          v-if="accountWasDeleted"
-          class="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 mb-5"
-        >
-          <CheckCircleIcon class="h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
-          <p class="text-sm text-slate-700">
-            Conta excluída. Seus dados foram apagados e este e-mail está livre para um cadastro
-            novo.
-          </p>
-        </div>
-
-        <form class="space-y-4" @submit.prevent="submit">
-          <div v-if="isRegister">
-            <label for="name" class="block text-sm font-medium text-slate-600 mb-1">Nome</label>
-            <input
-              id="name"
-              v-model="form.name"
-              type="text"
-              autocomplete="name"
-              required
-              class="w-full rounded-xl border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-          </div>
-
-          <div>
-            <label for="email" class="block text-sm font-medium text-slate-600 mb-1">E-mail</label>
-            <input
-              id="email"
-              v-model="form.email"
-              type="email"
-              autocomplete="email"
-              required
-              class="w-full rounded-xl border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-          </div>
-
-          <div>
-            <label for="password" class="block text-sm font-medium text-slate-600 mb-1"
-              >Senha</label
-            >
-            <input
-              id="password"
-              v-model="form.password"
-              type="password"
-              :autocomplete="isRegister ? 'new-password' : 'current-password'"
-              required
-              class="w-full rounded-xl border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-            <p v-if="isRegister" class="text-xs text-slate-400 mt-1">
-              Mínimo de 8 caracteres, com pelo menos uma letra e um número.
-            </p>
-            <!--
-              O link só aparece no modo de entrar: quem está criando a conta
-              ainda não tem senha para esquecer.
-            -->
-            <p v-else class="mt-1.5 text-right">
-              <RouterLink
-                to="/forgot-password"
-                class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"
-              >
-                Esqueci minha senha
-              </RouterLink>
-            </p>
-          </div>
-
-          <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
-
-          <button
-            type="submit"
-            :disabled="loading"
-            class="w-full rounded-xl bg-lime-400 px-4 py-2.5 font-semibold text-slate-900 hover:bg-lime-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {{ loading ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar" }}
-          </button>
-        </form>
-
-        <p class="text-sm text-slate-500 text-center mt-6">
-          {{ isRegister ? "Já tem uma conta?" : "Ainda não tem conta?" }}
-          <button
-            type="button"
-            class="font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"
-            @click="toggleMode"
-          >
-            {{ isRegister ? "Entrar" : "Criar conta" }}
-          </button>
+        <p v-if="!isRegister" class="login__forgot">
+          <RouterLink to="/forgot-password" class="login__link">Esqueci minha senha</RouterLink>
         </p>
       </div>
-    </div>
-  </div>
+
+      <p v-if="errorMessage" class="login__error">{{ errorMessage }}</p>
+
+      <!--
+        Tamanho `lg` e largura inteira: é a ação principal da tela, e o
+        `Button.prompt.md` da skill manda usar `lg` nessa posição no celular.
+        O rótulo trocado com o botão desabilitado é o estado de carregamento que
+        o app já usava — a skill não define nenhum, e nada foi inventado aqui.
+      -->
+      <GaButton type="submit" variant="primary" size="lg" block :disabled="loading">
+        {{ loading ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar" }}
+      </GaButton>
+    </form>
+
+    <template #footer>
+      {{ isRegister ? "Já tem uma conta?" : "Ainda não tem conta?" }}
+      <button type="button" class="login__toggle" @click="toggleMode">
+        {{ isRegister ? "Entrar" : "Criar conta" }}
+      </button>
+    </template>
+  </AuthShell>
 </template>
 
 <script setup>
+/**
+ * Entrar / criar conta.
+ *
+ * MIGRADA para o design system gestaoApp (ROADMAP 1.4). Nenhuma requisição,
+ * nenhum estado e nenhum evento mudou. O que mudou de significado:
+ *
+ * - O botão de enviar era `bg-lime-400` com texto escuro — o antigo verde de
+ *   ação. Ação no sistema é cobalt, e é o `GaButton` que a desenha.
+ * - Os dois links (`esqueci minha senha`, `criar conta`) eram
+ *   `text-emerald-600`. Verde no sistema quer dizer entrada ou conclusão;
+ *   link e foco são cobalt (`--text-link`).
+ * - O anel de foco dos campos era `focus:ring-lime-300`; virou o anel cobalt
+ *   de 3px do sistema, que agora vem do próprio `.ga-input`.
+ * - Os dois avisos de volta (senha trocada, conta excluída) viraram `GaNote`.
+ *   O primeiro é conclusão (verde); o segundo é constatação, não conquista, e
+ *   fica neutro — era `bg-slate-50`, e segue sem sinal.
+ */
 import { ref, reactive, computed } from "vue";
 import { RouterLink, useRouter, useRoute } from "vue-router";
-import { CheckCircleIcon } from "@heroicons/vue/24/outline";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaField from "@/design-system/components/GaField.vue";
+import GaNote from "@/design-system/components/GaNote.vue";
+import AuthShell from "../components/AuthShell.vue";
 import { useAuth } from "../stores/auth";
 
 const router = useRouter();
@@ -172,3 +143,66 @@ async function submit() {
   }
 }
 </script>
+
+<style scoped>
+.login__form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+
+.login__password {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1-5);
+}
+.login__forgot {
+	text-align: right;
+	font: var(--type-caption);
+}
+
+.login__link,
+.login__toggle {
+	font: var(--fw-semibold) var(--fs-caption) / 1.4 var(--font-ui);
+	color: var(--text-link);
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	text-decoration: none;
+	border-radius: var(--radius-sm);
+}
+.login__toggle {
+	font-size: var(--fs-small);
+}
+.login__link:hover,
+.login__toggle:hover {
+	color: var(--brand-primary-hover);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+/*
+ * Alvo de toque: o link tem 17px de altura de linha; o `::after` estica a área
+ * clicável para os 44px da regra do celular sem empurrar o layout.
+ */
+@media (max-width: 767px) {
+	.login__link,
+	.login__toggle {
+		position: relative;
+	}
+	.login__link::after,
+	.login__toggle::after {
+		content: "";
+		position: absolute;
+		/* O retângulo de um elemento em linha é a caixa da FONTE (15px aqui),
+		   não a entrelinha: 15 + 2 × 15 passa dos 44px da regra. Medido. */
+		inset: -15px -8px;
+	}
+}
+
+.login__error {
+	font: var(--type-small);
+	color: var(--feedback-danger);
+}
+</style>
