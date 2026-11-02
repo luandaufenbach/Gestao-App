@@ -1,8 +1,11 @@
 const mongoose = require("mongoose");
 
+const BankCard = require("../models/BankCard");
 const Transaction = require("../models/Transaction");
 const asyncHandler = require("../utils/asyncHandler");
 const { getMonthRangeUTC } = require("../utils/date");
+const { listInvoices } = require("../services/invoiceService");
+const { recentCycles, toCycleKey, cycleLabel } = require("../utils/invoiceCycle");
 
 const toObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
@@ -254,9 +257,232 @@ const getCategoryBreakdown = asyncHandler(async (req, res) => {
 	return res.json(breakdown);
 });
 
+// ── Projeção de caixa futura ──────────────────────────────────
+
+/**
+ * PROJEÇÃO — "quanto do dinheiro que ainda vai entrar já tem destino?"
+ *
+ * Comprometido é o que ainda PRECISA SAIR da conta, mês a mês, a partir do mês
+ * corrente. Duas fontes, e só duas:
+ *
+ * 1. FATURA DE CARTÃO, no mês do VENCIMENTO — é quando o dinheiro sai. Como o
+ *    ciclo é nomeado pelo ano-mês do vencimento (ver utils/invoiceCycle.js), a
+ *    chave do ciclo já É a chave do mês da projeção: a fatura "2026-12" vence
+ *    em dezembro de 2026. Nada de inferir mês de fatura a partir do mês da
+ *    compra — foi daí que saíram os dois bugs anteriores desta área.
+ *
+ *    Vale o `remainingInCents` da fatura, não o total: o que já foi pago não
+ *    está mais comprometido. Fatura quitada projeta zero.
+ *
+ * 2. DÉBITO FUTURO, no mês da própria data. A compra no crédito NÃO entra aqui:
+ *    ela já foi contada via fatura, e somar as duas coisas contaria o mesmo
+ *    gasto duas vezes — uma na compra, outra no pagamento.
+ *
+ * Receita futura não é projetada. Projeção de entrada é outro assunto.
+ *
+ * O recorte temporal das duas fontes é o mesmo critério ("o que ainda vai
+ * sair"), e por isso parece assimétrico à primeira vista:
+ *   - a fatura do mês corrente entra pelo que falta pagar, mesmo se o
+ *     vencimento já passou — a dívida continua lá;
+ *   - o débito só conta a partir de HOJE, porque o datado no dia 3 quando hoje
+ *     é dia 20 já saiu da conta e não compromete mais nada.
+ */
+
+/** Chaves "AAAA-MM" do mês corrente até `count - 1` meses à frente. */
+function projectionMonthKeys(count, now = new Date()) {
+	const year = now.getUTCFullYear();
+	const monthIndex = now.getUTCMonth();
+
+	return Array.from({ length: count }, (_, index) =>
+		toCycleKey(new Date(Date.UTC(year, monthIndex + index, 1)))
+	);
+}
+
+/**
+ * Quantas parcelas de compra parcelada caem em cada ciclo, em UMA consulta.
+ *
+ * As fronteiras do `$bucket` saem dos ranges que o invoiceCycle já calculou —
+ * aqui não se recalcula fechamento nem vencimento, só se distribuem as
+ * transações pelos intervalos que ele definiu.
+ *
+ * O invoiceService devolve `transactionCount`, que conta toda compra do ciclo.
+ * A projeção quer outra coisa: quantas PARCELAS de compras parceladas pesam
+ * naquele mês, que é o número que a tela mostra ao lado do valor.
+ */
+async function countInstallmentsByCycle(userId, cardId, ranges) {
+	if (ranges.length === 0) return new Map();
+
+	const ascending = [...ranges].sort((a, b) => a.start - b.start);
+
+	// O limite superior do $bucket é EXCLUSIVO; o +1ms evita perder a compra
+	// feita exatamente no instante do fechamento. Mesmo motivo do invoiceService.
+	const lastEnd = ascending[ascending.length - 1].end;
+	const boundaries = [...ascending.map((range) => range.start), new Date(lastEnd.getTime() + 1)];
+
+	const buckets = await Transaction.aggregate([
+		{
+			$match: {
+				user: toObjectId(userId),
+				bankCard: toObjectId(cardId),
+				type: "credit",
+				"installment.total": { $gt: 1 },
+				date: { $gte: boundaries[0], $lte: boundaries[boundaries.length - 1] },
+			},
+		},
+		{
+			$bucket: {
+				groupBy: "$date",
+				boundaries,
+				default: "fora",
+				output: { installmentCount: { $sum: 1 } },
+			},
+		},
+	]);
+
+	// O _id do bucket é a fronteira inferior, ou seja, o início do ciclo.
+	const byStart = new Map(
+		buckets
+			.filter((bucket) => bucket._id !== "fora")
+			.map((bucket) => [new Date(bucket._id).getTime(), bucket.installmentCount])
+	);
+
+	return new Map(
+		ascending.map((range) => [range.cycle, byStart.get(range.start.getTime()) ?? 0])
+	);
+}
+
+/**
+ * Faturas e parcelas de um cartão dentro da janela da projeção.
+ *
+ * Duas consultas por cartão (as do invoiceService) mais uma para as parcelas,
+ * todas cobrindo a janela inteira de uma vez. O laço é sobre CARTÕES, não sobre
+ * meses: cada cartão tem seu próprio fechamento, então as fronteiras de ciclo
+ * mudam de cartão para cartão e não há como agrupar os dois numa consulta só.
+ */
+async function projectCard(userId, card, months, lastCycle) {
+	const ranges = recentCycles(card, months, lastCycle);
+
+	const [invoices, installments] = await Promise.all([
+		listInvoices(userId, card, months, lastCycle),
+		countInstallmentsByCycle(userId, card._id, ranges),
+	]);
+
+	return { card, invoices, installments };
+}
+
+/** Débitos já datados na janela, somados por mês da própria data. */
+async function sumFutureDebitsByMonth(userId, from, to) {
+	const rows = await Transaction.aggregate([
+		{ $match: { user: userId, type: "debit", date: { $gte: from, $lte: to } } },
+		{
+			$group: {
+				// Chave no mesmo formato do ciclo, para casar com os meses da série.
+				_id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: "UTC" } },
+				totalInCents: { $sum: "$valueInCents" },
+			},
+		},
+	]);
+
+	return new Map(rows.map((row) => [row._id, row.totalInCents]));
+}
+
+const getProjection = asyncHandler(async (req, res) => {
+	const months = req.validatedQuery.months ?? 6;
+	const userId = toObjectId(req.userId);
+	const now = new Date();
+
+	const monthKeys = projectionMonthKeys(months, now);
+	const lastCycle = monthKeys[monthKeys.length - 1];
+
+	// Hoje à meia-noite UTC: o débito de ontem já saiu da conta.
+	const today = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)
+	);
+	// Dia 0 do mês seguinte ao último projetado = fim do último mês da janela.
+	const windowEnd = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + months, 0, 23, 59, 59, 999)
+	);
+
+	/**
+	 * Cartão sem ciclo configurado não monta fatura nenhuma, então fica fora da
+	 * projeção — e as compras feitas nele também. Não é caso de erro: o usuário
+	 * ainda vai preencher fechamento e vencimento, e até lá a rota responde
+	 * normalmente com o que já dá para saber.
+	 */
+	const cards = (
+		await BankCard.find({ user: userId }).sort({ starred: -1, createdAt: -1 })
+	).filter((card) => card.hasInvoiceCycle());
+
+	const [debitsByMonth, cardProjections] = await Promise.all([
+		sumFutureDebitsByMonth(userId, today, windowEnd),
+		Promise.all(cards.map((card) => projectCard(req.userId, card, months, lastCycle))),
+	]);
+
+	// A série nasce completa e zerada: mês sem nada comprometido continua na
+	// lista, porque a tela desenha a série inteira e um buraco deslocaria o eixo.
+	const series = new Map(
+		monthKeys.map((month) => [
+			month,
+			{
+				month,
+				label: cycleLabel(month),
+				committedInCents: 0,
+				invoicesInCents: 0,
+				debitsInCents: 0,
+				installmentCount: 0,
+				cards: [],
+			},
+		])
+	);
+
+	for (const { card, invoices, installments } of cardProjections) {
+		for (const invoice of invoices) {
+			const entry = series.get(invoice.cycle);
+			// O invoiceService devolve exatamente os ciclos da janela; a guarda é
+			// só para nunca somar fora da série.
+			if (!entry) continue;
+
+			const installmentCount = installments.get(invoice.cycle) ?? 0;
+
+			entry.invoicesInCents += invoice.remainingInCents;
+			entry.installmentCount += installmentCount;
+
+			// Fatura vazia não vira linha na abertura. A já paga continua, com
+			// committedInCents zero: a tela pode mostrar "fatura de R$ 500, paga".
+			if (invoice.totalInCents > 0 || invoice.paidInCents > 0) {
+				entry.cards.push({
+					cardId: card._id,
+					name: card.name,
+					color: card.color,
+					lastFourDigits: card.lastFourDigits,
+					cycle: invoice.cycle,
+					dueDate: invoice.dueDate,
+					totalInCents: invoice.totalInCents,
+					paidInCents: invoice.paidInCents,
+					committedInCents: invoice.remainingInCents,
+					installmentCount,
+				});
+			}
+		}
+	}
+
+	for (const entry of series.values()) {
+		entry.debitsInCents = debitsByMonth.get(entry.month) ?? 0;
+		entry.committedInCents = entry.invoicesInCents + entry.debitsInCents;
+
+		// Maior compromisso primeiro, como no breakdown de categorias.
+		entry.cards.sort(
+			(a, b) => b.committedInCents - a.committedInCents || a.name.localeCompare(b.name)
+		);
+	}
+
+	return res.json([...series.values()]);
+});
+
 module.exports = {
 	getMonthlyBalance,
 	getSavedMoney,
 	getTotalSavedMoney,
 	getCategoryBreakdown,
+	getProjection,
 };
