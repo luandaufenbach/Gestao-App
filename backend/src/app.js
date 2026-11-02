@@ -13,6 +13,7 @@ const transactionsRoutes = require("./routes/transactions");
 const dashboardRoutes = require("./routes/dashboard");
 const goalsRoutes = require("./routes/goals");
 const bankCardsRoutes = require("./routes/bankCards");
+const accountRoutes = require("./routes/account");
 
 const app = express();
 
@@ -52,6 +53,13 @@ app.use(
 			 */
 			return callback(null, false);
 		},
+		/**
+		 * Sem isto, o JavaScript do frontend não enxerga o Content-Disposition.
+		 * Entre origens diferentes — e em produção o site e a API são origens
+		 * diferentes — o navegador só expõe uma lista curta de cabeçalhos. O
+		 * download de /account/export perderia o nome real do arquivo.
+		 */
+		exposedHeaders: ["Content-Disposition"],
 		credentials: true,
 	})
 );
@@ -87,6 +95,12 @@ app.use("/transactions", authenticate, transactionsRoutes);
 app.use("/dashboard", authenticate, dashboardRoutes);
 app.use("/goals", authenticate, goalsRoutes);
 app.use("/bank-cards", authenticate, bankCardsRoutes);
+
+/**
+ * Direitos do titular pela LGPD: exportar e excluir a própria conta.
+ * As duas rotas têm limite de requisição próprio (ver routes/account.js).
+ */
+app.use("/account", authenticate, accountRoutes);
 
 // Precisam vir por último, nesta ordem.
 app.use(notFoundHandler);
