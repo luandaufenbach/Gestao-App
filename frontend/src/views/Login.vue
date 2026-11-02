@@ -16,6 +16,35 @@
           {{ isRegister ? "Comece a organizar suas finanças." : "Bem-vindo de volta." }}
         </p>
 
+        <!--
+          Aviso de volta da troca de senha. Sem ele a pessoa cai no login sem
+          saber se a troca deu certo — e tenta trocar de novo com um token que
+          já foi consumido.
+        -->
+        <div
+          v-if="passwordWasReset"
+          class="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3 mb-5"
+        >
+          <CheckCircleIcon class="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
+          <p class="text-sm text-emerald-800">Senha trocada. Entre com a senha nova.</p>
+        </div>
+
+        <!--
+          Volta da exclusão da conta. Sem o aviso, quem acabou de apagar a conta
+          cai numa tela de login idêntica à de sempre e não sabe se a exclusão
+          aconteceu — e tenta entrar de novo com a conta que já não existe.
+        -->
+        <div
+          v-if="accountWasDeleted"
+          class="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 mb-5"
+        >
+          <CheckCircleIcon class="h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
+          <p class="text-sm text-slate-700">
+            Conta excluída. Seus dados foram apagados e este e-mail está livre para um cadastro
+            novo.
+          </p>
+        </div>
+
         <form class="space-y-4" @submit.prevent="submit">
           <div v-if="isRegister">
             <label for="name" class="block text-sm font-medium text-slate-600 mb-1">Nome</label>
@@ -56,6 +85,18 @@
             <p v-if="isRegister" class="text-xs text-slate-400 mt-1">
               Mínimo de 8 caracteres, com pelo menos uma letra e um número.
             </p>
+            <!--
+              O link só aparece no modo de entrar: quem está criando a conta
+              ainda não tem senha para esquecer.
+            -->
+            <p v-else class="mt-1.5 text-right">
+              <RouterLink
+                to="/forgot-password"
+                class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+              >
+                Esqueci minha senha
+              </RouterLink>
+            </p>
           </div>
 
           <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
@@ -86,7 +127,8 @@
 
 <script setup>
 import { ref, reactive, computed } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { RouterLink, useRouter, useRoute } from "vue-router";
+import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import { useAuth } from "../stores/auth";
 
 const router = useRouter();
@@ -97,6 +139,12 @@ const mode = ref("login");
 const errorMessage = ref("");
 
 const isRegister = computed(() => mode.value === "register");
+
+/** `?reset=1` é posto por ResetPassword.vue depois de trocar a senha. */
+const passwordWasReset = computed(() => route.query.reset === "1");
+
+/** `?deleted=1` é posto por Account.vue depois de excluir a conta. */
+const accountWasDeleted = computed(() => route.query.deleted === "1");
 
 const form = reactive({ name: "", email: "", password: "" });
 

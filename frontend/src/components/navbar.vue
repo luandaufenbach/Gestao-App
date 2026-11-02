@@ -14,8 +14,29 @@
           </RouterLink>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 sm:gap-4">
           <span v-if="user" class="text-sm text-slate-300 hidden sm:inline">{{ user.name }}</span>
+
+          <!--
+            Entrada da tela de conta (exportar e excluir dados).
+            Ícone, e não uma quinta aba: as quatro de AppTabs já ocupam 348px
+            contra 342px de espaço em 375px. Área de clique de 32px (h-8 w-8),
+            maior que o desenho, porque fica encostado no botão "Sair".
+          -->
+          <RouterLink
+            to="/account"
+            title="Minha conta"
+            aria-label="Minha conta"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer"
+            :class="
+              route.path === '/account'
+                ? 'bg-slate-800 text-white'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            "
+          >
+            <UserCircleIcon class="h-5 w-5" aria-hidden="true" />
+          </RouterLink>
+
           <button
             type="button"
             class="text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
@@ -30,9 +51,11 @@
 </template>
 
 <script setup>
-import { RouterLink, useRouter } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
+import { UserCircleIcon } from "@heroicons/vue/24/outline";
 import { useAuth } from "../stores/auth";
 
+const route = useRoute();
 const router = useRouter();
 const { user, logout } = useAuth();
 

@@ -1,8 +1,13 @@
 <template>
   <!--
-    max-w-full + overflow-x-auto: em telas estreitas as três abas passam da
-    largura disponível. Sem isso elas empurravam a página inteira, criando
-    rolagem horizontal no documento todo em vez de só nas abas.
+    max-w-full + overflow-x-auto: em telas estreitas as abas passam da largura
+    disponível. Sem isso elas empurravam a página inteira, criando rolagem
+    horizontal no documento todo em vez de só nas abas.
+
+    `px-2.5` no celular (e não px-3): com a quarta aba, "Projeção", as quatro
+    somavam 348px contra 342px de espaço em 375px de tela. Sobravam 6px, o
+    bastante para a barra de rolagem aparecer permanentemente embaixo das abas
+    e parecer defeito de desenho. Medido no DOM, não no olho.
   -->
   <nav
     class="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1 sm:p-1.5 border border-slate-200"
@@ -11,7 +16,7 @@
       v-for="tab in TABS"
       :key="tab.to"
       :to="tab.to"
-      class="shrink-0 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+      class="shrink-0 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
       :class="
         route.path === tab.to
           ? 'bg-white text-slate-900 shadow-sm'
@@ -40,5 +45,6 @@ const TABS = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/transactions", label: "Transações" },
   { to: "/goals", label: "Metas" },
+  { to: "/projection", label: "Projeção" },
 ];
 </script>

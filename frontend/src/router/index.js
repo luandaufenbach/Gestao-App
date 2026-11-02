@@ -10,6 +10,29 @@ const routes = [
 		component: () => import("../views/Login.vue"),
 		meta: { public: true },
 	},
+	{
+		path: "/forgot-password",
+		name: "forgot-password",
+		component: () => import("../views/ForgotPassword.vue"),
+		meta: { public: true },
+	},
+	{
+		/**
+		 * Destino do link do e-mail: `${APP_URL}/reset-password?token=...`
+		 * (ver backend/src/utils/mailer.js). O token vai na query string, e não
+		 * no caminho, porque é assim que o mailer já monta o link.
+		 */
+		path: "/reset-password",
+		name: "reset-password",
+		component: () => import("../views/ResetPassword.vue"),
+		/**
+		 * `allowAuthenticated`: esta é a única rota pública que precisa funcionar
+		 * COM sessão também. O link do e-mail costuma abrir no navegador onde a
+		 * aba antiga segue logada; sem a exceção, o guard mandaria justamente
+		 * essa pessoa para o dashboard e a troca de senha seria impossível.
+		 */
+		meta: { public: true, allowAuthenticated: true },
+	},
 	{ path: "/", redirect: "/dashboard" },
 	{
 		path: "/dashboard",
@@ -25,6 +48,18 @@ const routes = [
 		path: "/goals",
 		name: "goals",
 		component: () => import("../views/Goals.vue"),
+	},
+	{
+		path: "/projection",
+		name: "projection",
+		component: () => import("../views/Projection.vue"),
+	},
+	{
+		// Exportar e excluir os próprios dados (ROADMAP 0.6). Protegida, como
+		// toda rota que não declara `meta.public`.
+		path: "/account",
+		name: "account",
+		component: () => import("../views/Account.vue"),
 	},
 	// Antes, uma URL inexistente renderizava uma página em branco sem aviso.
 	{
@@ -53,7 +88,10 @@ router.beforeEach(async (to) => {
 	}
 
 	if (to.meta.public) {
-		// Quem já está logado não precisa ver a tela de login.
+		// Quem já está logado não precisa ver a tela de login — exceto nas rotas
+		// que valem com e sem sessão (ver `allowAuthenticated` em /reset-password).
+		if (to.meta.allowAuthenticated) return true;
+
 		return isAuthenticated.value ? { path: "/dashboard" } : true;
 	}
 
