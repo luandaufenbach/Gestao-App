@@ -1,194 +1,201 @@
 <template>
   <div class="proj">
-    <Navbar />
+    <header class="proj__head">
+      <h1 class="proj__title">Projeção de caixa</h1>
+      <p class="proj__subtitle">
+        O que já está comprometido daqui para a frente, começando pelo mês atual.
+      </p>
+    </header>
 
-    <main class="proj__main">
-      <AppTabs />
+    <p v-if="loading" class="proj__state">Carregando...</p>
 
-      <header class="proj__head">
-        <h1 class="proj__title">Projeção de caixa</h1>
-        <p class="proj__subtitle">
-          O que já está comprometido daqui para a frente, começando pelo mês atual.
-        </p>
-      </header>
+    <p v-else-if="error" class="proj__state proj__state--error">{{ error }}</p>
 
-      <p v-if="loading" class="proj__state">Carregando...</p>
+    <template v-else>
+      <!--
+        Mesmo ritmo dos cards do dashboard: rótulo pequeno em maiúsculas, o
+        número em destaque, detalhes miúdos embaixo.
+      -->
+      <section class="proj__total">
+        <div class="proj__totalHead">
+          <span class="proj__label">A sair nos próximos {{ months }} meses</span>
+          <span class="proj__labelIcon">
+            <GaIcon name="calendar-days" :size="16" />
+          </span>
+        </div>
 
-      <p v-else-if="error" class="proj__state proj__state--error">{{ error }}</p>
+        <p class="proj__totalValue">{{ formatCurrency(totalCommittedInCents) }}</p>
 
-      <template v-else>
-        <!--
-          Mesmo ritmo dos cards do dashboard: rótulo pequeno em maiúsculas, o
-          número em destaque, detalhes miúdos embaixo.
-        -->
-        <section class="proj__total">
-          <div class="proj__totalHead">
-            <span class="proj__label">A sair nos próximos {{ months }} meses</span>
-            <span class="proj__labelIcon">
-              <GaIcon name="calendar-days" :size="16" />
-            </span>
+        <dl class="proj__lines">
+          <div class="proj__line">
+            <dt>Faturas de cartão</dt>
+            <dd>{{ formatCurrency(totalInvoicesInCents) }}</dd>
           </div>
-
-          <p class="proj__totalValue">{{ formatCurrency(totalCommittedInCents) }}</p>
-
-          <dl class="proj__lines">
-            <div class="proj__line">
-              <dt>Faturas de cartão</dt>
-              <dd>{{ formatCurrency(totalInvoicesInCents) }}</dd>
-            </div>
-            <div class="proj__line">
-              <dt>Débitos agendados</dt>
-              <dd>{{ formatCurrency(totalDebitsInCents) }}</dd>
-            </div>
-          </dl>
-
-          <!--
-            O aviso é a parte mais importante da tela.
-            Sem ele o número grande é lido como saldo ou como gasto do mês, e
-            aí a projeção passa a informar o contrário do que calcula.
-          -->
-          <GaNote tone="warning" icon="info">
-            Isto é dinheiro que <strong>ainda vai sair</strong>: faturas em aberto e lançamentos no
-            débito já marcados para o futuro. Não é o seu saldo, e não é o que você já gastou.
-          </GaNote>
-        </section>
+          <div class="proj__line">
+            <dt>Débitos agendados</dt>
+            <dd>{{ formatCurrency(totalDebitsInCents) }}</dd>
+          </div>
+        </dl>
 
         <!--
-          Estado vazio honesto. A série vem completa e zerada quando não há
-          compromisso nenhum, então desenhar as barras daria seis retângulos
-          vazios — um gráfico dizendo "zero" sem explicar nada.
+          O aviso é a parte mais importante da tela.
+          Sem ele o número grande é lido como saldo ou como gasto do mês, e
+          aí a projeção passa a informar o contrário do que calcula.
         -->
-        <section v-if="isEmpty" class="proj__empty">
-          <p class="proj__emptyTitle">Nada comprometido nos próximos meses.</p>
-          <p class="proj__emptyText">
-            Você não tem fatura em aberto nem lançamento no débito com data futura. Compras
-            parceladas e faturas aparecem aqui no mês em que vencem.
-          </p>
-        </section>
+        <GaNote tone="warning" icon="info">
+          Isto é dinheiro que <strong>ainda vai sair</strong>: faturas em aberto e lançamentos no
+          débito já marcados para o futuro. Não é o seu saldo, e não é o que você já gastou.
+        </GaNote>
+      </section>
 
-        <ul v-else class="proj__list">
-          <li v-for="entry in series" :key="entry.month" class="proj__month">
-            <!--
-              A linha inteira é o botão: a área de clique passa dos 44px de
-              altura em qualquer tela, inclusive em volta da seta.
-            -->
-            <button
-              type="button"
-              class="proj__row"
-              :aria-expanded="isOpen(entry)"
-              @click="toggle(entry)"
-            >
-              <div class="proj__rowTop">
-                <span class="proj__monthLabel">
-                  {{ entry.label }}
-                  <span v-if="entry.month === currentMonth" class="proj__current">(mês atual)</span>
+      <!--
+        Estado vazio honesto. A série vem completa e zerada quando não há
+        compromisso nenhum, então desenhar as barras daria seis retângulos
+        vazios — um gráfico dizendo "zero" sem explicar nada.
+      -->
+      <section v-if="isEmpty" class="proj__empty">
+        <p class="proj__emptyTitle">Nada comprometido nos próximos meses.</p>
+        <p class="proj__emptyText">
+          Você não tem fatura em aberto nem lançamento no débito com data futura. Compras
+          parceladas e faturas aparecem aqui no mês em que vencem.
+        </p>
+      </section>
+
+      <ul v-else class="proj__list">
+        <li v-for="entry in series" :key="entry.month" class="proj__month">
+          <!--
+            A linha inteira é o botão: a área de clique passa dos 44px de
+            altura em qualquer tela, inclusive em volta da seta.
+          -->
+          <button
+            type="button"
+            class="proj__row"
+            :aria-expanded="isOpen(entry)"
+            @click="toggle(entry)"
+          >
+            <div class="proj__rowTop">
+              <span class="proj__monthLabel">
+                {{ entry.label }}
+                <span v-if="entry.month === currentMonth" class="proj__current">(mês atual)</span>
+              </span>
+
+              <span class="proj__rowEnd">
+                <span
+                  class="proj__amount"
+                  :class="{ 'proj__amount--zero': entry.committedInCents === 0 }"
+                >
+                  {{ formatCurrency(entry.committedInCents) }}
                 </span>
-
-                <span class="proj__rowEnd">
-                  <span
-                    class="proj__amount"
-                    :class="{ 'proj__amount--zero': entry.committedInCents === 0 }"
-                  >
-                    {{ formatCurrency(entry.committedInCents) }}
-                  </span>
-                  <GaIcon
-                    name="chevron-down"
-                    :size="16"
-                    :class="['proj__chev', { 'proj__chev--open': isOpen(entry) }]"
-                  />
-                </span>
-              </div>
-
-              <!-- Barra de proporção: a régua é o mês mais pesado da janela. -->
-              <div class="proj__bar">
-                <div
-                  class="proj__barFill"
-                  :class="{ 'proj__barFill--peak': isPeak(entry) }"
-                  :style="{ width: barPercent(entry) + '%' }"
-                ></div>
-              </div>
-
-              <p class="proj__summary">{{ summaryLine(entry) }}</p>
-            </button>
-
-            <div v-if="isOpen(entry)" class="proj__detail">
-              <section v-if="entry.cards.length">
-                <h2 class="proj__sectionTitle">
-                  <GaIcon name="credit-card" :size="14" />
-                  Faturas por cartão
-                </h2>
-
-                <ul class="proj__cards">
-                  <li v-for="card in entry.cards" :key="card.cardId" class="proj__card">
-                    <div class="proj__cardMain">
-                      <!-- A cor é do cartão, escolhida pelo usuário: é dado. O
-                           padrão segue o de "Meus cartões" (`--ink-900`). -->
-                      <span
-                        class="proj__dot"
-                        :style="{ background: card.color || 'var(--ink-900)' }"
-                      ></span>
-                      <div class="proj__cardText">
-                        <p class="proj__cardName">
-                          {{ card.name }}
-                          <span v-if="card.lastFourDigits" class="proj__cardDigits">
-                            ····{{ card.lastFourDigits }}
-                          </span>
-                        </p>
-                        <p class="proj__cardMeta">
-                          vence {{ formatDate(card.dueDate) }}
-                          <template v-if="card.installmentCount > 0">
-                            · {{ installmentsLabel(card.installmentCount) }}
-                          </template>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div class="proj__cardEnd">
-                      <p
-                        class="proj__cardValue"
-                        :class="{ 'proj__amount--zero': card.committedInCents === 0 }"
-                      >
-                        {{ formatCurrency(card.committedInCents) }}
-                      </p>
-                      <!--
-                        Fatura quitada chega com committedInCents zero. Ela fica
-                        na lista com o selo: some da projeção sem explicação, o
-                        usuário procura a fatura que sabe que existe.
-                      -->
-                      <span v-if="card.committedInCents === 0" class="proj__paid">paga</span>
-                      <p v-else-if="card.paidInCents > 0" class="proj__cardMeta">
-                        de {{ formatCurrency(card.totalInCents) }}
-                      </p>
-                    </div>
-                  </li>
-                </ul>
-              </section>
-
-              <section v-if="entry.debitsInCents > 0">
-                <h2 class="proj__sectionTitle">
-                  <!-- Mesmo ícone de saída no débito da lista de transações: a
-                       `arrow-up` girada meia volta. Ver TransactionRow.vue. -->
-                  <GaIcon name="arrow-up" :size="14" class="proj__flip" />
-                  Débitos agendados
-                </h2>
-                <div class="proj__debits">
-                  <!--
-                    Texto curto de propósito: em 375px a versão longa ocupava
-                    três linhas e empurrava o valor para o canto.
-                  -->
-                  <p class="proj__debitsText">No débito, com data neste mês e ainda por sair.</p>
-                  <p class="proj__debitsValue">{{ formatCurrency(entry.debitsInCents) }}</p>
-                </div>
-              </section>
-
-              <p v-if="!entry.cards.length && entry.debitsInCents === 0" class="proj__nothing">
-                Nada comprometido neste mês.
-              </p>
+                <GaIcon
+                  name="chevron-down"
+                  :size="16"
+                  :class="['proj__chev', { 'proj__chev--open': isOpen(entry) }]"
+                />
+              </span>
             </div>
-          </li>
-        </ul>
-      </template>
-    </main>
+
+            <!-- Barra de proporção: a régua é o mês mais pesado da janela. -->
+            <div class="proj__bar">
+              <div
+                class="proj__barFill"
+                :class="{ 'proj__barFill--peak': isPeak(entry) }"
+                :style="{ width: barPercent(entry) + '%' }"
+              ></div>
+            </div>
+
+            <p class="proj__summary">{{ summaryLine(entry) }}</p>
+          </button>
+
+          <div v-if="isOpen(entry)" class="proj__detail">
+            <section v-if="entry.cards.length">
+              <h2 class="proj__sectionTitle">
+                <GaIcon name="credit-card" :size="14" />
+                Faturas por cartão
+              </h2>
+
+              <ul class="proj__cards">
+                <li v-for="card in entry.cards" :key="card.cardId" class="proj__card">
+                  <div class="proj__cardMain">
+                    <!-- A cor é do cartão, escolhida pelo usuário: é dado. O
+                         padrão segue o de "Meus cartões" (`--ink-900`). -->
+                    <span
+                      class="proj__dot"
+                      :style="{ background: card.color || 'var(--ink-900)' }"
+                    ></span>
+                    <div class="proj__cardText">
+                      <p class="proj__cardName">
+                        {{ card.name }}
+                        <span v-if="card.lastFourDigits" class="proj__cardDigits">
+                          ····{{ card.lastFourDigits }}
+                        </span>
+                      </p>
+                      <p class="proj__cardMeta">
+                        vence {{ formatDate(card.dueDate) }}
+                        <template v-if="card.installmentCount > 0">
+                          · {{ installmentsLabel(card.installmentCount) }}
+                        </template>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="proj__cardEnd">
+                    <p
+                      class="proj__cardValue"
+                      :class="{ 'proj__amount--zero': card.committedInCents === 0 }"
+                    >
+                      {{ formatCurrency(card.committedInCents) }}
+                    </p>
+                    <!--
+                      Fatura quitada chega com committedInCents zero. Ela fica
+                      na lista com o selo: some da projeção sem explicação, o
+                      usuário procura a fatura que sabe que existe.
+                    -->
+                    <span v-if="card.committedInCents === 0" class="proj__paid">paga</span>
+                    <p v-else-if="card.paidInCents > 0" class="proj__cardMeta">
+                      de {{ formatCurrency(card.totalInCents) }}
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </section>
+
+            <section v-if="entry.debitsInCents > 0">
+              <h2 class="proj__sectionTitle">
+                <!-- Mesmo ícone de saída no débito da lista de transações: a
+                     `arrow-up` girada meia volta. Ver TransactionRow.vue. -->
+                <GaIcon name="arrow-up" :size="14" class="proj__flip" />
+                Débitos agendados
+              </h2>
+              <div class="proj__debits">
+                <!--
+                  Texto curto de propósito: em 375px a versão longa ocupava
+                  três linhas e empurrava o valor para o canto.
+                -->
+                <p class="proj__debitsText">No débito, com data neste mês e ainda por sair.</p>
+                <p class="proj__debitsValue">{{ formatCurrency(entry.debitsInCents) }}</p>
+              </div>
+            </section>
+
+            <p v-if="!entry.cards.length && entry.debitsInCents === 0" class="proj__nothing">
+              Nada comprometido neste mês.
+            </p>
+          </div>
+        </li>
+      </ul>
+    </template>
+
+    <!--
+      O FAB da barra inferior abre "Nova transação" aqui: esta tela não tem ação
+      de criar própria, e "Nova transação" é a ação principal do app. Ver
+      `stores/pageAction.js`. Sem ano/mês, o modal já sugere a data de hoje —
+      que é o certo, porque a projeção começa sempre no mês corrente e não
+      obedece a nenhuma navegação de mês.
+    -->
+    <NewTransactionalModal
+      v-if="showNewTransaction"
+      @close="showNewTransaction = false"
+      @transaction-created="handleTransactionCreated"
+    />
   </div>
 </template>
 
@@ -231,14 +238,26 @@
  * nos 74 ícones da skill; "débito agendado" é a mesma coisa que a saída no
  * débito da lista de transações, então usa o mesmo desenho de lá: a `arrow-up`
  * girada meia volta.
+ *
+ * ── Esqueleto de navegação ───────────────────────────────────────────────
+ *
+ * A casca (`div > Navbar + main`) saiu daqui: a navegação e o `<main>` são do
+ * `AppShell`.
+ *
+ * O FAB da barra inferior do celular precisa de uma ação de criar por tela, e
+ * esta é a tela que não tem uma: a projeção é leitura de uma série que o
+ * backend monta a partir do que já existe. A ação registrada é "Nova
+ * transação", a principal do app — ver `stores/pageAction.js`. Criar um débito
+ * com data futura MUDA esta série, então o `load()` roda depois de criar; sem
+ * ele a tela ficaria mostrando o número velho e pareceria quebrada.
  */
 import { ref, computed, onMounted } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
-import Navbar from "../components/navbar.vue";
-import AppTabs from "../components/AppTabs.vue";
+import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import { useFormatters } from "../services/useFormatters";
 import { useProjection } from "../services/useProjection";
+import { definePageAction } from "../stores/pageAction";
 
 const { formatCurrency, formatDate } = useFormatters();
 
@@ -258,6 +277,19 @@ const {
 
 /** Mês aberto na abertura por cartão, no formato "2026-11", ou "". */
 const openMonth = ref("");
+
+/** Modal de "Nova transação", aberto só pelo FAB da barra inferior. */
+const showNewTransaction = ref(false);
+
+definePageAction({
+  label: "Nova transação",
+  run: () => (showNewTransaction.value = true),
+});
+
+function handleTransactionCreated() {
+  showNewTransaction.value = false;
+  load();
+}
 
 /**
  * Mês corrente em UTC, no mesmo formato do campo `month` da resposta.
@@ -304,25 +336,16 @@ onMounted(load);
 </script>
 
 <style scoped>
+/*
+ * A casca saiu: `min-height`, fundo, cor, `max-width`, `margin` e os dois
+ * `padding` com breakpoint moram no `AppShell`.
+ */
 .proj {
-	min-height: 100vh;
-	background: var(--bg-app);
-	color: var(--text-primary);
-}
-
-.proj__main {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-6);
-	max-width: var(--content-max);
-	margin: 0 auto;
-	padding: var(--space-6) var(--page-pad-mobile);
 }
-@media (min-width: 768px) {
-	.proj__main {
-		padding: var(--space-8) var(--page-pad);
-	}
-}
+
 .proj__head {
 	display: flex;
 	flex-direction: column;

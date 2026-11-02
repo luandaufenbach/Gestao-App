@@ -1,165 +1,160 @@
 <template>
+  <!--
+    Medida de leitura mais curta que as telas de dados: aqui tudo é texto, e
+    linha de aviso com 1200px de largura não se lê. O `max-width` é desta tela,
+    e não da casca — as outras quatro usam a largura inteira do conteúdo.
+  -->
   <div class="acc">
-    <Navbar />
+    <header class="acc__head">
+      <h1 class="acc__title">Minha conta</h1>
+      <p class="acc__subtitle">
+        <template v-if="user">{{ user.name }} · {{ user.email }}</template>
+        <template v-else>Seus dados e o fim da conta.</template>
+      </p>
+    </header>
 
-    <!--
-      Medida de leitura mais curta que as telas de dados: aqui tudo é texto, e
-      linha de aviso com 1200px de largura não se lê.
-    -->
-    <main class="acc__main">
-      <AppTabs />
+    <!-- ── Exportar ────────────────────────────────────────── -->
+    <section class="acc__card">
+      <div class="acc__cardHead">
+        <span class="acc__label">Exportar meus dados</span>
+        <span class="acc__labelIcon">
+          <GaIcon name="download" :size="16" />
+        </span>
+      </div>
 
-      <header class="acc__head">
-        <h1 class="acc__title">Minha conta</h1>
-        <p class="acc__subtitle">
-          <template v-if="user">{{ user.name }} · {{ user.email }}</template>
-          <template v-else>Seus dados e o fim da conta.</template>
-        </p>
-      </header>
+      <p class="acc__text">
+        Um arquivo JSON com seu cadastro, suas transações, categorias, metas e cartões — tudo o que
+        esta conta guarda.
+      </p>
 
-      <!-- ── Exportar ────────────────────────────────────────── -->
-      <section class="acc__card">
-        <div class="acc__cardHead">
-          <span class="acc__label">Exportar meus dados</span>
-          <span class="acc__labelIcon">
-            <GaIcon name="download" :size="16" />
-          </span>
-        </div>
+      <div>
+        <!-- Rótulo trocado e botão desabilitado: o estado de carregamento
+             que o app já usava. A skill não define nenhum. -->
+        <GaButton variant="primary" :disabled="exporting" @click="handleExport">
+          <template #icon>
+            <GaIcon name="download" />
+          </template>
+          {{ exporting ? "Gerando..." : "Baixar meus dados" }}
+        </GaButton>
+      </div>
 
-        <p class="acc__text">
-          Um arquivo JSON com seu cadastro, suas transações, categorias, metas e cartões — tudo o que
-          esta conta guarda.
-        </p>
+      <!--
+        Estado indeterminado, sem porcentagem: a resposta é streaming e não
+        traz `Content-Length`, então qualquer barra com número seria inventada.
+      -->
+      <p v-if="exporting" class="acc__hint">
+        O arquivo é montado na hora e pode demorar alguns segundos. Não feche esta aba.
+      </p>
 
-        <div>
-          <!-- Rótulo trocado e botão desabilitado: o estado de carregamento
-               que o app já usava. A skill não define nenhum. -->
-          <GaButton variant="primary" :disabled="exporting" @click="handleExport">
-            <template #icon>
-              <GaIcon name="download" />
-            </template>
-            {{ exporting ? "Gerando..." : "Baixar meus dados" }}
-          </GaButton>
-        </div>
+      <GaNote v-else-if="exportedFilename" tone="success" icon="circle-check">
+        Arquivo baixado: <span class="acc__filename">{{ exportedFilename }}</span>
+      </GaNote>
 
+      <GaNote v-if="exportError" tone="danger" icon="triangle-alert">
+        {{ exportError }}
+      </GaNote>
+    </section>
+
+    <!-- ── Excluir ─────────────────────────────────────────── -->
+    <!-- Fio vermelho: o card inteiro avisa do que se trata antes de qualquer leitura. -->
+    <section class="acc__card acc__card--danger">
+      <div class="acc__cardHead">
+        <span class="acc__label acc__label--danger">Excluir minha conta</span>
+        <span class="acc__labelIcon acc__labelIcon--danger">
+          <GaIcon name="trash-2" :size="16" />
+        </span>
+      </div>
+
+      <p class="acc__text">
+        Apaga a conta e todo o histórico: transações, categorias, metas e cartões.
+        <strong class="acc__strong">Não há como desfazer</strong> e não existe cópia de segurança
+        para pedir depois.
+      </p>
+
+      <GaNote tone="warning" icon="info">
+        Baixe seus dados antes, no card acima. Depois da exclusão não dá mais para exportar nada.
+      </GaNote>
+
+      <!--
+        DUAS ETAPAS, e a migração não encurtou nenhuma delas. O primeiro
+        clique só ABRE o formulário; a exclusão em si exige a senha atual
+        digitada, e o botão fica desabilitado enquanto o campo está vazio. Um
+        botão solto que apagasse tudo no primeiro toque é toque errado de dedo
+        em 375px.
+
+        Os dois botões usam a variante `danger` do sistema, que é VAZADA —
+        fio vermelho sobre branco, não bloco vermelho. É o que o
+        `Dialog.prompt.md` da skill prescreve para ação irreversível, e deixa
+        o botão final MENOS chamativo do que o `bg-red-600` de antes, não
+        mais.
+      -->
+      <div v-if="!confirming">
+        <GaButton variant="danger" @click="startConfirming">
+          <template #icon>
+            <GaIcon name="trash-2" />
+          </template>
+          Quero excluir minha conta
+        </GaButton>
+      </div>
+
+      <form v-else class="acc__confirm" @submit.prevent="submitDelete">
         <!--
-          Estado indeterminado, sem porcentagem: a resposta é streaming e não
-          traz `Content-Length`, então qualquer barra com número seria inventada.
+          A segunda etapa se anuncia como etapa: o quadradinho vermelho com a
+          lixeira é o `.ga-dialog--danger .ga-dialog__icon` da skill, trazido
+          para dentro da tela. Sem ele as duas etapas ficariam parecidas, e é
+          justamente a diferença entre elas que protege o usuário.
         -->
-        <p v-if="exporting" class="acc__hint">
-          O arquivo é montado na hora e pode demorar alguns segundos. Não feche esta aba.
-        </p>
-
-        <GaNote v-else-if="exportedFilename" tone="success" icon="circle-check">
-          Arquivo baixado: <span class="acc__filename">{{ exportedFilename }}</span>
-        </GaNote>
-
-        <GaNote v-if="exportError" tone="danger" icon="triangle-alert">
-          {{ exportError }}
-        </GaNote>
-      </section>
-
-      <!-- ── Excluir ─────────────────────────────────────────── -->
-      <!-- Fio vermelho: o card inteiro avisa do que se trata antes de qualquer leitura. -->
-      <section class="acc__card acc__card--danger">
-        <div class="acc__cardHead">
-          <span class="acc__label acc__label--danger">Excluir minha conta</span>
-          <span class="acc__labelIcon acc__labelIcon--danger">
-            <GaIcon name="trash-2" :size="16" />
+        <div class="acc__confirmHead">
+          <span class="acc__confirmIcon">
+            <GaIcon name="trash-2" :size="20" />
           </span>
+          <p class="acc__confirmTitle">Confirme com a sua senha atual para excluir.</p>
         </div>
 
-        <p class="acc__text">
-          Apaga a conta e todo o histórico: transações, categorias, metas e cartões.
-          <strong class="acc__strong">Não há como desfazer</strong> e não existe cópia de segurança
-          para pedir depois.
-        </p>
-
-        <GaNote tone="warning" icon="info">
-          Baixe seus dados antes, no card acima. Depois da exclusão não dá mais para exportar nada.
-        </GaNote>
-
-        <!--
-          DUAS ETAPAS, e a migração não encurtou nenhuma delas. O primeiro
-          clique só ABRE o formulário; a exclusão em si exige a senha atual
-          digitada, e o botão fica desabilitado enquanto o campo está vazio. Um
-          botão solto que apagasse tudo no primeiro toque é toque errado de dedo
-          em 375px.
-
-          Os dois botões usam a variante `danger` do sistema, que é VAZADA —
-          fio vermelho sobre branco, não bloco vermelho. É o que o
-          `Dialog.prompt.md` da skill prescreve para ação irreversível, e deixa
-          o botão final MENOS chamativo do que o `bg-red-600` de antes, não
-          mais.
-        -->
-        <div v-if="!confirming">
-          <GaButton variant="danger" @click="startConfirming">
-            <template #icon>
-              <GaIcon name="trash-2" />
-            </template>
-            Quero excluir minha conta
-          </GaButton>
-        </div>
-
-        <form v-else class="acc__confirm" @submit.prevent="submitDelete">
+        <GaField v-slot="{ id }" label="Senha atual">
+          <input
+            :id="id"
+            ref="passwordInput"
+            v-model="password"
+            :type="revealed ? 'text' : 'password'"
+            autocomplete="current-password"
+            required
+          />
           <!--
-            A segunda etapa se anuncia como etapa: o quadradinho vermelho com a
-            lixeira é o `.ga-dialog--danger .ga-dialog__icon` da skill, trazido
-            para dentro da tela. Sem ele as duas etapas ficariam parecidas, e é
-            justamente a diferença entre elas que protege o usuário.
+            O conjunto de 74 ícones da skill não tem "olho cortado", e
+            desenhar um ícone novo é o que o design system existe para
+            evitar. O estado vai no `aria-pressed`, no fundo tingido do botão
+            e no próprio campo, que mostra a senha em texto quando ligado.
+            Mesma decisão de ResetPassword.vue, que explica por extenso.
           -->
-          <div class="acc__confirmHead">
-            <span class="acc__confirmIcon">
-              <GaIcon name="trash-2" :size="20" />
-            </span>
-            <p class="acc__confirmTitle">Confirme com a sua senha atual para excluir.</p>
-          </div>
+          <button
+            type="button"
+            :aria-label="revealed ? 'Ocultar senha' : 'Mostrar senha'"
+            :aria-pressed="revealed"
+            class="acc__reveal"
+            :class="{ 'acc__reveal--on': revealed }"
+            @click="revealed = !revealed"
+          >
+            <GaIcon name="eye" :size="16" />
+          </button>
+        </GaField>
 
-          <GaField v-slot="{ id }" label="Senha atual">
-            <input
-              :id="id"
-              ref="passwordInput"
-              v-model="password"
-              :type="revealed ? 'text' : 'password'"
-              autocomplete="current-password"
-              required
-            />
-            <!--
-              O conjunto de 74 ícones da skill não tem "olho cortado", e
-              desenhar um ícone novo é o que o design system existe para
-              evitar. O estado vai no `aria-pressed`, no fundo tingido do botão
-              e no próprio campo, que mostra a senha em texto quando ligado.
-              Mesma decisão de ResetPassword.vue, que explica por extenso.
-            -->
-            <button
-              type="button"
-              :aria-label="revealed ? 'Ocultar senha' : 'Mostrar senha'"
-              :aria-pressed="revealed"
-              class="acc__reveal"
-              :class="{ 'acc__reveal--on': revealed }"
-              @click="revealed = !revealed"
-            >
-              <GaIcon name="eye" :size="16" />
-            </button>
-          </GaField>
+        <GaNote v-if="deleteError" tone="danger" icon="triangle-alert">
+          {{ deleteError }}
+        </GaNote>
 
-          <GaNote v-if="deleteError" tone="danger" icon="triangle-alert">
-            {{ deleteError }}
-          </GaNote>
-
-          <!-- Em 375px os dois botões empilham; "Cancelar" vem por último, mas
-               à mão — é o que `column-reverse` garante. -->
-          <div class="acc__confirmActions">
-            <GaButton variant="ghost" :disabled="deleting" @click="cancelConfirming">
-              Cancelar
-            </GaButton>
-            <GaButton type="submit" variant="danger" :disabled="deleting || !password">
-              {{ deleting ? "Excluindo..." : "Excluir conta definitivamente" }}
-            </GaButton>
-          </div>
-        </form>
-      </section>
-    </main>
+        <!-- Em 375px os dois botões empilham; "Cancelar" vem por último, mas
+             à mão — é o que `column-reverse` garante. -->
+        <div class="acc__confirmActions">
+          <GaButton variant="ghost" :disabled="deleting" @click="cancelConfirming">
+            Cancelar
+          </GaButton>
+          <GaButton type="submit" variant="danger" :disabled="deleting || !password">
+            {{ deleting ? "Excluindo..." : "Excluir conta definitivamente" }}
+          </GaButton>
+        </div>
+      </form>
+    </section>
   </div>
 </template>
 
@@ -167,10 +162,11 @@
 /**
  * Minha conta: exportação e exclusão de dados (ROADMAP 0.6, LGPD).
  *
- * Tela própria, alcançada pelo ícone de conta na navbar e não por uma quinta
- * aba: as quatro abas atuais já somam 348px contra 342px de espaço em 375px
- * (ver AppTabs.vue). Uma quinta aba criaria rolagem horizontal permanente nas
- * abas — e isto não é uma tela de uso diário, é uma tela que se visita uma vez.
+ * Tela própria, e não um quinto destino da navegação: no celular ela é
+ * alcançada pelo ícone de conta na barra de topo, e no desktop pelo rodapé da
+ * sidebar. A `GaTabBar` tem quatro abas e o FAB central, e uma quinta aba
+ * repetiria o aperto de largura das abas de topo que ela substituiu — isto não
+ * é uma tela de uso diário, é uma tela que se visita uma vez.
  *
  * ── MIGRADA para o design system gestaoApp (ROADMAP 1.4) ─────────────────
  *
@@ -192,6 +188,16 @@
  * - Os ícones saíram do Heroicons: ArrowDownTray -> `download`, CheckCircle ->
  *   `circle-check`, ExclamationTriangle -> `triangle-alert`, InformationCircle
  *   -> `info`, Trash -> `trash-2`, Eye -> `eye`.
+ *
+ * ── Esqueleto de navegação ───────────────────────────────────────────────
+ *
+ * A casca (`div > Navbar + main`) saiu daqui: a navegação e o `<main>` são do
+ * `AppShell`. Esta tela é a única da casca que NÃO registra ação de criar —
+ * exportar e excluir dados não tem "novo" nenhum, e o FAB da barra inferior
+ * cai no modal de "Nova transação" da própria casca. Ver
+ * `stores/pageAction.js`.
+ *
+ * O `max-width` de leitura ficou, porque é desta tela e não da casca.
  */
 import { ref, nextTick } from "vue";
 import { useRouter } from "vue-router";
@@ -199,8 +205,6 @@ import GaButton from "@/design-system/components/GaButton.vue";
 import GaField from "@/design-system/components/GaField.vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
-import Navbar from "../components/navbar.vue";
-import AppTabs from "../components/AppTabs.vue";
 import { useAuth } from "../stores/auth";
 import { useAccount } from "../services/useAccount";
 
@@ -260,13 +264,12 @@ async function submitDelete() {
 </script>
 
 <style scoped>
+/*
+ * `min-height`, fundo, cor e os dois `padding` com breakpoint saíram para o
+ * `AppShell`. O `max-width` FICOU: ele é a medida de leitura desta tela, não a
+ * largura do conteúdo da casca — as outras quatro usam `--content-max`.
+ */
 .acc {
-	min-height: 100vh;
-	background: var(--bg-app);
-	color: var(--text-primary);
-}
-
-.acc__main {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-6);
@@ -277,12 +280,6 @@ async function submitDelete() {
 	 */
 	max-width: 768px;
 	margin: 0 auto;
-	padding: var(--space-6) var(--page-pad-mobile);
-}
-@media (min-width: 768px) {
-	.acc__main {
-		padding: var(--space-8) var(--page-pad);
-	}
 }
 
 .acc__head {

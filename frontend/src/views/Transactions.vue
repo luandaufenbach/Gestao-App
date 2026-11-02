@@ -1,108 +1,102 @@
 <template>
   <div class="tx">
-    <Navbar />
+    <div class="tx__bar">
+      <div class="tx__filters">
+        <GaField v-slot="{ id }" select>
+          <select :id="id" v-model.number="selectedMonth" aria-label="Mês" class="tx__month">
+            <option v-for="m in 12" :key="m" :value="m">{{ MONTH_NAMES[m - 1] }}</option>
+          </select>
+        </GaField>
 
-    <main class="tx__main">
-      <AppTabs />
+        <GaField v-slot="{ id }" select>
+          <select :id="id" v-model.number="selectedYear" aria-label="Ano">
+            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </GaField>
 
-      <div class="tx__bar">
-        <div class="tx__filters">
-          <GaField v-slot="{ id }" select>
-            <select :id="id" v-model.number="selectedMonth" aria-label="Mês" class="tx__month">
-              <option v-for="m in 12" :key="m" :value="m">{{ MONTH_NAMES[m - 1] }}</option>
-            </select>
-          </GaField>
+        <GaField v-slot="{ id }" select>
+          <select :id="id" v-model="typeFilter" aria-label="Tipo">
+            <option value="all">Todos os tipos</option>
+            <option value="income">Receita</option>
+            <option value="debit">Débito</option>
+            <option value="credit">Crédito</option>
+            <option value="savings">Guardado</option>
+            <option value="withdrawal">Resgate</option>
+            <option value="invoice_payment">Fatura paga</option>
+          </select>
+        </GaField>
 
-          <GaField v-slot="{ id }" select>
-            <select :id="id" v-model.number="selectedYear" aria-label="Ano">
-              <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-            </select>
-          </GaField>
-
-          <GaField v-slot="{ id }" select>
-            <select :id="id" v-model="typeFilter" aria-label="Tipo">
-              <option value="all">Todos os tipos</option>
-              <option value="income">Receita</option>
-              <option value="debit">Débito</option>
-              <option value="credit">Crédito</option>
-              <option value="savings">Guardado</option>
-              <option value="withdrawal">Resgate</option>
-              <option value="invoice_payment">Fatura paga</option>
-            </select>
-          </GaField>
-
-          <GaField v-slot="{ id }" select>
-            <select :id="id" v-model="categoryFilter" aria-label="Categoria">
-              <option value="all">Todas as categorias</option>
-              <!--
-                BUG CORRIGIDO (M6): a opção "sem categoria" não existia. O filtro
-                comparava (t.category || "outros") com o nome da categoria, mas
-                "outros" nunca aparecia na lista de opções, então transações sem
-                categoria eram impossíveis de filtrar.
-              -->
-              <option value="none">Sem categoria</option>
-              <option v-for="cat in categories" :key="cat._id" :value="cat._id">
-                {{ cat.name }}
-              </option>
-            </select>
-          </GaField>
-        </div>
-
-        <!--
-          Uma ação principal por tela, como a skill pede: lançar uma transação é
-          o que se vem fazer aqui, então ela fica no primário cobalt. Criar
-          categoria é apoio e vai na variante `secondary` — antes os dois
-          botões eram iguais, `bg-lime-400`, e disputavam a mesma atenção.
-        -->
-        <div class="tx__actions">
-          <GaButton variant="secondary" @click="showCategoryModal = true">
-            <template #icon>
-              <GaIcon name="tag" />
-            </template>
-            Criar categoria
-          </GaButton>
-
-          <GaButton variant="primary" @click="showModal = true">
-            <template #icon>
-              <GaIcon name="plus" />
-            </template>
-            Nova transação
-          </GaButton>
-        </div>
+        <GaField v-slot="{ id }" select>
+          <select :id="id" v-model="categoryFilter" aria-label="Categoria">
+            <option value="all">Todas as categorias</option>
+            <!--
+              BUG CORRIGIDO (M6): a opção "sem categoria" não existia. O filtro
+              comparava (t.category || "outros") com o nome da categoria, mas
+              "outros" nunca aparecia na lista de opções, então transações sem
+              categoria eram impossíveis de filtrar.
+            -->
+            <option value="none">Sem categoria</option>
+            <option v-for="cat in categories" :key="cat._id" :value="cat._id">
+              {{ cat.name }}
+            </option>
+          </select>
+        </GaField>
       </div>
 
       <!--
-        A lista vive dentro de um card só, com as mesmas linhas do dashboard,
-        em vez de um card por transação. Antes cada lançamento era um bloco
-        branco de px-5 py-4 com texto text-xl e valor text-3xl: a mesma
-        informação do dashboard ocupando o triplo da altura.
+        Uma ação principal por tela, como a skill pede: lançar uma transação é
+        o que se vem fazer aqui, então ela fica no primário cobalt. Criar
+        categoria é apoio e vai na variante `secondary` — antes os dois
+        botões eram iguais, `bg-lime-400`, e disputavam a mesma atenção.
       -->
-      <section class="tx__list">
-        <div class="tx__listHead">
-          <span class="tx__label">Transações</span>
-          <span class="tx__total">{{ filteredTransactions.length }}</span>
-        </div>
+      <div class="tx__actions">
+        <GaButton variant="secondary" @click="showCategoryModal = true">
+          <template #icon>
+            <GaIcon name="tag" />
+          </template>
+          Criar categoria
+        </GaButton>
 
-        <p v-if="loading" class="tx__state">Carregando...</p>
+        <GaButton variant="primary" @click="showModal = true">
+          <template #icon>
+            <GaIcon name="plus" />
+          </template>
+          Nova transação
+        </GaButton>
+      </div>
+    </div>
 
-        <p v-else-if="error" class="tx__state tx__state--error">{{ error }}</p>
+    <!--
+      A lista vive dentro de um card só, com as mesmas linhas do dashboard,
+      em vez de um card por transação. Antes cada lançamento era um bloco
+      branco de px-5 py-4 com texto text-xl e valor text-3xl: a mesma
+      informação do dashboard ocupando o triplo da altura.
+    -->
+    <section class="tx__list">
+      <div class="tx__listHead">
+        <span class="tx__label">Transações</span>
+        <span class="tx__total">{{ filteredTransactions.length }}</span>
+      </div>
 
-        <p v-else-if="!filteredTransactions.length" class="tx__state">
-          Nenhuma transação para os filtros selecionados.
-        </p>
+      <p v-if="loading" class="tx__state">Carregando...</p>
 
-        <ul v-else class="tx__items">
-          <TransactionRow
-            v-for="t in filteredTransactions"
-            :key="t._id"
-            :transaction="t"
-            show-type
-            @edit="startEdit"
-            @delete="askDelete"
-          />
-        </ul>
-      </section>
-    </main>
+      <p v-else-if="error" class="tx__state tx__state--error">{{ error }}</p>
+
+      <p v-else-if="!filteredTransactions.length" class="tx__state">
+        Nenhuma transação para os filtros selecionados.
+      </p>
+
+      <ul v-else class="tx__items">
+        <TransactionRow
+          v-for="t in filteredTransactions"
+          :key="t._id"
+          :transaction="t"
+          show-type
+          @edit="startEdit"
+          @delete="askDelete"
+        />
+      </ul>
+    </section>
 
     <DeleteTransactionDialog
       :transaction="pendingDelete"
@@ -151,13 +145,17 @@
  * - O `capitalize` do filtro de mês saiu. Ele maiusculiza cada palavra, e o
  *   que se quer é só a primeira letra do nome do mês — `::first-letter` faz
  *   isso sem tocar no resto.
+ *
+ * ── Esqueleto de navegação ───────────────────────────────────────────────
+ *
+ * A casca (`div > Navbar + main`) saiu daqui: a navegação e o `<main>` são do
+ * `AppShell`. As abas de topo (`AppTabs`) deixaram de existir — sidebar no
+ * desktop, `GaTabBar` no celular.
  */
 import { computed, onMounted, ref, watch } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
 import GaField from "@/design-system/components/GaField.vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
-import Navbar from "../components/navbar.vue";
-import AppTabs from "../components/AppTabs.vue";
 import TransactionRow from "../components/TransactionRow.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import EditTransactionModal from "../components/EditTransactionModal.vue";
@@ -166,6 +164,7 @@ import DeleteTransactionDialog from "../components/DeleteTransactionDialog.vue";
 import { useTransactions } from "../services/useTransactions";
 import { useCategories } from "../stores/categories";
 import { useMonthNavigation, MONTH_NAMES } from "../services/useMonthNavigation";
+import { definePageAction } from "../stores/pageAction";
 
 const { selectedYear, selectedMonth } = useMonthNavigation();
 const { transactions, loading, error, loadTransactions, remove } = useTransactions();
@@ -183,6 +182,9 @@ const deleteError = ref("");
 
 const currentYear = new Date().getUTCFullYear();
 const yearOptions = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
+
+// O FAB central da barra inferior abre o mesmo modal do botão primário da tela.
+definePageAction({ label: "Nova transação", run: () => (showModal.value = true) });
 
 const filteredTransactions = computed(() =>
   transactions.value.filter((t) => {
@@ -242,24 +244,15 @@ watch([selectedYear, selectedMonth], () => {
 </script>
 
 <style scoped>
+/*
+ * A casca saiu: `min-height`, fundo, cor, `max-width`, `margin` e os dois
+ * `padding` com breakpoint moram no `AppShell`. Só o empilhamento do conteúdo
+ * desta tela ficou.
+ */
 .tx {
-	min-height: 100vh;
-	background: var(--bg-app);
-	color: var(--text-primary);
-}
-
-.tx__main {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-6);
-	max-width: var(--content-max);
-	margin: 0 auto;
-	padding: var(--space-6) var(--page-pad-mobile);
-}
-@media (min-width: 768px) {
-	.tx__main {
-		padding: var(--space-8) var(--page-pad);
-	}
 }
 
 /* ── Filtros e ações ───────────────────────────────────────────────────── */

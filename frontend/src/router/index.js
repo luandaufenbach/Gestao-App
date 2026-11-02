@@ -60,6 +60,8 @@ const routes = [
 		path: "/account",
 		name: "account",
 		component: () => import("../views/Account.vue"),
+		// Sem botão de criar na barra inferior: ver `showFab` em GaTabBar.vue.
+		meta: { hideFab: true },
 	},
 	{
 		/**

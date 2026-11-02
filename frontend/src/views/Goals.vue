@@ -1,99 +1,93 @@
 <template>
   <div class="goals">
-    <Navbar />
+    <header class="goals__head">
+      <h1 class="goals__title">
+        Metas <span class="goals__count">({{ goals.length }})</span>
+      </h1>
 
-    <main class="goals__main">
-      <AppTabs />
+      <GaButton variant="primary" @click="openCreate">
+        <template #icon>
+          <GaIcon name="plus" />
+        </template>
+        Nova meta
+      </GaButton>
+    </header>
 
-      <header class="goals__head">
-        <h1 class="goals__title">
-          Metas <span class="goals__count">({{ goals.length }})</span>
-        </h1>
+    <p v-if="loading" class="goals__state">Carregando...</p>
 
-        <GaButton variant="primary" @click="openCreate">
-          <template #icon>
-            <GaIcon name="plus" />
-          </template>
-          Nova meta
-        </GaButton>
-      </header>
+    <p v-else-if="error" class="goals__state goals__state--error">{{ error }}</p>
 
-      <p v-if="loading" class="goals__state">Carregando...</p>
+    <!--
+      Mesmo ritmo dos cards do dashboard: rótulo pequeno em maiúsculas, o
+      número em destaque, e os detalhes miúdos embaixo. Antes o nome vinha em
+      text-2xl e o valor em text-4xl — maior que o saldo do mês, que é o
+      número mais importante da aplicação inteira.
+    -->
+    <ul v-else class="goals__grid">
+      <li v-for="goal in goals" :key="goal._id" class="goals__card">
+        <div class="goals__cardHead">
+          <span class="goals__label" :title="goal.name">{{ goal.name }}</span>
 
-      <p v-else-if="error" class="goals__state goals__state--error">{{ error }}</p>
-
-      <!--
-        Mesmo ritmo dos cards do dashboard: rótulo pequeno em maiúsculas, o
-        número em destaque, e os detalhes miúdos embaixo. Antes o nome vinha em
-        text-2xl e o valor em text-4xl — maior que o saldo do mês, que é o
-        número mais importante da aplicação inteira.
-      -->
-      <ul v-else class="goals__grid">
-        <li v-for="goal in goals" :key="goal._id" class="goals__card">
-          <div class="goals__cardHead">
-            <span class="goals__label" :title="goal.name">{{ goal.name }}</span>
-
-            <!--
-              Mesmos botões da lista de transações: ícone vazado numa área de
-              clique de 32px. As margens negativas encostam os botões no canto
-              do card, para que os 32px não aumentem a altura do cabeçalho.
-            -->
-            <div class="goals__actions">
-              <button
-                type="button"
-                title="Editar"
-                aria-label="Editar meta"
-                class="goals__action"
-                @click="startEdit(goal)"
-              >
-                <GaIcon name="pencil" :size="16" />
-              </button>
-              <button
-                type="button"
-                title="Excluir"
-                aria-label="Excluir meta"
-                class="goals__action goals__action--danger"
-                @click="deleteConfirmation.open(goal._id)"
-              >
-                <GaIcon name="trash-2" :size="16" />
-              </button>
-            </div>
+          <!--
+            Mesmos botões da lista de transações: ícone vazado numa área de
+            clique de 32px. As margens negativas encostam os botões no canto
+            do card, para que os 32px não aumentem a altura do cabeçalho.
+          -->
+          <div class="goals__actions">
+            <button
+              type="button"
+              title="Editar"
+              aria-label="Editar meta"
+              class="goals__action"
+              @click="startEdit(goal)"
+            >
+              <GaIcon name="pencil" :size="16" />
+            </button>
+            <button
+              type="button"
+              title="Excluir"
+              aria-label="Excluir meta"
+              class="goals__action goals__action--danger"
+              @click="deleteConfirmation.open(goal._id)"
+            >
+              <GaIcon name="trash-2" :size="16" />
+            </button>
           </div>
+        </div>
 
-          <div>
-            <p class="goals__value">{{ formatCurrency(goal.currentAmountInCents) }}</p>
-            <p class="goals__target">de {{ formatCurrency(goal.targetAmountInCents) }}</p>
+        <div>
+          <p class="goals__value">{{ formatCurrency(goal.currentAmountInCents) }}</p>
+          <p class="goals__target">de {{ formatCurrency(goal.targetAmountInCents) }}</p>
+        </div>
+
+        <div class="goals__progress">
+          <!--
+            A COR DA BARRA É DADO, não decoração: é a cor que o usuário
+            escolheu para a meta, e é por ela que ele reconhece a meta aqui,
+            no card do dashboard e no gráfico. Não vira token. O padrão, para
+            meta sem cor, é `--brand-primary`, que é o padrão de
+            `.ga-progress__fill` na skill (era `#22c55e` cravado).
+          -->
+          <div class="goals__bar">
+            <div
+              class="goals__barFill"
+              :style="{
+                width: progress(goal) + '%',
+                background: goal.color || 'var(--brand-primary)',
+              }"
+            ></div>
           </div>
-
-          <div class="goals__progress">
-            <!--
-              A COR DA BARRA É DADO, não decoração: é a cor que o usuário
-              escolheu para a meta, e é por ela que ele reconhece a meta aqui,
-              no card do dashboard e no gráfico. Não vira token. O padrão, para
-              meta sem cor, é `--brand-primary`, que é o padrão de
-              `.ga-progress__fill` na skill (era `#22c55e` cravado).
-            -->
-            <div class="goals__bar">
-              <div
-                class="goals__barFill"
-                :style="{
-                  width: progress(goal) + '%',
-                  background: goal.color || 'var(--brand-primary)',
-                }"
-              ></div>
-            </div>
-            <div class="goals__meta">
-              <span>{{ progress(goal) }}% concluído</span>
-              <span>{{ goal.deadline ? formatDate(goal.deadline) : "sem prazo" }}</span>
-            </div>
+          <div class="goals__meta">
+            <span>{{ progress(goal) }}% concluído</span>
+            <span>{{ goal.deadline ? formatDate(goal.deadline) : "sem prazo" }}</span>
           </div>
-        </li>
-      </ul>
+        </div>
+      </li>
+    </ul>
 
-      <p v-if="!loading && !error && !goals.length" class="goals__state">
-        Nenhuma meta cadastrada.
-      </p>
-    </main>
+    <p v-if="!loading && !error && !goals.length" class="goals__state">
+      Nenhuma meta cadastrada.
+    </p>
 
     <ConfirmDialog
       :open="deleteConfirmation.isOpen.value"
@@ -168,18 +162,23 @@
  * A BARRA DE PROGRESSO NÃO MUDA DE COR. Ela usa a cor da própria meta,
  * escolhida pelo usuário: isso é dado, não paleta. Só o padrão de quem nunca
  * escolheu saiu de `#22c55e` para `--brand-primary`, que é o padrão da skill.
+ *
+ * ── Esqueleto de navegação ───────────────────────────────────────────────
+ *
+ * A casca (`div > Navbar + main`) saiu daqui: a navegação e o `<main>` são do
+ * `AppShell`. É a única tela cuja ação de criar NÃO é "Nova transação": o FAB
+ * da barra inferior abre "Nova meta".
  */
 import { onMounted, reactive, ref } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
 import GaField from "@/design-system/components/GaField.vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaModal from "@/design-system/components/GaModal.vue";
-import Navbar from "../components/navbar.vue";
-import AppTabs from "../components/AppTabs.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import { useGoals } from "../services/useGoals";
 import { useFormatters } from "../services/useFormatters";
 import { useDeleteConfirmation } from "../services/useDeleteConfirmation";
+import { definePageAction } from "../stores/pageAction";
 
 const { goals, loading, error, loadGoals, createNew, update, remove } = useGoals();
 const {
@@ -226,6 +225,9 @@ function openCreate() {
   resetForm();
   showModal.value = true;
 }
+
+// O FAB central da barra inferior abre o mesmo modal do botão "Nova meta".
+definePageAction({ label: "Nova meta", run: openCreate });
 
 function startEdit(goal) {
   editingId.value = goal._id;
@@ -292,24 +294,14 @@ onMounted(loadGoals);
 </script>
 
 <style scoped>
+/*
+ * A casca saiu: `min-height`, fundo, cor, `max-width`, `margin` e os dois
+ * `padding` com breakpoint moram no `AppShell`.
+ */
 .goals {
-	min-height: 100vh;
-	background: var(--bg-app);
-	color: var(--text-primary);
-}
-
-.goals__main {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-6);
-	max-width: var(--content-max);
-	margin: 0 auto;
-	padding: var(--space-6) var(--page-pad-mobile);
-}
-@media (min-width: 768px) {
-	.goals__main {
-		padding: var(--space-8) var(--page-pad);
-	}
 }
 
 .goals__head {

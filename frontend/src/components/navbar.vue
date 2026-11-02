@@ -7,24 +7,38 @@
         dele era o antigo `lime-400` de ação — cor que agora significa entrada
         de dinheiro, não marca.
       -->
-      <RouterLink to="/dashboard" class="topbar__brand">Gestão App</RouterLink>
+      <!--
+        `aria-current-value="false"`: a marca leva ao dashboard, então o
+        RouterLink a anunciaria como "página atual" sempre que o dashboard
+        estivesse aberto — ao mesmo tempo que a aba "Dashboard" da barra
+        inferior, que é a que de fato marca a rota. Dois "página atual" na
+        mesma tela é ruído para quem usa leitor de tela. "false" é valor ARIA
+        válido e quer dizer exatamente "esta não é a atual".
+      -->
+      <RouterLink to="/dashboard" class="topbar__brand" aria-current-value="false">
+        Gestão App
+      </RouterLink>
 
       <div class="topbar__end">
         <span v-if="user" class="topbar__user">{{ user.name }}</span>
 
         <!--
           Entrada da tela de conta (exportar e excluir dados).
-          Ícone, e não uma quinta aba: as quatro de AppTabs já ocupam a largura
-          disponível em 375px. A área de clique é de 44px no celular (regra de
-          alvo mínimo da skill) e 36px no desktop, maior que o desenho nos dois
-          casos, porque fica encostado no botão "Sair".
+          Ícone, e não um quinto destino: a `GaTabBar` tem quatro abas e o FAB
+          central, e uma quinta aba traria de volta o aperto de largura que as
+          abas de topo tinham em 375px. A área de clique é de 44px, o alvo
+          mínimo da skill, maior que o desenho — ele fica encostado no "Sair".
+
+          A marca de ativo saiu da comparação à mão para o `active-class` do
+          RouterLink, que é também quem põe o `aria-current="page"` — uma fonte
+          de verdade só sobre qual rota está aberta, como no `GaNavItem`.
         -->
         <RouterLink
           to="/account"
           title="Minha conta"
           aria-label="Minha conta"
           class="topbar__action"
-          :class="{ 'topbar__action--on': route.path === '/account' }"
+          active-class="topbar__action--on"
         >
           <GaIcon name="user" :size="17" />
         </RouterLink>
@@ -40,7 +54,7 @@
 
 <script setup>
 /**
- * Barra superior do app (ROADMAP 1.4).
+ * Barra de topo do CELULAR (ROADMAP 1.4).
  *
  * MIGRADA para o design system gestaoApp. O que mudou de significado, e não
  * só de tom:
@@ -51,15 +65,26 @@
  * - O link da marca tinha hover `text-green-400`. Verde no sistema é sinal de
  *   entrada/sucesso; link e foco são cobalt.
  *
- * O desktop do sistema pede sidebar de 248px no lugar desta barra. Ficou para
- * a segunda metade da etapa: a sidebar muda o esqueleto de TODAS as telas, e
- * as que não foram migradas ainda esperam o `<main>` que existe hoje.
+ * ── Abaixo de 768px, e só ali ────────────────────────────────────────────
+ *
+ * A primeira metade da etapa deixou anotado que "o desktop do sistema pede
+ * sidebar de 248px no lugar desta barra". É o que aconteceu: a sidebar
+ * (`GaSidebar`, montada pelo `AppShell`) assumiu o desktop, e esta barra ficou
+ * escondida de 768px para cima — duas navegações para os mesmos destinos, a
+ * 248px de distância uma da outra, é exatamente o que não se quer.
+ *
+ * Ela não foi apagada porque a skill mantém uma barra de topo no celular
+ * ("<768: top bar (wordmark · bell · avatar→settings)") e porque "Minha conta"
+ * e "Sair" não cabem na `GaTabBar`. No desktop esses dois destinos estão no
+ * rodapé da sidebar.
+ *
+ * Quem monta esta barra é o `AppShell`, não cada tela. Antes eram cinco telas
+ * importando-a uma por uma.
  */
-import { RouterLink, useRoute, useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import GaIcon from "../design-system/components/GaIcon.vue";
 import { useAuth } from "../stores/auth";
 
-const route = useRoute();
 const router = useRouter();
 const { user, logout } = useAuth();
 
@@ -73,10 +98,8 @@ function handleLogout() {
 
 <style scoped>
 /*
- * Escopado de propósito. O `tokens/base.css` da skill — que redefiniria
- * `body`, títulos, links e foco de toda a aplicação — não entra nesta etapa:
- * mudaria também as telas que ainda não foram migradas. O que esta barra
- * precisa dele está aqui dentro.
+ * Escopado de propósito: são classes `topbar__*`, de um componente só, e não
+ * classes `ga-` do design system reaproveitadas por fora dele.
  */
 .topbar {
 	background: var(--surface-card);
@@ -89,14 +112,7 @@ function handleLogout() {
 	justify-content: space-between;
 	gap: var(--space-3);
 	height: var(--topbar-height);
-	max-width: var(--content-max);
-	margin: 0 auto;
 	padding: 0 var(--page-pad-mobile);
-}
-@media (min-width: 768px) {
-	.topbar__inner {
-		padding: 0 var(--page-pad);
-	}
 }
 
 /* `.ga-wordmark` da skill: Outfit SemiBold 19, tracking fechado. */
@@ -118,6 +134,10 @@ function handleLogout() {
 	gap: var(--space-1);
 }
 
+/*
+ * O nome só aparece de 640 a 767px. Em 375px a linha é marca + dois botões, e
+ * não sobra largura para ele.
+ */
 .topbar__user {
 	display: none;
 	font: var(--type-small);
@@ -130,14 +150,18 @@ function handleLogout() {
 	}
 }
 
-/* `.ga-iconbtn--ghost` da skill, com o alvo de 44px no celular. */
+/*
+ * `.ga-iconbtn--ghost` da skill, no alvo de 44px: a barra é só do celular, onde
+ * o mínimo da skill vale sempre. Antes havia um caso de 36px para o desktop,
+ * que deixou de existir junto com a barra no desktop.
+ */
 .topbar__action {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
-	width: 36px;
-	height: 36px;
+	min-width: var(--hit-min);
+	height: var(--hit-min);
 	flex-shrink: 0;
 	border: 0;
 	border-radius: var(--radius-md);
@@ -172,12 +196,5 @@ function handleLogout() {
 .topbar__brand:focus-visible {
 	outline: none;
 	box-shadow: var(--ring-focus);
-}
-
-@media (max-width: 767px) {
-	.topbar__action {
-		min-width: var(--hit-min);
-		min-height: var(--hit-min);
-	}
 }
 </style>

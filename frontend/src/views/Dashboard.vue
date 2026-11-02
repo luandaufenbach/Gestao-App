@@ -1,86 +1,80 @@
 <template>
   <div class="dash">
-    <Navbar />
+    <div class="dash__head">
+      <div class="dash__month">
+        <button type="button" aria-label="Mês anterior" class="dash__arrow" @click="previousMonth">
+          <GaIcon name="chevron-left" :size="18" />
+        </button>
+        <span class="dash__monthLabel">{{ monthLabel }}</span>
+        <button type="button" aria-label="Próximo mês" class="dash__arrow" @click="nextMonth">
+          <GaIcon name="chevron-right" :size="18" />
+        </button>
+      </div>
 
-    <main class="dash__main">
-      <AppTabs class="dash__tabs" />
+      <!--
+        No celular o botão é só o "+": com o rótulo inteiro ele não cabia na
+        linha da navegação de mês, quebrava para baixo e ficava sozinho e
+        desalinhado. O `aria-label` preserva o nome da ação para quem usa
+        leitor de tela, já que o texto some.
 
-      <div class="dash__head">
-        <div class="dash__month">
-          <button type="button" aria-label="Mês anterior" class="dash__arrow" @click="previousMonth">
-            <GaIcon name="chevron-left" :size="18" />
-          </button>
-          <span class="dash__monthLabel">{{ monthLabel }}</span>
-          <button type="button" aria-label="Próximo mês" class="dash__arrow" @click="nextMonth">
-            <GaIcon name="chevron-right" :size="18" />
-          </button>
+        O "+" não é mais um círculo escuro dentro de um botão lima: é o ícone
+        Lucide `plus` dentro do botão primário do sistema, que já é cobalt.
+      -->
+      <GaButton
+        class="dash__new"
+        variant="primary"
+        aria-label="Nova transação"
+        @click="showModal = true"
+      >
+        <template #icon>
+          <GaIcon name="plus" />
+        </template>
+        <span class="dash__newLabel">Nova transação</span>
+      </GaButton>
+    </div>
+
+    <div class="dash__grid">
+      <div class="dash__col">
+        <div class="dash__stats">
+          <MonthlyBalanceCard ref="balanceCard" :year="selectedYear" :month="selectedMonth" />
+          <InvoicesCard
+            ref="invoicesCard"
+            :year="selectedYear"
+            :month="selectedMonth"
+            @open-invoice="openInvoice"
+            @pay-invoice="openPayment"
+          />
+          <GoalsCard ref="goalsCard" />
         </div>
 
         <!--
-          No celular o botão é só o "+": com o rótulo inteiro ele não cabia na
-          linha da navegação de mês, quebrava para baixo e ficava sozinho e
-          desalinhado. O `aria-label` preserva o nome da ação para quem usa
-          leitor de tela, já que o texto some.
-
-          O "+" não é mais um círculo escuro dentro de um botão lima: é o ícone
-          Lucide `plus` dentro do botão primário do sistema, que já é cobalt.
+          A altura da linha é ditada pelo card de categorias, que lista todas
+          as categorias sem cortar. A lista de transações (fit-to-height) se
+          estica junto e preenche essa altura com quantas transações couberem.
         -->
-        <GaButton
-          class="dash__new"
-          variant="primary"
-          aria-label="Nova transação"
-          @click="showModal = true"
-        >
-          <template #icon>
-            <GaIcon name="plus" />
-          </template>
-          <span class="dash__newLabel">Nova transação</span>
-        </GaButton>
-      </div>
-
-      <div class="dash__grid">
-        <div class="dash__col">
-          <div class="dash__stats">
-            <MonthlyBalanceCard ref="balanceCard" :year="selectedYear" :month="selectedMonth" />
-            <InvoicesCard
-              ref="invoicesCard"
-              :year="selectedYear"
-              :month="selectedMonth"
-              @open-invoice="openInvoice"
-              @pay-invoice="openPayment"
-            />
-            <GoalsCard ref="goalsCard" />
-          </div>
-
-          <!--
-            A altura da linha é ditada pelo card de categorias, que lista todas
-            as categorias sem cortar. A lista de transações (fit-to-height) se
-            estica junto e preenche essa altura com quantas transações couberem.
-          -->
-          <div class="dash__pair">
-            <TransactionsList
-              ref="transactionsList"
-              :year="selectedYear"
-              :month="selectedMonth"
-              :limit="40"
-              fit-to-height
-              @transaction-deleted="refreshAll"
-              @transaction-updated="refreshAll"
-            />
-            <CategoryPieChart ref="pieChart" :year="selectedYear" :month="selectedMonth" />
-          </div>
-        </div>
-
-        <!--
-          align-self: start — a coluna dos cartões tem altura própria. Sem isso
-          ela é esticada até a altura da coluna da esquerda e o card fica com um
-          vazio enorme embaixo dos cartões.
-        -->
-        <div class="dash__side">
-          <MyCardsCard />
+        <div class="dash__pair">
+          <TransactionsList
+            ref="transactionsList"
+            :year="selectedYear"
+            :month="selectedMonth"
+            :limit="40"
+            fit-to-height
+            @transaction-deleted="refreshAll"
+            @transaction-updated="refreshAll"
+          />
+          <CategoryPieChart ref="pieChart" :year="selectedYear" :month="selectedMonth" />
         </div>
       </div>
-    </main>
+
+      <!--
+        align-self: start — a coluna dos cartões tem altura própria. Sem isso
+        ela é esticada até a altura da coluna da esquerda e o card fica com um
+        vazio enorme embaixo dos cartões.
+      -->
+      <div class="dash__side">
+        <MyCardsCard />
+      </div>
+    </div>
 
     <NewTransactionalModal
       v-if="showModal"
@@ -117,15 +111,16 @@
  * nenhum evento mudou. O que mudou é cor, tipografia, raio, sombra e ícone,
  * todos vindos de token.
  *
- * Os três modais (nova transação, detalhe da fatura, pagamento) continuam no
- * visual antigo: são compartilhados com as telas que ficaram para a segunda
- * metade da etapa.
+ * ── Esqueleto de navegação ───────────────────────────────────────────────
+ *
+ * A casca (`div > Navbar + main`) saiu daqui: a navegação e o `<main>` são do
+ * `AppShell`, montado uma vez acima da `<RouterView>`. Esta tela entrega só o
+ * conteúdo. As abas de topo (`AppTabs`) deixaram de existir — sidebar no
+ * desktop, `GaTabBar` no celular.
  */
 import { ref, useTemplateRef } from "vue";
 import GaButton from "../design-system/components/GaButton.vue";
 import GaIcon from "../design-system/components/GaIcon.vue";
-import Navbar from "../components/navbar.vue";
-import AppTabs from "../components/AppTabs.vue";
 import MonthlyBalanceCard from "../components/cards/MonthlyBalanceCard.vue";
 import InvoicesCard from "../components/cards/InvoicesCard.vue";
 import InvoiceDetailModal from "../components/InvoiceDetailModal.vue";
@@ -136,8 +131,12 @@ import MyCardsCard from "../components/cards/MyCardsCard.vue";
 import TransactionsList from "../components/TransactionsList.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import { useMonthNavigation } from "../services/useMonthNavigation";
+import { definePageAction } from "../stores/pageAction";
 
 const showModal = ref(false);
+
+// O FAB central da barra inferior abre o mesmo modal do botão do cabeçalho.
+definePageAction({ label: "Nova transação", run: () => (showModal.value = true) });
 
 /** { cardId, cycle } da fatura aberta em detalhe, ou null. */
 const detailTarget = ref(null);
@@ -201,26 +200,19 @@ function handleInvoicePaid() {
 </script>
 
 <style scoped>
+/*
+ * A casca saiu: `min-height`, fundo, cor, `max-width`, `margin` e os dois
+ * `padding` com breakpoint eram iguais em cinco telas e agora moram no
+ * `AppShell`. O que sobra aqui é o conteúdo do dashboard.
+ */
+/*
+ * O `margin-bottom: var(--space-8)` que separava o cabeçalho da grade virou o
+ * `gap` daqui — mesmos 32px, agora no container, como nas outras telas.
+ */
 .dash {
-	min-height: 100vh;
-	background: var(--bg-app);
-	color: var(--text-primary);
-	font: var(--type-body);
-}
-
-.dash__main {
-	max-width: var(--content-max);
-	margin: 0 auto;
-	padding: var(--space-6) var(--page-pad-mobile);
-}
-@media (min-width: 768px) {
-	.dash__main {
-		padding: var(--space-8) var(--page-pad);
-	}
-}
-
-.dash__tabs {
-	margin-bottom: var(--space-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-8);
 }
 
 .dash__head {
@@ -229,7 +221,6 @@ function handleInvoicePaid() {
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-3);
-	margin-bottom: var(--space-8);
 }
 
 .dash__month {
