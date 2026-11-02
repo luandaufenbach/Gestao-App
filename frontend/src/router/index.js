@@ -61,6 +61,20 @@ const routes = [
 		name: "account",
 		component: () => import("../views/Account.vue"),
 	},
+	{
+		/**
+		 * Amostra da fundação do design system (ROADMAP 1.3).
+		 *
+		 * Não aparece em nenhum menu: é página de conferência, chegada só por
+		 * URL. Pública e com `allowAuthenticated` porque precisa abrir dos dois
+		 * jeitos — sem sessão, para olhar a fundação sem backend nenhum, e com
+		 * sessão, sem que o guard desvie para o dashboard.
+		 */
+		path: "/design-system",
+		name: "design-system",
+		component: () => import("../views/DesignSystem.vue"),
+		meta: { public: true, allowAuthenticated: true },
+	},
 	// Antes, uma URL inexistente renderizava uma página em branco sem aviso.
 	{
 		path: "/:pathMatch(.*)*",
