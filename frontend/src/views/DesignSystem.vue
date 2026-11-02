@@ -18,6 +18,8 @@
  * na amostra quando a etapa 1.4 liberar os nomes.
  */
 import GaButton from "../design-system/components/GaButton.vue";
+import GaIcon from "../design-system/components/GaIcon.vue";
+import { ICON_NAMES } from "../design-system/icons";
 
 const VARIANTS = [
   { name: "primary", label: "Ação principal da tela" },
@@ -162,6 +164,25 @@ const TYPE_STYLES = [
             </svg>
           </template>
         </GaButton>
+      </div>
+    </section>
+
+    <section class="ds__section">
+      <h2 class="ds__h2">Ícones</h2>
+      <p class="ds__note">
+        Os {{ ICON_NAMES.length }} ícones Lucide do sistema, traço 1,75 e cantos redondos. Tamanhos
+        da escala: 12–14 em metadados, 16–17 em navegação e botões, 20 na barra de abas.
+      </p>
+      <div class="ds__icons">
+        <div v-for="name in ICON_NAMES" :key="name" class="ds__icon">
+          <GaIcon :name="name" :size="20" />
+          <span class="ds__swatchName">{{ name }}</span>
+        </div>
+      </div>
+
+      <h3 class="ds__h3">Escala de tamanho</h3>
+      <div class="ds__samples">
+        <GaIcon v-for="size in [12, 14, 16, 17, 20, 24]" :key="size" name="target" :size="size" />
       </div>
     </section>
 
@@ -347,6 +368,19 @@ const TYPE_STYLES = [
 	font: var(--type-caption);
 	color: var(--text-secondary);
 	overflow-wrap: anywhere;
+}
+
+.ds__icons {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+	gap: var(--space-3);
+}
+.ds__icon {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	color: var(--text-secondary);
 }
 
 .ds__type {

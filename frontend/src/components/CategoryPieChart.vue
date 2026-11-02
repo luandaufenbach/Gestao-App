@@ -1,41 +1,36 @@
 <template>
-  <div
-    class="relative z-0 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-4 overflow-hidden"
-  >
-    <span class="text-xs font-semibold uppercase tracking-widest text-slate-400"
-      >Gastos por categoria</span
-    >
+  <div class="pie">
+    <span class="pie__label">Gastos por categoria</span>
 
-    <div v-if="hasData" class="flex flex-col items-center gap-4">
-      <div class="relative w-40 h-40">
+    <div v-if="hasData" class="pie__body">
+      <div class="pie__canvasWrap">
         <canvas
           ref="chartCanvas"
-          class="w-full! h-full!"
+          class="pie__canvas"
           role="img"
           :aria-label="`Gráfico de gastos por categoria. ${ariaSummary}`"
         ></canvas>
       </div>
 
-      <ul class="w-full space-y-1.5">
-        <li
-          v-for="item in breakdown"
-          :key="item.categoryId ?? item.category"
-          class="flex items-center justify-between text-sm"
-        >
-          <div class="flex items-center gap-2">
-            <span
-              class="w-3 h-3 rounded-full shrink-0"
-              :style="{ backgroundColor: item.color }"
-            ></span>
-            <span class="text-slate-700">{{ item.category }}</span>
+      <ul class="pie__legend">
+        <li v-for="item in breakdown" :key="item.categoryId ?? item.category" class="pie__item">
+          <div class="pie__itemName">
+            <span class="pie__dot" :style="{ background: item.color }"></span>
+            <span>{{ item.category }}</span>
           </div>
-          <span class="text-slate-500 font-medium">{{ formatCurrency(item.totalInCents) }}</span>
+          <span class="pie__itemValue">{{ formatCurrency(item.totalInCents) }}</span>
         </li>
       </ul>
     </div>
 
-    <div v-else class="flex flex-col items-center justify-center py-8 text-slate-400 text-sm gap-2">
-      <span class="text-3xl" aria-hidden="true">🍕</span>
+    <!--
+      O estado vazio mostrava o emoji 🍕 em 30px. A skill é explícita: emoji
+      não entra na interface — muda de desenho em cada sistema e não segue a
+      cor do CSS. No lugar, o ícone Lucide `chart-column`, que é o que o card
+      desenha quando tem dados.
+    -->
+    <div v-else class="pie__empty">
+      <GaIcon name="chart-column" :size="28" />
       {{ error || "Sem transações no período" }}
     </div>
   </div>
@@ -44,6 +39,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
 import { Chart, ArcElement, DoughnutController, Tooltip } from "chart.js";
+import GaIcon from "@/design-system/components/GaIcon.vue";
 import { getCategoryBreakdown } from "@/services/api";
 import { useFormatters } from "@/services/useFormatters";
 
@@ -94,6 +90,9 @@ function buildChart() {
           data: breakdown.value.map((i) => i.totalInCents),
           backgroundColor: breakdown.value.map((i) => i.color),
           borderWidth: 2,
+          // A borda separa as fatias com a cor da superfície do card
+          // (`--ink-0`). Vai literal porque o Chart.js desenha em canvas, onde
+          // `var(--…)` não é resolvido.
           borderColor: "#ffffff",
         },
       ],
@@ -144,3 +143,106 @@ onBeforeUnmount(destroyChart);
 
 defineExpose({ refetch });
 </script>
+
+<style scoped>
+/*
+ * MIGRADO para o design system gestaoApp (ROADMAP 1.4). Usado só pelo
+ * dashboard, então a casca nova não alcança tela fora do escopo.
+ *
+ * As cores das fatias NÃO foram tocadas: vêm do backend, de cada categoria
+ * cadastrada pelo usuário. Trocá-las por tokens apagaria a correspondência
+ * entre a fatia, a bolinha da legenda e a cor que o usuário escolheu na tela
+ * de categorias.
+ */
+.pie {
+	position: relative;
+	z-index: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+	overflow: hidden;
+	padding: var(--card-pad);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-xs);
+	color: var(--text-primary);
+}
+
+.pie__label {
+	font: var(--type-label);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.pie__body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-4);
+}
+.pie__canvasWrap {
+	position: relative;
+	width: 160px;
+	height: 160px;
+}
+/*
+ * O Chart.js escreve width/height inline no canvas a cada redesenho. Era
+ * `w-full! h-full!` (o `!important` do Tailwind); em CSS comum o `!important`
+ * continua sendo o que vence o atributo de estilo.
+ */
+.pie__canvas {
+	width: 100% !important;
+	height: 100% !important;
+}
+
+.pie__legend {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1-5);
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.pie__item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	font: var(--type-body);
+}
+.pie__itemName {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	color: var(--text-secondary);
+}
+.pie__dot {
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+	border-radius: 50%;
+}
+.pie__itemValue {
+	font-weight: var(--fw-medium);
+	color: var(--text-secondary);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.pie__empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: var(--space-8) 0;
+	font: var(--type-small);
+	color: var(--text-tertiary);
+	text-align: center;
+}
+</style>

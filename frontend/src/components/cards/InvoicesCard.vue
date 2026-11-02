@@ -1,79 +1,64 @@
 <template>
-  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">Faturas</span>
+  <div class="inv">
+    <div class="inv__head">
+      <span class="inv__label">Faturas</span>
 
       <!--
         Seletor de cartão. Com um cartão só ele fica escondido. O favorito vem
         primeiro e marcado com estrela, e é o selecionado por padrão.
       -->
-      <select
-        v-if="creditCards.length > 1"
-        v-model="selectedCardId"
-        aria-label="Cartão"
-        class="text-xs rounded-lg border border-slate-200 px-2 py-1 text-slate-600 cursor-pointer"
-      >
+      <select v-if="creditCards.length > 1" v-model="selectedCardId" aria-label="Cartão" class="inv__select">
         <option v-for="card in creditCards" :key="card._id" :value="card._id">
           {{ card.starred ? "★ " : "" }}{{ card.bank || card.name }}
         </option>
       </select>
-      <span v-else-if="currentCard" class="text-xs font-medium text-slate-500">
+      <span v-else-if="currentCard" class="inv__cardName">
         {{ currentCard.bank || currentCard.name }}
       </span>
     </div>
 
-    <p v-if="loading" class="text-sm text-slate-400 text-center py-6">Carregando...</p>
+    <p v-if="loading" class="inv__empty">Carregando...</p>
 
     <!--
       Sem cartão de crédito, ou com o ciclo não configurado, o card explica o
       que fazer em vez de mostrar uma lista vazia sem motivo aparente.
     -->
-    <div v-else-if="!creditCards.length" class="text-sm text-slate-400 text-center py-6">
+    <div v-else-if="!creditCards.length" class="inv__empty">
       Nenhum cartão de crédito cadastrado.
     </div>
 
-    <div v-else-if="needsCycleSetup" class="text-sm text-slate-500 py-4 space-y-2">
+    <div v-else-if="needsCycleSetup" class="inv__setup">
       <p>Para montar as faturas, informe quando o cartão fecha e quando vence.</p>
-      <p class="text-xs text-slate-400">Você configura isso no cartão, em "Meus cartões".</p>
+      <p class="inv__setupHint">Você configura isso no cartão, em "Meus cartões".</p>
     </div>
 
-    <p v-else-if="error" class="text-sm text-red-600 text-center py-6">{{ error }}</p>
+    <p v-else-if="error" class="inv__error">{{ error }}</p>
 
-    <ul v-else class="flex flex-col gap-2">
+    <ul v-else class="inv__list">
       <li v-for="invoice in visibleInvoices" :key="invoice.cycle">
         <button
           type="button"
-          class="w-full text-left rounded-xl border border-slate-100 px-3 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer"
+          class="inv__row"
           @click="emit('open-invoice', { card: currentCard, cycle: invoice.cycle })"
         >
-          <div class="flex items-center justify-between gap-2">
-            <span class="font-medium text-slate-800 text-sm capitalize">
-              {{ shortLabel(invoice) }}
-            </span>
-            <span class="font-semibold text-slate-800 text-sm">
-              {{ formatCurrency(invoice.totalInCents) }}
-            </span>
+          <div class="inv__rowTop">
+            <span class="inv__month">{{ shortLabel(invoice) }}</span>
+            <span class="inv__total">{{ formatCurrency(invoice.totalInCents) }}</span>
           </div>
 
-          <div class="flex items-center justify-between gap-2 mt-1">
-            <span class="text-xs text-slate-400">{{ datesLabel(invoice) }}</span>
-            <span
-              class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
-              :class="STATUS_STYLES[invoice.status].badge"
-            >
-              {{ STATUS_STYLES[invoice.status].label }}
+          <div class="inv__rowBottom">
+            <span class="inv__dates">{{ datesLabel(invoice) }}</span>
+            <span class="inv__badge" :class="`inv__badge--${invoice.status}`">
+              {{ STATUS_LABELS[invoice.status] }}
             </span>
           </div>
 
           <!-- Barra de progresso do pagamento, só quando há algo pago a menos. -->
-          <div v-if="invoice.status === 'parcial'" class="mt-2">
-            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                class="h-full rounded-full bg-amber-400"
-                :style="{ width: paidPercent(invoice) + '%' }"
-              ></div>
+          <div v-if="invoice.status === 'parcial'" class="inv__progressWrap">
+            <div class="inv__progress">
+              <div class="inv__progressFill" :style="{ width: paidPercent(invoice) + '%' }"></div>
             </div>
-            <p class="text-xs text-slate-400 mt-1">
+            <p class="inv__progressText">
               {{ formatCurrency(invoice.paidInCents) }} pagos · faltam
               {{ formatCurrency(invoice.remainingInCents) }}
             </p>
@@ -82,14 +67,14 @@
       </li>
     </ul>
 
-    <button
+    <GaButton
       v-if="openInvoice && !needsCycleSetup"
-      type="button"
-      class="w-full rounded-xl bg-lime-400 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-lime-300 transition-colors cursor-pointer"
+      variant="primary"
+      block
       @click="emit('pay-invoice', { card: currentCard, invoice: openInvoice })"
     >
       Registrar pagamento
-    </button>
+    </GaButton>
   </div>
 </template>
 
@@ -101,8 +86,26 @@
  * soma das compras de crédito do mês do calendário. Aquele número nunca batia
  * com o do banco, porque a fatura real segue o ciclo de FECHAMENTO, não o mês.
  * Além disso não tinha status nem como ver o que havia dentro.
+ *
+ * MIGRADO para o design system gestaoApp (ROADMAP 1.4). Os selos de status são
+ * o ponto sensível: a cor deles é INFORMAÇÃO. O mapa de classes Tailwind virou
+ * `STATUS_LABELS` + uma classe por status, resolvida em CSS por token:
+ *
+ *   status    antes                           depois                     por quê
+ *   aberta    bg-sky-100   / text-sky-700     --feedback-info   (cobalt)  em curso, nada a fazer ainda
+ *   parcial   bg-amber-100 / text-amber-700   --feedback-warning (orange) pago pela metade, falta algo
+ *   paga      bg-emerald-100/text-emerald-700 --feedback-success (green)  concluída
+ *   vencida   bg-red-100   / text-red-700     --feedback-danger  (red)    passou do vencimento
+ *   vazia     bg-slate-100 / text-slate-500   --status-todo (neutro Ink)  sem compras, sem estado
+ *
+ * Os três que já eram sinal (laranja, verde, vermelho) continuam na mesma
+ * família, agora nas cores do sistema. "Aberta" era azul-céu, cor sem papel
+ * definido no sistema; virou cobalt, que é o `--feedback-info` e também o
+ * `--status-progress` da skill — "em andamento". "Vazia" continua neutra, na
+ * escala Ink em vez de slate.
  */
 import { ref, computed, watch, onMounted } from "vue";
+import GaButton from "@/design-system/components/GaButton.vue";
 import { getCardInvoices } from "@/services/api";
 import { useBankCards } from "@/stores/bankCards";
 import { useFormatters } from "@/services/useFormatters";
@@ -130,12 +133,12 @@ const selectedCardId = ref("");
 const loading = ref(false);
 const error = ref("");
 
-const STATUS_STYLES = {
-  aberta: { label: "aberta", badge: "bg-sky-100 text-sky-700" },
-  parcial: { label: "parcial", badge: "bg-amber-100 text-amber-700" },
-  paga: { label: "paga", badge: "bg-emerald-100 text-emerald-700" },
-  vencida: { label: "vencida", badge: "bg-red-100 text-red-700" },
-  vazia: { label: "sem compras", badge: "bg-slate-100 text-slate-500" },
+const STATUS_LABELS = {
+  aberta: "aberta",
+  parcial: "parcial",
+  paga: "paga",
+  vencida: "vencida",
+  vazia: "sem compras",
 };
 
 const currentCard = computed(
@@ -250,3 +253,214 @@ onMounted(refetch);
 
 defineExpose({ refetch });
 </script>
+
+<style scoped>
+.inv {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+	padding: var(--card-pad);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-xs);
+	color: var(--text-primary);
+}
+
+.inv__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+.inv__label {
+	font: var(--type-label);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.inv__select {
+	max-width: 50%;
+	padding: var(--space-1) var(--space-2);
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-sm);
+	background: var(--surface-card);
+	font: var(--type-caption);
+	color: var(--text-secondary);
+	cursor: pointer;
+}
+.inv__select:focus-visible {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--ring-focus);
+}
+.inv__cardName {
+	font: var(--fw-medium) var(--fs-caption) / 1.4 var(--font-ui);
+	color: var(--text-secondary);
+}
+
+.inv__empty,
+.inv__setup,
+.inv__error {
+	margin: 0;
+	font: var(--type-small);
+}
+.inv__empty {
+	padding: var(--space-6) 0;
+	text-align: center;
+	color: var(--text-tertiary);
+}
+.inv__setup {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	padding: var(--space-4) 0;
+	color: var(--text-secondary);
+}
+.inv__setup p {
+	margin: 0;
+}
+.inv__setupHint {
+	font: var(--type-caption);
+	color: var(--text-tertiary);
+}
+.inv__error {
+	padding: var(--space-6) 0;
+	text-align: center;
+	color: var(--feedback-danger);
+}
+
+.inv__list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Linha clicável, no padrão `.ga-task` da skill: raio 12 e fio que escurece no
+   hover, em vez de fundo cinza. */
+.inv__row {
+	display: block;
+	width: 100%;
+	padding: var(--space-2-5) var(--space-3);
+	border: 1px solid var(--border-subtle);
+	border-radius: 12px;
+	background: var(--surface-card);
+	text-align: left;
+	cursor: pointer;
+	transition:
+		border-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
+}
+.inv__row:hover {
+	border-color: var(--border-default);
+	box-shadow: var(--shadow-sm);
+}
+.inv__row:focus-visible {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--ring-focus);
+}
+
+.inv__rowTop,
+.inv__rowBottom {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+}
+.inv__rowBottom {
+	margin-top: var(--space-1);
+}
+
+.inv__month {
+	font: var(--type-body-strong);
+	color: var(--text-primary);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.inv__month::first-letter {
+	text-transform: uppercase;
+}
+.inv__total {
+	font: var(--fw-semibold) var(--fs-body) / 1.45 var(--font-ui);
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.inv__dates {
+	font: var(--type-caption);
+	color: var(--text-tertiary);
+}
+
+/* `.ga-badge--sm` da skill: pílula de 18px, 11px de texto. A caixa alta e o
+   tracking de +8% são a regra de micro-rótulo. */
+.inv__badge {
+	display: inline-flex;
+	align-items: center;
+	height: 18px;
+	padding: 0 var(--space-1-5);
+	flex-shrink: 0;
+	border-radius: var(--radius-pill);
+	font: var(--type-micro);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+/* ── Cor que comunica: um sinal por estado de fatura ───────────────────── */
+.inv__badge--aberta {
+	background: var(--feedback-info-bg);
+	color: var(--feedback-info);
+}
+.inv__badge--parcial {
+	background: var(--feedback-warning-bg);
+	color: var(--feedback-warning);
+}
+.inv__badge--paga {
+	background: var(--feedback-success-bg);
+	color: var(--feedback-success);
+}
+.inv__badge--vencida {
+	background: var(--feedback-danger-bg);
+	color: var(--feedback-danger);
+}
+.inv__badge--vazia {
+	background: var(--status-todo-bg);
+	color: var(--text-secondary);
+}
+
+.inv__progressWrap {
+	margin-top: var(--space-2);
+}
+/* `.ga-progress` da skill. */
+.inv__progress {
+	width: 100%;
+	height: 6px;
+	border-radius: var(--radius-pill);
+	background: var(--ink-100);
+	overflow: hidden;
+}
+/*
+ * O preenchimento fica laranja, igual ao selo "parcial": a barra só aparece
+ * nesse estado, e as duas marcas precisam dizer a mesma coisa. Era
+ * `bg-amber-400`.
+ */
+.inv__progressFill {
+	height: 100%;
+	border-radius: inherit;
+	background: var(--orange-500);
+	transition: width var(--dur-slow) var(--ease-out);
+}
+.inv__progressText {
+	margin: var(--space-1) 0 0;
+	font: var(--type-caption);
+	color: var(--text-tertiary);
+	font-variant-numeric: tabular-nums;
+}
+</style>

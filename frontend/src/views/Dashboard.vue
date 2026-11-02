@@ -1,65 +1,46 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="dash">
     <Navbar />
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <AppTabs class="mb-6" />
+    <main class="dash__main">
+      <AppTabs class="dash__tabs" />
 
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
-        <div class="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Mês anterior"
-            class="w-9 h-9 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-600 cursor-pointer"
-            @click="previousMonth"
-          >
-            &#8249;
+      <div class="dash__head">
+        <div class="dash__month">
+          <button type="button" aria-label="Mês anterior" class="dash__arrow" @click="previousMonth">
+            <GaIcon name="chevron-left" :size="18" />
           </button>
-          <span
-            class="text-xl font-semibold text-slate-800 min-w-28 sm:min-w-32 text-center capitalize"
-          >
-            {{ monthLabel }}
-          </span>
-          <button
-            type="button"
-            aria-label="Próximo mês"
-            class="w-9 h-9 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-600 cursor-pointer"
-            @click="nextMonth"
-          >
-            &#8250;
+          <span class="dash__monthLabel">{{ monthLabel }}</span>
+          <button type="button" aria-label="Próximo mês" class="dash__arrow" @click="nextMonth">
+            <GaIcon name="chevron-right" :size="18" />
           </button>
         </div>
 
         <!--
           No celular o botão é só o "+": com o rótulo inteiro ele não cabia na
           linha da navegação de mês, quebrava para baixo e ficava sozinho e
-          desalinhado. Redondo, ele cabe ao lado e a linha continua uma só.
-          O aria-label preserva o nome da ação para quem usa leitor de tela,
-          já que o texto some.
+          desalinhado. O `aria-label` preserva o nome da ação para quem usa
+          leitor de tela, já que o texto some.
+
+          O "+" não é mais um círculo escuro dentro de um botão lima: é o ícone
+          Lucide `plus` dentro do botão primário do sistema, que já é cobalt.
         -->
-        <button
-          type="button"
+        <GaButton
+          class="dash__new"
+          variant="primary"
           aria-label="Nova transação"
-          class="group ml-auto inline-flex h-9 w-9 items-center justify-center gap-2 rounded-full border border-lime-300 bg-lime-400 text-slate-900 font-semibold shadow-sm transition-all hover:bg-lime-300 hover:border-lime-200 cursor-pointer sm:h-auto sm:w-auto sm:px-5 sm:py-2"
           @click="showModal = true"
         >
-          <!--
-            Ícone SVG em vez do caractere "+": o glifo de texto é desenhado em
-            relação à linha de base da fonte, não ao centro da caixa, e por
-            isso ficava deslocado dentro do círculo.
-          -->
-          <span
-            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lime-300"
-          >
-            <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
-          </span>
-          <span class="hidden sm:inline">Nova transação</span>
-        </button>
+          <template #icon>
+            <GaIcon name="plus" />
+          </template>
+          <span class="dash__newLabel">Nova transação</span>
+        </GaButton>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div class="xl:col-span-3 flex flex-col gap-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="dash__grid">
+        <div class="dash__col">
+          <div class="dash__stats">
             <MonthlyBalanceCard ref="balanceCard" :year="selectedYear" :month="selectedMonth" />
             <InvoicesCard
               ref="invoicesCard"
@@ -76,7 +57,7 @@
             as categorias sem cortar. A lista de transações (fit-to-height) se
             estica junto e preenche essa altura com quantas transações couberem.
           -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+          <div class="dash__pair">
             <TransactionsList
               ref="transactionsList"
               :year="selectedYear"
@@ -91,11 +72,11 @@
         </div>
 
         <!--
-          self-start: a coluna dos cartões tem altura própria. Sem isso ela é
-          esticada até a altura da coluna da esquerda e o card fica com um
+          align-self: start — a coluna dos cartões tem altura própria. Sem isso
+          ela é esticada até a altura da coluna da esquerda e o card fica com um
           vazio enorme embaixo dos cartões.
         -->
-        <div class="xl:col-span-1 self-start">
+        <div class="dash__side">
           <MyCardsCard />
         </div>
       </div>
@@ -128,8 +109,21 @@
 </template>
 
 <script setup>
+/**
+ * Dashboard — primeira tela migrada para o design system gestaoApp
+ * (ROADMAP 1.4).
+ *
+ * O comportamento é o mesmo de antes: nenhuma requisição, nenhum estado e
+ * nenhum evento mudou. O que mudou é cor, tipografia, raio, sombra e ícone,
+ * todos vindos de token.
+ *
+ * Os três modais (nova transação, detalhe da fatura, pagamento) continuam no
+ * visual antigo: são compartilhados com as telas que ficaram para a segunda
+ * metade da etapa.
+ */
 import { ref, useTemplateRef } from "vue";
-import { PlusIcon } from "@heroicons/vue/20/solid";
+import GaButton from "../design-system/components/GaButton.vue";
+import GaIcon from "../design-system/components/GaIcon.vue";
 import Navbar from "../components/navbar.vue";
 import AppTabs from "../components/AppTabs.vue";
 import MonthlyBalanceCard from "../components/cards/MonthlyBalanceCard.vue";
@@ -205,3 +199,165 @@ function handleInvoicePaid() {
   refreshAll();
 }
 </script>
+
+<style scoped>
+.dash {
+	min-height: 100vh;
+	background: var(--bg-app);
+	color: var(--text-primary);
+	font: var(--type-body);
+}
+
+.dash__main {
+	max-width: var(--content-max);
+	margin: 0 auto;
+	padding: var(--space-6) var(--page-pad-mobile);
+}
+@media (min-width: 768px) {
+	.dash__main {
+		padding: var(--space-8) var(--page-pad);
+	}
+}
+
+.dash__tabs {
+	margin-bottom: var(--space-6);
+}
+
+.dash__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	margin-bottom: var(--space-8);
+}
+
+.dash__month {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+/* `.ga-iconbtn--outline` da skill. */
+.dash__arrow {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--control-md);
+	height: var(--control-md);
+	flex-shrink: 0;
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-md);
+	background: var(--surface-card);
+	color: var(--text-primary);
+	box-shadow: var(--shadow-xs);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+.dash__arrow:hover {
+	background: var(--surface-hover);
+	border-color: var(--border-strong);
+}
+.dash__arrow:active {
+	transform: scale(0.94);
+}
+.dash__arrow:focus-visible {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--ring-focus);
+}
+/* Alvo mínimo de 44px no celular. Cabe: 44 + 112 + 44 + dois espaços de 12
+   somam 224 dos 343px da linha, e o botão de nova transação leva 44. */
+@media (max-width: 767px) {
+	.dash__arrow {
+		width: var(--hit-min);
+		height: var(--hit-min);
+	}
+}
+
+.dash__monthLabel {
+	min-width: 112px;
+	text-align: center;
+	font: var(--type-title);
+	letter-spacing: var(--ls-title);
+	color: var(--text-primary);
+}
+/*
+ * `::first-letter`, e não a classe `capitalize`: o rótulo é "novembro 2026" e
+ * `capitalize` maiusculiza CADA palavra. Com mês de duas palavras no futuro —
+ * ou com o ano escrito — viraria "Novembro De 2026".
+ */
+.dash__monthLabel::first-letter {
+	text-transform: uppercase;
+}
+@media (min-width: 640px) {
+	.dash__monthLabel {
+		min-width: 128px;
+	}
+}
+
+.dash__new {
+	margin-left: auto;
+}
+/*
+ * Abaixo de 640px o botão primário fica só com o ícone. `gap: 0` junto do
+ * `padding: 0`: sem zerar o gap, o espaço de 8px que separaria o ícone do
+ * rótulo continuaria contando no centro do botão e o "+" ficaria 4px à
+ * esquerda do meio.
+ */
+@media (max-width: 639px) {
+	.dash__newLabel {
+		display: none;
+	}
+	.dash__new {
+		gap: 0;
+		padding: 0;
+		min-width: var(--hit-min);
+	}
+}
+
+.dash__grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--space-6);
+}
+@media (min-width: 1280px) {
+	.dash__grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+	.dash__col {
+		grid-column: span 3;
+	}
+}
+
+.dash__col {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	min-width: 0;
+}
+
+.dash__stats,
+.dash__pair {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--grid-gap);
+}
+@media (min-width: 768px) {
+	.dash__stats {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.dash__pair {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		align-items: stretch;
+	}
+}
+
+.dash__side {
+	align-self: start;
+	min-width: 0;
+}
+</style>

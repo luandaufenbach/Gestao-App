@@ -1,30 +1,23 @@
 <template>
-  <section
-    ref="root"
-    class="md:h-full bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-4"
-  >
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-semibold uppercase tracking-widest text-slate-400"
-        >Últimas transações</span
-      >
+  <section ref="root" class="tlist">
+    <div class="tlist__head">
+      <span class="tlist__label">Últimas transações</span>
     </div>
 
-    <p v-if="loading" class="text-sm text-slate-400 text-center py-4">Carregando...</p>
+    <p v-if="loading" class="tlist__state">Carregando...</p>
 
-    <p v-else-if="error" class="text-sm text-red-600 text-center py-4">{{ error }}</p>
+    <p v-else-if="error" class="tlist__state tlist__state--error">{{ error }}</p>
 
-    <p v-else-if="!transactions.length" class="text-sm text-slate-400 text-center py-4">
-      Nenhuma transação encontrada.
-    </p>
+    <p v-else-if="!transactions.length" class="tlist__state">Nenhuma transação encontrada.</p>
 
     <!--
-      A partir de md: flex-1 + min-h-0 + overflow-hidden fazem a lista ocupar a
-      altura que sobra do card (ditada pelo card de categorias ao lado) sem
-      nunca esticá-lo; quantos itens cabem ali é medido em runtime. Abaixo de
-      md os cards ficam empilhados e a altura vem do conteúdo — aí não há
-      "altura disponível" para preencher, e a lista volta a ser comum.
+      A partir de 768px: flex-1 + min-height 0 + overflow hidden fazem a lista
+      ocupar a altura que sobra do card (ditada pelo card de categorias ao
+      lado) sem nunca esticá-lo; quantos itens cabem ali é medido em runtime.
+      Abaixo disso os cards ficam empilhados e a altura vem do conteúdo — aí
+      não há "altura disponível" para preencher, e a lista volta a ser comum.
     -->
-    <ul v-else ref="list" class="flex flex-col gap-2 md:flex-1 md:min-h-0 md:overflow-hidden">
+    <ul v-else ref="list" class="tlist__items">
       <TransactionRow
         v-for="t in visibleTransactions"
         :key="t._id"
@@ -52,6 +45,14 @@
 </template>
 
 <script setup>
+/**
+ * Card de últimas transações do dashboard.
+ *
+ * MIGRADO para o design system gestaoApp (ROADMAP 1.4). É usado só pelo
+ * dashboard — a tela de Transações monta a própria lista com o TransactionRow
+ * direto —, então migrar a casca aqui não alcança nenhuma tela fora do escopo
+ * desta etapa.
+ */
 import { ref, computed, onMounted, watch, useTemplateRef } from "vue";
 import TransactionRow from "./TransactionRow.vue";
 import EditTransactionModal from "./EditTransactionModal.vue";
@@ -156,3 +157,62 @@ watch(transactions, remeasure);
 
 defineExpose({ loadTransactions });
 </script>
+
+<style scoped>
+.tlist {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+	padding: var(--card-pad);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-xs);
+	color: var(--text-primary);
+}
+@media (min-width: 768px) {
+	.tlist {
+		height: 100%;
+	}
+}
+
+.tlist__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.tlist__label {
+	font: var(--type-label);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.tlist__state {
+	margin: 0;
+	padding: var(--space-4) 0;
+	text-align: center;
+	font: var(--type-small);
+	color: var(--text-tertiary);
+}
+.tlist__state--error {
+	color: var(--feedback-danger);
+}
+
+.tlist__items {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+@media (min-width: 768px) {
+	.tlist__items {
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+	}
+}
+</style>

@@ -1,20 +1,18 @@
 <template>
-  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-4">
-    <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">Meus cartões</span>
+  <div class="cards">
+    <span class="cards__label">Meus cartões</span>
 
-    <div class="flex flex-col gap-3">
+    <div class="cards__stack">
       <div
         v-for="card in bankCards"
         :key="card._id"
-        class="relative rounded-xl p-4 text-white overflow-hidden"
-        :style="{ backgroundColor: card.color || '#1e293b' }"
+        class="cards__card"
+        :style="{ background: card.color || 'var(--ink-900)' }"
       >
-        <div class="flex justify-between items-start mb-4">
-          <span class="text-xs font-semibold opacity-80 uppercase tracking-wide">
-            {{ card.bank || card.name }}
-          </span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium opacity-70">
+        <div class="cards__cardTop">
+          <span class="cards__bank">{{ card.bank || card.name }}</span>
+          <div class="cards__cardTopEnd">
+            <span class="cards__kind">
               {{ card.type === "credit" ? "Crédito" : "Débito" }}
             </span>
             <!--
@@ -23,72 +21,63 @@
             -->
             <button
               type="button"
-              class="-m-1 p-1 rounded-md transition-colors cursor-pointer disabled:opacity-50"
-              :class="card.starred ? 'text-amber-300' : 'text-white/40 hover:text-white/80'"
+              class="cards__star"
+              :class="{ 'cards__star--on': card.starred }"
               :aria-pressed="Boolean(card.starred)"
               :aria-label="card.starred ? 'Remover dos favoritos' : 'Marcar como favorito'"
               :title="card.starred ? 'Cartão favorito' : 'Marcar como favorito'"
               :disabled="starringId === card._id"
               @click="toggleStar(card)"
             >
-              <StarSolidIcon v-if="card.starred" class="h-4 w-4" aria-hidden="true" />
-              <StarOutlineIcon v-else class="h-4 w-4" aria-hidden="true" />
+              <GaIcon name="star" :size="16" />
             </button>
           </div>
         </div>
-        <p class="font-mono text-sm tracking-widest opacity-90">
-          •••• •••• •••• {{ card.lastFourDigits }}
-        </p>
-        <div class="flex justify-between items-end mt-3">
-          <span class="text-xs opacity-70 font-medium">{{ card.name }}</span>
+
+        <p class="cards__digits">•••• •••• •••• {{ card.lastFourDigits }}</p>
+
+        <div class="cards__cardFoot">
+          <span class="cards__name">{{ card.name }}</span>
           <button
             type="button"
-            class="text-white/50 hover:text-white/90 text-xs transition-colors cursor-pointer"
+            class="cards__remove"
             title="Remover cartão"
             aria-label="Remover cartão"
             @click="deleteConfirmation.open(card._id)"
           >
-            ✕
+            <GaIcon name="x" :size="14" />
           </button>
         </div>
       </div>
 
-      <p v-if="!loading && !bankCards.length" class="text-sm text-slate-400 text-center py-4">
-        Nenhum cartão adicionado
-      </p>
+      <p v-if="!loading && !bankCards.length" class="cards__empty">Nenhum cartão adicionado</p>
     </div>
 
-    <p v-if="errorMessage || error" class="text-xs text-red-600">{{ errorMessage || error }}</p>
+    <p v-if="errorMessage || error" class="cards__error">{{ errorMessage || error }}</p>
 
-    <button
-      type="button"
-      class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 text-slate-400 hover:border-green-400 hover:text-green-600 rounded-xl py-2.5 text-sm font-medium transition-colors cursor-pointer"
-      @click="toggleForm"
-    >
-      <PlusIcon class="h-4 w-4" aria-hidden="true" />
+    <!-- `.ga-card--dashed.ga-card--interactive` da skill: o "criar" é tracejado
+         e o hover dele é cobalt, não verde. -->
+    <button type="button" class="cards__add" @click="toggleForm">
+      <GaIcon name="plus" :size="16" />
       Adicionar cartão
     </button>
 
-    <form
-      v-if="showForm"
-      class="border border-slate-200 rounded-xl p-4 space-y-3"
-      @submit.prevent="saveCard"
-    >
-      <h3 class="text-sm font-semibold text-slate-700">Novo cartão</h3>
+    <form v-if="showForm" class="cards__form" @submit.prevent="saveCard">
+      <h3 class="cards__formTitle">Novo cartão</h3>
 
       <input
         v-model="form.name"
         type="text"
         placeholder="Nome (ex: Nubank Black)"
         maxlength="60"
-        class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+        class="cards__input"
       />
       <input
         v-model="form.bank"
         type="text"
         placeholder="Banco (ex: Nubank)"
         maxlength="60"
-        class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+        class="cards__input"
       />
       <input
         v-model="form.lastFourDigits"
@@ -96,13 +85,10 @@
         maxlength="4"
         inputmode="numeric"
         placeholder="Últimos 4 dígitos"
-        class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+        class="cards__input"
       />
 
-      <select
-        v-model="form.type"
-        class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 cursor-pointer"
-      >
+      <select v-model="form.type" class="cards__input cards__input--select">
         <option value="credit">Crédito</option>
         <option value="debit">Débito</option>
       </select>
@@ -111,9 +97,9 @@
         Só cartão de crédito tem fatura. Sem estes dois dias, as compras não
         podem ser agrupadas por ciclo e o card de Faturas fica sem o que mostrar.
       -->
-      <div v-if="form.type === 'credit'" class="grid grid-cols-2 gap-2">
+      <div v-if="form.type === 'credit'" class="cards__days">
         <div>
-          <label for="card-closing" class="block text-xs text-slate-500 mb-1">Fecha dia</label>
+          <label for="card-closing" class="cards__fieldLabel">Fecha dia</label>
           <input
             id="card-closing"
             v-model.number="form.closingDay"
@@ -121,11 +107,11 @@
             min="1"
             max="31"
             placeholder="01"
-            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+            class="cards__input"
           />
         </div>
         <div>
-          <label for="card-due" class="block text-xs text-slate-500 mb-1">Vence dia</label>
+          <label for="card-due" class="cards__fieldLabel">Vence dia</label>
           <input
             id="card-due"
             v-model.number="form.dueDay"
@@ -133,36 +119,26 @@
             min="1"
             max="31"
             placeholder="05"
-            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+            class="cards__input"
           />
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <label for="card-color" class="text-xs text-slate-500">Cor:</label>
-        <input
-          id="card-color"
-          v-model="form.color"
-          type="color"
-          class="h-8 w-12 rounded cursor-pointer border-0"
-        />
+      <div class="cards__colorRow">
+        <label for="card-color" class="cards__fieldLabel">Cor:</label>
+        <input id="card-color" v-model="form.color" type="color" class="cards__color" />
       </div>
 
-      <div class="flex gap-2">
-        <button
-          type="button"
-          class="flex-1 py-2 text-sm rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-          @click="showForm = false"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          :disabled="saving"
-          class="flex-1 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium disabled:opacity-60 cursor-pointer"
-        >
+      <div class="cards__formActions">
+        <GaButton variant="secondary" block @click="showForm = false">Cancelar</GaButton>
+        <!--
+          Estado de carregamento: a skill não define nenhum, e nada foi
+          inventado aqui. Continua o padrão do app — o rótulo vira
+          "Salvando..." e o botão fica desabilitado.
+        -->
+        <GaButton type="submit" variant="primary" block :disabled="saving">
           {{ saving ? "Salvando..." : "Salvar" }}
-        </button>
+        </GaButton>
       </div>
     </form>
 
@@ -180,8 +156,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import { PlusIcon, StarIcon as StarSolidIcon } from "@heroicons/vue/20/solid";
-import { StarIcon as StarOutlineIcon } from "@heroicons/vue/24/outline";
+import GaButton from "@/design-system/components/GaButton.vue";
+import GaIcon from "@/design-system/components/GaIcon.vue";
 import { useBankCards } from "@/stores/bankCards";
 import { useDeleteConfirmation } from "@/services/useDeleteConfirmation";
 import ConfirmDialog from "../ConfirmDialog.vue";
@@ -194,6 +170,20 @@ import ConfirmDialog from "../ConfirmDialog.vue";
  * Com estados separados, cadastrar um cartão aqui não o fazia aparecer no
  * formulário até recarregar a página. Agora as duas telas olham para a mesma
  * lista, que é o que a store sempre se propôs a ser.
+ *
+ * MIGRADO para o design system gestaoApp (ROADMAP 1.4):
+ *
+ * - O "✕" de remover era o caractere de texto; virou o ícone Lucide `x`.
+ * - A estrela do favorito era `text-amber-300`. Virou `--accent` (zest), a cor
+ *   que a skill reserva para destaque e conquista — é o único lugar desta
+ *   etapa em que o zest aparece. O desenho preenchido vem de CSS (`fill`), já
+ *   que o conjunto da skill só traz a estrela de contorno.
+ * - O botão "Adicionar cartão" tinha hover verde; agora é cobalt, como toda
+ *   ação. Os campos tinham anel de foco `ring-green-400`; agora é a borda
+ *   cobalt com anel de 3px, a regra de foco do sistema.
+ * - A cor padrão do cartão era `#1e293b` (slate-800, da paleta antiga). Virou
+ *   `#141823`, que é o `--ink-900`. É só o padrão do seletor: a cor escolhida
+ *   pelo usuário continua intocada, e a de quem já tem cartão salvo também.
  */
 const {
   cards: bankCards,
@@ -213,12 +203,15 @@ const errorMessage = ref("");
 /** Id do cartão com a estrela sendo salva, para travar cliques repetidos. */
 const starringId = ref(null);
 
+/** `--ink-900`, o neutro escuro do design system. */
+const DEFAULT_CARD_COLOR = "#141823";
+
 const form = reactive({
   name: "",
   bank: "",
   lastFourDigits: "",
   type: "credit",
-  color: "#1e293b",
+  color: DEFAULT_CARD_COLOR,
 });
 
 function resetForm() {
@@ -227,7 +220,7 @@ function resetForm() {
     bank: "",
     lastFourDigits: "",
     type: "credit",
-    color: "#1e293b",
+    color: DEFAULT_CARD_COLOR,
     closingDay: null,
     dueDay: null,
   });
@@ -302,3 +295,273 @@ async function saveCard() {
 
 onMounted(loadBankCards);
 </script>
+
+<style scoped>
+.cards {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	min-width: 0;
+	padding: var(--card-pad);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-xs);
+	color: var(--text-primary);
+}
+
+.cards__label {
+	font: var(--type-label);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.cards__stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+/*
+ * O cartão em si é "momento de marca": fundo da cor escolhida pelo usuário,
+ * texto branco. Raio 12 como as linhas do sistema.
+ */
+.cards__card {
+	position: relative;
+	overflow: hidden;
+	padding: var(--space-4);
+	border-radius: 12px;
+	color: #fff;
+}
+.cards__cardTop {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	margin-bottom: var(--space-4);
+}
+.cards__cardTopEnd {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.cards__bank {
+	font: var(--type-micro);
+	letter-spacing: var(--ls-label);
+	text-transform: uppercase;
+	opacity: 0.8;
+}
+.cards__kind {
+	font: var(--fw-medium) var(--fs-caption) / 1 var(--font-ui);
+	opacity: 0.7;
+}
+
+.cards__star {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: calc(var(--space-1) * -1);
+	padding: var(--space-1);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: rgba(255, 255, 255, 0.45);
+	cursor: pointer;
+	transition:
+		color var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+.cards__star:hover:not(:disabled) {
+	color: rgba(255, 255, 255, 0.85);
+}
+.cards__star:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.cards__star:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+/*
+ * Marcado: zest preenchido. O conjunto da skill só tem a estrela de contorno,
+ * então o preenchimento vem daqui — a regra de CSS vence o atributo
+ * `fill="none"` do `<svg>`, e os paths herdam o `fill` do pai.
+ */
+.cards__star--on {
+	color: var(--accent);
+}
+.cards__star--on :deep(.ga-icon) {
+	fill: currentColor;
+}
+/*
+ * Alvo de toque de 44px no celular por `::after`: o desenho da estrela e do
+ * "✕" tem de continuar discreto dentro do cartão, então a área clicável
+ * cresce sem ocupar espaço no layout.
+ */
+@media (max-width: 767px) {
+	.cards__star::after,
+	.cards__remove::after {
+		content: "";
+		position: absolute;
+		inset: -11px;
+	}
+}
+
+.cards__digits {
+	margin: 0;
+	font: var(--fw-regular) var(--fs-body) / 1.4 var(--font-mono);
+	letter-spacing: 0.15em;
+	opacity: 0.9;
+}
+
+.cards__cardFoot {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	margin-top: var(--space-3);
+}
+.cards__name {
+	font: var(--fw-medium) var(--fs-caption) / 1 var(--font-ui);
+	opacity: 0.7;
+}
+.cards__remove {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: calc(var(--space-1) * -1);
+	padding: var(--space-1);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: rgba(255, 255, 255, 0.5);
+	cursor: pointer;
+	transition: color var(--dur-fast) var(--ease-out);
+}
+.cards__remove:hover {
+	color: rgba(255, 255, 255, 0.9);
+}
+.cards__remove:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.cards__empty {
+	margin: 0;
+	padding: var(--space-4) 0;
+	text-align: center;
+	font: var(--type-small);
+	color: var(--text-tertiary);
+}
+
+.cards__error {
+	margin: 0;
+	font: var(--type-caption);
+	color: var(--feedback-danger);
+}
+
+.cards__add {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	width: 100%;
+	/* `--hit-min`: alvo de 44px também no desktop — é um botão de largura
+	   inteira, então a altura não custa nada ao layout. */
+	min-height: var(--hit-min);
+	padding: var(--space-2-5) 0;
+	border: 1.5px dashed var(--border-dashed);
+	border-radius: 12px;
+	background: transparent;
+	color: var(--text-tertiary);
+	font: var(--type-body-strong);
+	cursor: pointer;
+	transition:
+		border-color var(--dur-base) var(--ease-out),
+		background var(--dur-base) var(--ease-out),
+		color var(--dur-base) var(--ease-out);
+}
+.cards__add:hover {
+	border-color: var(--cobalt-300);
+	background: var(--brand-primary-soft);
+	color: var(--text-brand);
+}
+.cards__add:focus-visible {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--ring-focus);
+}
+
+.cards__form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	border: 1px solid var(--border-default);
+	border-radius: 12px;
+}
+.cards__formTitle {
+	margin: 0;
+	font: var(--fw-medium) var(--fs-body) / 1.3 var(--font-display);
+	letter-spacing: var(--ls-title);
+	color: var(--text-primary);
+}
+
+/* Campo no padrão do sistema: raio 10, fio `--border-default`, foco cobalt. */
+.cards__input {
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-control);
+	background: var(--surface-card);
+	font: var(--type-body);
+	color: var(--text-primary);
+}
+.cards__input::placeholder {
+	color: var(--text-tertiary);
+}
+.cards__input:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--ring-focus);
+}
+.cards__input--select {
+	cursor: pointer;
+}
+
+.cards__days {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-2);
+}
+.cards__fieldLabel {
+	display: block;
+	margin-bottom: var(--space-1);
+	font: var(--type-caption);
+	color: var(--text-secondary);
+}
+
+.cards__colorRow {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.cards__colorRow .cards__fieldLabel {
+	margin-bottom: 0;
+}
+.cards__color {
+	width: 48px;
+	height: 32px;
+	padding: 0;
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-sm);
+	background: var(--surface-card);
+	cursor: pointer;
+}
+
+.cards__formActions {
+	display: flex;
+	gap: var(--space-2);
+}
+</style>

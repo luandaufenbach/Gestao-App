@@ -1,6 +1,6 @@
 <template>
   <CardBase title="Saldo do mês">
-    <span :class="balanceColor">{{ formatCurrency(balanceInCents) }}</span>
+    <span :class="balanceClass">{{ formatCurrency(balanceInCents) }}</span>
 
     <template #footer>
       <!--
@@ -12,21 +12,18 @@
         cartão. Repetir o valor aqui com uma nota dizendo que ele não conta era
         mais ruído do que informação.
       -->
-      <dl class="space-y-0.5 text-xs">
-        <div v-for="line in lines" :key="line.label" class="flex justify-between text-slate-500">
+      <dl class="balance__lines">
+        <div v-for="line in lines" :key="line.label" class="balance__line">
           <dt>{{ line.label }}</dt>
-          <dd class="font-medium" :class="line.color">
+          <dd class="balance__amount" :class="`balance__amount--${line.tone}`">
             {{ line.sign }} {{ formatCurrency(line.value) }}
           </dd>
         </div>
       </dl>
 
-      <p
-        v-if="showNetResult"
-        class="text-xs text-slate-400 mt-1.5 pt-1.5 border-t border-slate-100"
-      >
+      <p v-if="showNetResult" class="balance__net">
         Receitas menos despesas do mês:
-        <span class="font-medium text-slate-500">{{ formatCurrency(netResult) }}</span>
+        <span class="balance__netValue">{{ formatCurrency(netResult) }}</span>
       </p>
     </template>
   </CardBase>
@@ -71,16 +68,33 @@ const netResult = field("netResultInCents");
  * O saldo anterior abre a lista: o total exibido em cima é acumulado, então
  * sem essa linha a composição não fecharia — o leitor somaria receitas menos
  * despesas e chegaria a um número diferente do que está no topo do card.
+ *
+ * MIGRAÇÃO (ROADMAP 1.4) — aqui a cor é INFORMAÇÃO, não decoração: ela diz a
+ * natureza da linha, e o sinal (+/−) diz a direção. As classes Tailwind
+ * viraram `tone`, resolvido em CSS por token:
+ *
+ *   antes                  depois                        por quê
+ *   text-emerald-600  ->   --feedback-success (green-600) entrada de dinheiro
+ *   text-red-500      ->   --feedback-danger  (red-500)   saída de dinheiro
+ *   text-blue-500     ->   --violet-600                   vai para a reserva
+ *   text-sky-600      ->   --sky-600                      volta da reserva
+ *   text-amber-600    ->   --feedback-warning (orange-600) fatura do cartão
+ *
+ * O único que troca de família é "Guardado": azul era vizinho do cobalt, e no
+ * sistema novo cobalt significa ação e foco. Violeta é cor de sinal da
+ * própria paleta (`--violet-*`) e mantém "Guardado" distinguível de
+ * "Resgatado", que continua azul-céu — os dois movem a reserva, em direções
+ * opostas.
  */
 const lines = computed(() => {
   const s = summary.value ?? EMPTY;
 
   const movement = [
-    { label: "Receitas", value: s.incomeInCents, sign: "+", color: "text-emerald-600" },
-    { label: "Despesas no débito", value: s.debitExpenseInCents, sign: "−", color: "text-red-500" },
-    { label: "Guardado", value: s.savedInCents, sign: "−", color: "text-blue-500" },
-    { label: "Resgatado", value: s.withdrawnInCents, sign: "+", color: "text-sky-600" },
-    { label: "Fatura paga", value: s.invoicePaidInCents, sign: "−", color: "text-amber-600" },
+    { label: "Receitas", value: s.incomeInCents, sign: "+", tone: "in" },
+    { label: "Despesas no débito", value: s.debitExpenseInCents, sign: "−", tone: "out" },
+    { label: "Guardado", value: s.savedInCents, sign: "−", tone: "saved" },
+    { label: "Resgatado", value: s.withdrawnInCents, sign: "+", tone: "withdrawn" },
+    { label: "Fatura paga", value: s.invoicePaidInCents, sign: "−", tone: "invoice" },
   ].filter((line, index) => index === 0 || line.value > 0);
 
   const previous = s.previousBalanceInCents ?? 0;
@@ -93,7 +107,7 @@ const lines = computed(() => {
       // negativo é possível: basta o mês passado ter fechado no vermelho.
       value: Math.abs(previous),
       sign: previous > 0 ? "+" : "−",
-      color: previous > 0 ? "text-emerald-600" : "text-red-500",
+      tone: previous > 0 ? "in" : "out",
     },
     ...movement,
   ];
@@ -105,10 +119,76 @@ const showNetResult = computed(() => netResult.value !== balanceInCents.value);
 /**
  * BUG CORRIGIDO (M12): a versão anterior descobria o sinal do saldo fazendo
  * parse reverso da string já formatada. O número puro sempre esteve na resposta.
+ *
+ * MIGRAÇÃO: `text-green-600`/`text-red-500` viraram os mesmos dois sinais da
+ * composição — verde de entrada para saldo positivo, vermelho de saída para
+ * negativo.
  */
-const balanceColor = computed(() =>
-  balanceInCents.value >= 0 ? "text-green-600" : "text-red-500"
+const balanceClass = computed(() =>
+  balanceInCents.value >= 0 ? "balance__total--in" : "balance__total--out"
 );
 
 defineExpose({ refetch });
 </script>
+
+<style scoped>
+.balance__total--in {
+	color: var(--feedback-success);
+}
+.balance__total--out {
+	color: var(--feedback-danger);
+}
+
+.balance__lines {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-0-5);
+	margin: 0;
+	font: var(--type-caption);
+	color: var(--text-secondary);
+}
+.balance__line {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+.balance__line dt,
+.balance__line dd {
+	margin: 0;
+}
+
+.balance__amount {
+	font-weight: var(--fw-medium);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+/* Cor que comunica — ver o comentário em `lines`. */
+.balance__amount--in {
+	color: var(--feedback-success);
+}
+.balance__amount--out {
+	color: var(--feedback-danger);
+}
+.balance__amount--saved {
+	color: var(--violet-600);
+}
+.balance__amount--withdrawn {
+	color: var(--sky-600);
+}
+.balance__amount--invoice {
+	color: var(--feedback-warning);
+}
+
+.balance__net {
+	margin: var(--space-1-5) 0 0;
+	padding-top: var(--space-1-5);
+	border-top: 1px solid var(--border-subtle);
+	font: var(--type-caption);
+	color: var(--text-tertiary);
+}
+.balance__netValue {
+	font-weight: var(--fw-medium);
+	color: var(--text-secondary);
+	font-variant-numeric: tabular-nums;
+}
+</style>
