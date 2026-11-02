@@ -1,0 +1,119 @@
+# Roteiro
+
+Ordem de implementação até o produto sustentar tráfego pago e assinatura.
+Cada item traz o critério de aceite e o agente responsável.
+
+As estimativas são grosseiras e servem para ordenar, não para prometer data.
+
+---
+
+## Fase 0 — Antes de gastar o primeiro real em anúncio
+
+Nada aqui é funcionalidade. É o que impede a verba de anúncio de ser desperdiçada.
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 0.1 | Sair do plano gratuito do Render | Primeira requisição depois de horas parado responde em menos de 2s | — |
+| 0.2 | Recuperação de senha por e-mail | Usuário sem acesso recupera a conta sozinho; token expira e é de uso único | `backend-api` + `seguranca-lgpd` |
+| 0.3 | Verificação de e-mail no cadastro | Conta não verificada não acumula dados por mais de 7 dias | `backend-api` |
+| 0.4 | Monitoramento de erro (Sentry) | Erro 500 em produção chega notificado com stack e usuário afetado | `backend-api` |
+| 0.5 | Analytics de funil | Dá para responder: de 100 cliques no anúncio, quantos cadastram e quantos lançam a primeira transação | `frontend-vue` |
+| 0.6 | LGPD: exportar e excluir conta | Usuário baixa os próprios dados em JSON e apaga a conta sem abrir chamado | `seguranca-lgpd` |
+| 0.7 | Termos de uso e política de privacidade | Links acessíveis antes do cadastro | — |
+| 0.8 | Zerar `npm audit` | 0 vulnerabilidades altas nos dois pacotes | `seguranca-lgpd` |
+
+**O 0.1 vem primeiro.** Hoje a aplicação dorme e a primeira visita espera cerca de
+50 segundos. Anúncio que cai em tela parada perde o visitante antes de qualquer
+funcionalidade existir.
+
+---
+
+## Fase 1 — Valor visível antes do paywall
+
+Precisa existir algo que justifique a cobrança no momento em que ela for ligada.
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 1.1 | Projeção de caixa futura | Tela mostra quanto já está comprometido nos próximos 6 meses, somando parcelas e faturas futuras | `backend-api` + `frontend-vue` |
+| 1.2 | Relatórios de 3 a 12 meses | Evolução por mês, comparativo por categoria e variação mês a mês | `backend-api` + `frontend-vue` |
+
+O 1.1 é o melhor retorno do roteiro inteiro: os dados **já existem** no banco. Uma
+compra em 5x nasce como cinco transações datadas, e `invoiceCycle.js` já sabe em qual
+fatura cada uma cai. Falta consulta e tela.
+
+---
+
+## Fase 2 — Monetização
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 2.1 | Planos e estado de assinatura no `User` | Campo de plano, status e validade, com índice | `backend-api` |
+| 2.2 | Gateway de pagamento com Pix | Assinatura criada, renovada e cancelada; webhook idempotente | `backend-api` |
+| 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | `backend-api` |
+| 2.4 | Teste grátis e expiração | Fim do teste não apaga dado nem trava a leitura do histórico | `backend-api` + `frontend-vue` |
+
+No Brasil, Pix é obrigatório. Asaas e Mercado Pago atendem; cartão recorrente sozinho
+reduz muito a conversão.
+
+Decisão a tomar antes de 2.3: o que fica grátis. Travar o básico mata a aquisição por
+anúncio; liberar tudo mata a assinatura.
+
+---
+
+## Fase 3 — O diferencial
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 3.1 | Leitura do QR code do cupom fiscal | Foto do cupom vira compra com itens separados, após confirmação do usuário | `fiscal-nfce` |
+| 3.2 | Fallback por OCR | Cupom cuja chave não resolve ainda gera um rascunho editável | `fiscal-nfce` |
+| 3.3 | Anti-duplicata por chave de acesso | A mesma nota lançada duas vezes é recusada | `fiscal-nfce` + `qa-testes` |
+| 3.4 | Detecção de assinaturas recorrentes | App identifica cobranças mensais repetidas e mostra o total comprometido por mês | `backend-api` |
+
+O 3.1 é a aposta. Ler a chave de acesso devolve a nota **item a item**: deixa de ser
+"R$ 320 no mercado" e vira "R$ 47 em refrigerante no mês". Nenhum concorrente grande
+faz isso hoje.
+
+Risco a validar antes de construir: cada SEFAZ estadual tem portal próprio, não há API
+federal única e gratuita, e raspagem quebra. **Faça uma prova de conceito com cupons
+reais de um estado só antes de comprometer o roteiro.** Se a taxa de acerto não passar
+de 80%, o recurso vira promessa quebrada e é melhor não vendê-lo.
+
+---
+
+## Fase 4 — Retenção
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 4.1 | PWA instalável | App instala na tela inicial e abre sem barra do navegador | `frontend-vue` |
+| 4.2 | Notificações push | "Sua fatura fecha em 3 dias" chega no celular | `frontend-vue` + `backend-api` |
+| 4.3 | Alertas proativos | Gasto acima da média e fatura prestes a fechar disparam aviso | `backend-api` |
+| 4.4 | Conta compartilhada (casal) | Duas contas enxergam o mesmo conjunto de lançamentos, com autoria preservada | `backend-api` + `seguranca-lgpd` |
+
+Push é mais barato que WhatsApp para aviso iniciado pelo app, que é o caso de 4.3.
+WhatsApp só compensa para mensagem iniciada pelo usuário.
+
+O 4.4 mexe no escopo por usuário, que hoje é a garantia de isolamento entre contas.
+Exige revisão de segurança dedicada, não é só um campo novo.
+
+---
+
+## Fase 5 — Tier caro
+
+| # | Item | Aceite | Agente |
+| - | ---- | ------ | ------ |
+| 5.1 | Open Finance (Pluggy ou Belvo) | Extrato sincroniza sozinho e concilia com lançamentos manuais | `backend-api` |
+
+Custa por conexão ativa. Só faz sentido com assinatura já validada: é o recurso que
+justifica o plano mais caro, não o que atrai o primeiro usuário.
+
+---
+
+## Ordem resumida
+
+```
+0.1 → 0.2 → 0.4 → 0.5 → 1.1 → 0.6 → 0.7 → 2.x → 3.1 → 3.4 → 4.x → 5.1
+```
+
+A projeção de caixa (1.1) entra antes da cobrança porque o paywall precisa ter o que
+vender. O cupom fiscal (3.1) entra depois da cobrança porque é o recurso mais caro de
+construir e o que mais pode falhar na validação.
