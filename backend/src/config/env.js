@@ -33,6 +33,19 @@ module.exports = {
 	mongoUri: process.env.MONGO_URI,
 	jwtSecret: process.env.JWT_SECRET,
 	jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
+	/**
+	 * Endereço público do frontend, usado para montar os links enviados por
+	 * e-mail (recuperação de senha). Sem isto o link do e-mail apontaria para a
+	 * própria API, que não tem tela nenhuma.
+	 */
+	appUrl: process.env.APP_URL || "http://localhost:5173",
+	/**
+	 * Provedor de e-mail transacional. Vazio = modo desenvolvimento: o mailer
+	 * só registra o link no console, sem enviar nada (ver src/utils/mailer.js).
+	 */
+	mailProvider: (process.env.MAIL_PROVIDER || "").trim().toLowerCase(),
+	mailApiKey: process.env.MAIL_API_KEY || "",
+	mailFrom: process.env.MAIL_FROM || "",
 	// Lista de origens permitidas no CORS, separadas por vírgula.
 	corsOrigins: (process.env.CORS_ORIGINS || "http://localhost:5173")
 		.split(",")

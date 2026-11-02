@@ -14,6 +14,18 @@ const password = z
 	.regex(/[a-zA-Z]/, "A senha deve conter pelo menos uma letra")
 	.regex(/[0-9]/, "A senha deve conter pelo menos um número");
 
+/**
+ * Token recebido por e-mail (recuperação de senha, verificação de endereço).
+ *
+ * São 32 bytes em hexadecimal (64 caracteres), mas o formato não é conferido
+ * aqui de propósito: quem decide é a busca pelo hash, no controller, para que
+ * todo token recusado receba a mesma mensagem. Conferir o formato aqui separaria
+ * "token malformado" (400 de validação, com `details`) de "token que não existe"
+ * (400 do controller), e essa diferença já conta algo a quem está testando
+ * tokens. O limite de tamanho existe só para não levar lixo ao banco.
+ */
+const emailedToken = z.string().trim().min(1, "Token é obrigatório").max(256);
+
 const registerSchema = z
 	.object({
 		name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(120),
@@ -30,4 +42,31 @@ const loginSchema = z
 	})
 	.strict();
 
-module.exports = { registerSchema, loginSchema };
+const forgotPasswordSchema = z
+	.object({
+		email: z.string().trim().toLowerCase().email("E-mail inválido").max(254),
+	})
+	.strict();
+
+const resetPasswordSchema = z
+	.object({
+		token: emailedToken,
+		// A mesma senha do cadastro: a recuperação não pode ser a porta dos fundos
+		// para cadastrar uma senha fraca.
+		password,
+	})
+	.strict();
+
+const verifyEmailSchema = z
+	.object({
+		token: emailedToken,
+	})
+	.strict();
+
+module.exports = {
+	registerSchema,
+	loginSchema,
+	forgotPasswordSchema,
+	resetPasswordSchema,
+	verifyEmailSchema,
+};
