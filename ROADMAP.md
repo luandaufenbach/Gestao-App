@@ -13,11 +13,18 @@ Marcação lida do código e do histórico de commits, não de um teste de aceit
 rodado agora. Onde diz "falta configurar", o código está pronto e o que falta é
 uma conta ou uma chave fora do repositório.
 
+Atenção ao 0.2 e ao 0.3: o fluxo existe inteiro e tem teste, mas o envio real
+nunca foi ligado. O `PONTO DE EXTENSÃO` em `backend/src/utils/mailer.js` espera
+um provedor, e todo provedor sério exige domínio verificado para remeter — sem
+isso o e-mail é recusado ou cai em spam. Ou seja, o aceite do 0.2, "usuário sem
+acesso recupera a conta sozinho", **ainda não é verdade em produção**. É a única
+coisa do roteiro que a compra do domínio destrava de fato.
+
 | # | Item | Estado |
 | - | ---- | ------ |
 | 0.1 | Sair do plano gratuito do Render | **pendente** — painel do Render, não é código |
-| 0.2 | Recuperação de senha por e-mail | feito |
-| 0.3 | Verificação de e-mail no cadastro | feito |
+| 0.2 | Recuperação de senha por e-mail | código feito — **não envia e-mail ainda**: sem `MAIL_PROVIDER`, o `deliver` só escreve o link no console |
+| 0.3 | Verificação de e-mail no cadastro | código feito — depende do mesmo envio que falta no 0.2 |
 | 0.4 | Monitoramento de erro (Sentry) | feito — falta configurar `SENTRY_DSN` |
 | 0.5 | Analytics de funil | **pendente** — depende de escolher a ferramenta |
 | 0.6 | LGPD: exportar e excluir conta | feito |
