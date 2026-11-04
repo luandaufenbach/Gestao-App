@@ -44,8 +44,15 @@ tempo.
 
 ## Commits
 
-Conventional Commits, mensagem em português, corpo explicando o **porquê**.
+Conventional Commits, em português. **Curtos.** Assunto de uma linha e,
+quando o motivo não for óbvio, no máximo duas ou três linhas de corpo.
+Nada de parágrafos explicando a investigação inteira — isso é conversa,
+não commit. Se a explicação é longa, ela vai no código, em comentário.
+
 **Nunca adicionar `Co-Authored-By`** — a autoria é só do Luan.
+
+Nada no repositório menciona Claude, Anthropic ou geração automática:
+nem commit, nem nome de branch, nem descrição de PR.
 
 ## Banco
 
