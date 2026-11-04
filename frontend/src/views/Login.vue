@@ -72,6 +72,27 @@
       <button type="button" class="login__toggle" @click="toggleMode">
         {{ isRegister ? "Entrar" : "Criar conta" }}
       </button>
+
+      <!--
+        ROADMAP 0.7: os dois documentos precisam estar alcançáveis ANTES do
+        cadastro, e esta é a única tela por onde todo visitante passa — o
+        cadastro é o MESMO componente, alternado por `isRegister`, então um
+        rodapé só cobre as duas telas do aceite.
+
+        A frase de aceite aparece apenas no modo de criar conta, porque é ali
+        que o aceite acontece; os links ficam sempre, porque ler antes de
+        decidir não deveria exigir clicar em "Criar conta" primeiro.
+
+        Os links são `inline-flex` com 44px de altura, e não texto corrido com
+        área clicável esticada por `::after` como os links acima: dois alvos
+        esticados lado a lado se sobrepõem, e o dedo acerta o documento errado.
+      -->
+      <p v-if="isRegister" class="login__legalIntro">Ao criar a conta você aceita:</p>
+      <p class="login__legal">
+        <RouterLink to="/terms" class="login__legalLink">Termos de uso</RouterLink>
+        <span class="login__legalSep" aria-hidden="true">·</span>
+        <RouterLink to="/privacy" class="login__legalLink">Política de privacidade</RouterLink>
+      </p>
     </template>
   </AuthShell>
 </template>
@@ -204,5 +225,43 @@ async function submit() {
 .login__error {
 	font: var(--type-small);
 	color: var(--feedback-danger);
+}
+
+/* ── Termos de uso e política de privacidade (ROADMAP 0.7) ─────────────── */
+
+.login__legalIntro {
+	margin-top: var(--space-4);
+	font: var(--type-caption);
+	color: var(--text-tertiary);
+}
+
+.login__legal {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0 var(--space-2);
+	margin-top: var(--space-1);
+}
+
+.login__legalLink {
+	display: inline-flex;
+	align-items: center;
+	/* Os 44px da regra do celular vêm da própria altura do link. */
+	min-height: 44px;
+	padding: 0 var(--space-1);
+	font: var(--fw-medium) var(--fs-caption) / 1.4 var(--font-ui);
+	color: var(--text-secondary);
+	text-decoration: none;
+	border-radius: var(--radius-sm);
+}
+.login__legalLink:hover {
+	color: var(--text-link);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.login__legalSep {
+	color: var(--text-tertiary);
 }
 </style>

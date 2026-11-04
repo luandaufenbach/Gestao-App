@@ -33,6 +33,31 @@ const routes = [
 		 */
 		meta: { public: true, allowAuthenticated: true },
 	},
+	/**
+	 * Documentos legais (ROADMAP 0.7).
+	 *
+	 * Públicas E com `allowAuthenticated`, pela mesma razão das duas condições:
+	 * o aceite do roteiro é "links acessíveis ANTES do cadastro", então elas
+	 * têm de abrir sem sessão; e quem já está logado também precisa conseguir
+	 * reler o que aceitou — sem a exceção, o guard desviaria essa pessoa para o
+	 * dashboard, e o link viraria um beco.
+	 *
+	 * Caminhos em inglês para acompanhar os das outras rotas (`/forgot-password`,
+	 * `/reset-password`, `/design-system`); o que o usuário lê é o rótulo do
+	 * link, em português.
+	 */
+	{
+		path: "/terms",
+		name: "terms",
+		component: () => import("../views/Terms.vue"),
+		meta: { public: true, allowAuthenticated: true },
+	},
+	{
+		path: "/privacy",
+		name: "privacy",
+		component: () => import("../views/Privacy.vue"),
+		meta: { public: true, allowAuthenticated: true },
+	},
 	{ path: "/", redirect: "/dashboard" },
 	{
 		path: "/dashboard",
