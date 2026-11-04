@@ -34,8 +34,30 @@
         <!--
           Era "Histórico acumulado guardado". Com o resgate, o número deixou de
           ser um acumulado que só cresce e passou a ser o saldo real da reserva.
+
+          E era "Disponível na sua reserva", o que fazia o total parecer dinheiro
+          livre: a meta é uma etiqueta dentro da mesma reserva, não um pote ao
+          lado, então o que está prometido a uma meta já estava somado aqui. A
+          quebra abaixo mostra quanto do total está comprometido.
         -->
-        <p class="text-sm text-slate-400">Disponível na sua reserva</p>
+        <dl class="text-sm text-slate-400 flex flex-wrap gap-x-4 gap-y-0.5">
+          <div class="flex gap-1">
+            <dt>Em metas:</dt>
+            <dd class="font-medium text-slate-500">{{ formatCurrency(reservedInGoalsInCents) }}</dd>
+          </div>
+          <div class="flex gap-1">
+            <dt>Livre:</dt>
+            <!--
+              Negativo quer dizer que as metas prometem mais do que a reserva
+              tem — acontece ao resgatar sem apontar a meta, que baixa o total
+              sem mexer no progresso dela. Em âmbar porque é divergência real,
+              não um saldo comum.
+            -->
+            <dd class="font-medium" :class="freeInCents < 0 ? 'text-amber-600' : 'text-slate-500'">
+              {{ formatCurrency(freeInCents) }}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       <!--
@@ -151,6 +173,19 @@ const goalListEl = useTemplateRef("goalList");
 
 const depositsFit = useFitToHeight(rootEl, depositListEl, { initial: 3, fallbackRowHeight: 54 });
 const goalsFit = useFitToHeight(rootEl, goalListEl, { initial: 2, fallbackRowHeight: 74 });
+
+/**
+ * Quanto do total guardado já está prometido a alguma meta.
+ *
+ * Sai das próprias metas, não de uma consulta nova: o progresso de cada uma é
+ * mantido pelo applyGoalDelta a cada lançamento, e somá-las aqui evita um
+ * endpoint só para repetir uma conta que o card já tem em mãos.
+ */
+const reservedInGoalsInCents = computed(() =>
+  goals.value.reduce((total, goal) => total + (goal.currentAmountInCents ?? 0), 0)
+);
+
+const freeInCents = computed(() => savedInCents.value - reservedInGoalsInCents.value);
 
 const visibleDeposits = computed(() => deposits.value.slice(0, depositsFit.capacity.value));
 const visibleGoals = computed(() => goals.value.slice(0, goalsFit.capacity.value));

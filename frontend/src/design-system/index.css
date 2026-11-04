@@ -1,0 +1,69 @@
+/*
+ * Fundação do design system gestaoApp (ROADMAP 1.3).
+ *
+ * Fonte da verdade: `.claude/skills/gestaoapp-design/`. Os arquivos em
+ * `tokens/` são cópias dos `tokens/*.css` da skill, para que uma atualização
+ * da skill possa ser comparada arquivo a arquivo. As únicas edições são os
+ * `url()` de fonte e imagem, documentadas dentro de cada arquivo.
+ *
+ * ── Por que custom properties puras e não `@theme` do Tailwind 4 ───────────
+ *
+ * 1. `@theme` é um gerador: cada token vira também uma classe utilitária. São
+ *    253 tokens; nenhuma tela usa essas classes hoje, e a etapa 1.4 vai migrar
+ *    as telas para os componentes do design system, não para utilitários
+ *    novos. Seria CSS morto no bundle.
+ *
+ * 2. Os tokens têm duas camadas: paleta (`--cobalt-500`) e alias semântico
+ *    (`--surface-card: var(--ink-0)`), e o tema escuro troca só os aliases
+ *    dentro de `[data-theme="dark"]`. `@theme` espera valores estáticos e não
+ *    enxerga esse seletor — a troca de tema simplesmente não aconteceria.
+ *
+ * 3. `@theme` entra nos namespaces do Tailwind. Dezesseis nomes dos tokens
+ *    colidem com o tema padrão do Tailwind (`--radius-xs|sm|md|lg|xl|2xl|3xl`,
+ *    `--shadow-xs|sm|md|lg|xl`, `--ease-in|out|in-out`, `--font-mono`).
+ *    Declarados em `@theme`, eles redefiniriam utilitários que as telas de
+ *    hoje já usam — `rounded-xl` em 74 lugares passaria de 12px para 18px.
+ *    Isto é exatamente a regressão que a etapa 1.3 não pode causar.
+ *
+ * Em `:root` comum, os tokens são inertes para o Tailwind: ele não gera nem
+ * altera nenhum utilitário a partir deles.
+ *
+ * ── Por que os tokens entram numa layer abaixo da do Tailwind ──────────────
+ *
+ * As colisões acima também valem fora do `@theme`: `rounded-xl` compila para
+ * `border-radius: var(--radius-xl)`, então qualquer `--radius-xl` em `:root`
+ * mudaria o utilitário. Declarações sem layer vencem qualquer layer, logo um
+ * `:root` solto aqui atropelaria o tema do Tailwind.
+ *
+ * A layer `gestaoapp` é declarada antes das layers do Tailwind (ver
+ * `src/style.css`), então, nos nomes em conflito, o Tailwind vence e os
+ * utilitários mantêm o valor que têm hoje. Nos outros 237 nomes não há
+ * concorrente e o token vale normalmente.
+ *
+ * A troca é automática e token a token: o Tailwind 4 só emite a variável de
+ * tema que algum utilitário usa. Quando a etapa 1.4 tirar o último
+ * `rounded-xl` das telas, o Tailwind para de emitir `--radius-xl` e o valor do
+ * design system (18px) passa a valer sozinho, sem nenhuma edição aqui.
+ *
+ * Hoje o Tailwind emite, desses dezesseis: `--radius-md`, `--radius-lg`,
+ * `--radius-xl`, `--radius-2xl` e `--font-mono`. Os outros onze já valem com
+ * o valor do design system.
+ *
+ * ── O que NÃO foi trazido ──────────────────────────────────────────────────
+ *
+ * `tokens/base.css` da skill. Ele redefine `body`, `h1`–`h4`, `a`, `button`,
+ * `input` e `:focus-visible` globalmente: trocaria a fonte e o fundo de todas
+ * as telas atuais e colocaria anel de foco em todo elemento focável. Isso é
+ * mudança de tela, ou seja, etapa 1.4. O que a fundação precisa dele — o anel
+ * de foco cobalt — está dentro do próprio botão.
+ */
+
+/* @font-face não participa da cascata de layers e não colide com nada. */
+@import "./tokens/fonts.css";
+
+@import "./tokens/colors.css" layer(gestaoapp);
+@import "./tokens/typography.css" layer(gestaoapp);
+@import "./tokens/spacing.css" layer(gestaoapp);
+@import "./tokens/radius.css" layer(gestaoapp);
+@import "./tokens/shadows.css" layer(gestaoapp);
+@import "./tokens/motion.css" layer(gestaoapp);

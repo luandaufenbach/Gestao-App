@@ -1,4 +1,38 @@
+/*
+ * A ordem das layers é definida pela primeira vez que cada nome aparece.
+ * Declarar `gestaoapp` aqui, antes do Tailwind, coloca os tokens do design
+ * system ABAIXO do tema do Tailwind: nos nomes que os dois usam
+ * (`--radius-*`, `--shadow-*`, `--ease-*`, `--font-mono`) o Tailwind vence e
+ * nenhum utilitário das telas atuais muda de valor. Ver
+ * `design-system/index.css` para o raciocínio completo.
+ *
+ * Um `@layer` só com nomes pode vir antes dos `@import` — é a única regra,
+ * junto do `@charset`, que a especificação permite nessa posição.
+ */
+@layer gestaoapp;
+
 @import "tailwindcss";
+@import "./design-system/index.css";
+
+/*
+ * O design system é dono da escala de easing.
+ *
+ * O Tailwind 4 mantém uma variável do tema dele quando vê um `var()` com
+ * aquele nome em qualquer CSS que ele processa. Como o botão do design system
+ * usa `var(--ease-out)`, o Tailwind passou a emitir o `--ease-out` DELE
+ * (`cubic-bezier(0,0,.2,1)`), que vence o da layer `gestaoapp` e trocava a
+ * curva calma do sistema (`cubic-bezier(.22,1,.36,1)`) sem ninguém pedir.
+ *
+ * Apagar o namespace devolve os três nomes ao design system sem repetir
+ * valor nenhum aqui. Nenhuma tela usa as classes `ease-in`, `ease-out`,
+ * `ease-in-out` ou `ease-linear` — foi conferido antes de apagar. As classes
+ * `transition-*` continuam valendo: a curva padrão delas é
+ * `--default-transition-timing-function`, que é literal e não depende deste
+ * namespace.
+ */
+@theme {
+	--ease-*: initial;
+}
 
 *, *::before, *::after {
   box-sizing: border-box;

@@ -1,0 +1,20 @@
+/* gestaoApp — elevation. Soft, cool-tinted, low-opacity; colored glow only under brand actions. */
+:root{
+--shadow-xs:0 1px 2px rgba(17,22,40,.04);
+--shadow-sm:0 1px 2px rgba(17,22,40,.04),0 2px 6px -2px rgba(17,22,40,.06);
+--shadow-md:0 2px 4px -2px rgba(17,22,40,.05),0 8px 20px -6px rgba(17,22,40,.10);
+--shadow-lg:0 4px 10px -4px rgba(17,22,40,.06),0 18px 40px -12px rgba(17,22,40,.18);
+--shadow-xl:0 24px 60px -16px rgba(20,28,80,.28),0 6px 16px -6px rgba(20,28,80,.10);
+--shadow-brand:0 8px 20px -6px rgba(46,68,240,.55);
+--shadow-brand-lg:0 18px 44px -12px rgba(46,68,240,.55);
+--shadow-accent:0 8px 20px -8px rgba(157,189,34,.55);
+--shadow-inset-hairline:inset 0 0 0 1px var(--border-subtle);
+--ring-focus:0 0 0 3px rgba(46,68,240,.22);
+--ring-danger:0 0 0 3px rgba(229,72,77,.18);
+--blur-glass:16px;/* @kind other */
+}
+[data-theme="dark"]{
+--shadow-sm:0 1px 2px rgba(0,0,0,.4);
+--shadow-md:0 8px 20px -6px rgba(0,0,0,.5);
+--shadow-lg:0 18px 40px -12px rgba(0,0,0,.6);
+}
