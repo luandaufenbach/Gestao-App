@@ -26,7 +26,7 @@ uma conta ou uma chave fora do repositório.
 | 1.1 | Projeção de caixa futura | feito |
 | 1.2 | Relatórios de 3 a 12 meses | **pendente** |
 | 1.3 | Tokens, fontes e ícones do design system | feito |
-| 1.4 | Telas migradas, uma a uma | **pendente** — nenhuma tela migrada ainda |
+| 1.4 | Telas migradas, uma a uma | quase lá — 26 dos 28 `.vue` já usam os tokens; faltam `ConfirmDialog.vue` e `TransactionFormFields.vue` |
 | 2.x em diante | — | **pendente** |
 
 ### Como o trabalho é distribuído
@@ -35,9 +35,11 @@ O que pode correr em paralelo é o que não disputa arquivo. Hoje: 0.7, 0.8 e 1.
 são independentes entre si — 0.7 e 1.2 só se encostam no `frontend/src/router/index.js`,
 onde cada um acrescenta uma rota.
 
-O **1.4 roda sozinho**, depois dos outros. Ele reescreve as 9 telas e os 18
-componentes; qualquer outra frente aberta ao mesmo tempo vira conflito de merge
-em quase todo arquivo do frontend.
+O **1.4 já passou por quase todo o frontend** e por isso é ele que gera conflito,
+não quem vier depois. Quem criar tela nova nasce direto nos tokens; quem
+encostar num arquivo já migrado tem que escrever na linguagem nova, não em
+Tailwind cru — foi o que aconteceu no `GoalsCard.vue`, onde a quebra do total
+guardado chegou em Tailwind e teve que virar `.goals__totalSplit`.
 
 A Fase 2 não começa antes de duas decisões que não são técnicas: qual gateway e
 o que fica de graça.
