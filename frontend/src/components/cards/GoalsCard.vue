@@ -19,8 +19,30 @@
         <!--
           Era "Histórico acumulado guardado". Com o resgate, o número deixou de
           ser um acumulado que só cresce e passou a ser o saldo real da reserva.
+
+          E era "Disponível na sua reserva", o que fazia o total parecer dinheiro
+          livre: a meta é uma etiqueta dentro da mesma reserva, não um pote ao
+          lado, então o que está prometido a uma meta já estava somado aqui. A
+          quebra abaixo mostra quanto do total está comprometido.
         -->
-        <p class="goals__totalHint">Disponível na sua reserva</p>
+        <dl class="goals__totalSplit">
+          <div>
+            <dt>Em metas:</dt>
+            <dd>{{ formatCurrency(reservedInGoalsInCents) }}</dd>
+          </div>
+          <div>
+            <dt>Livre:</dt>
+            <!--
+              Negativo quer dizer que as metas prometem mais do que a reserva
+              tem — acontece ao resgatar sem apontar a meta, que baixa o total
+              sem mexer no progresso dela. Vai no tom de aviso porque é
+              divergência real, não um saldo comum.
+            -->
+            <dd :class="{ 'goals__totalSplitValue--alerta': freeInCents < 0 }">
+              {{ formatCurrency(freeInCents) }}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       <!--
@@ -135,6 +157,19 @@ const goalListEl = useTemplateRef("goalList");
 
 const depositsFit = useFitToHeight(rootEl, depositListEl, { initial: 3, fallbackRowHeight: 54 });
 const goalsFit = useFitToHeight(rootEl, goalListEl, { initial: 2, fallbackRowHeight: 74 });
+
+/**
+ * Quanto do total guardado já está prometido a alguma meta.
+ *
+ * Sai das próprias metas, não de uma consulta nova: o progresso de cada uma é
+ * mantido pelo applyGoalDelta a cada lançamento, e somá-las aqui evita um
+ * endpoint só para repetir uma conta que o card já tem em mãos.
+ */
+const reservedInGoalsInCents = computed(() =>
+  goals.value.reduce((total, goal) => total + (goal.currentAmountInCents ?? 0), 0)
+);
+
+const freeInCents = computed(() => savedInCents.value - reservedInGoalsInCents.value);
 
 const visibleDeposits = computed(() => deposits.value.slice(0, depositsFit.capacity.value));
 const visibleGoals = computed(() => goals.value.slice(0, goalsFit.capacity.value));
@@ -304,10 +339,33 @@ defineExpose({ refetch });
 	color: var(--text-primary);
 	font-variant-numeric: tabular-nums;
 }
-.goals__totalHint {
+/*
+ * A quebra do total guardado.
+ *
+ * Substituiu a dica que dizia "Disponível na sua reserva" sobre um número que
+ * inclui o comprometido com metas. Meta é etiqueta dentro da mesma reserva,
+ * não pote ao lado: quem somasse o total com a meta contava o mesmo dinheiro
+ * duas vezes.
+ */
+.goals__totalSplit {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1) var(--space-4);
 	margin: 0;
 	font: var(--type-small);
 	color: var(--text-tertiary);
+}
+.goals__totalSplit > div {
+	display: flex;
+	gap: var(--space-1);
+}
+.goals__totalSplit dd {
+	margin: 0;
+	color: var(--text-secondary);
+	font-variant-numeric: tabular-nums;
+}
+.goals__totalSplitValue--alerta {
+	color: var(--feedback-warning);
 }
 
 .goals__more {
