@@ -68,7 +68,13 @@ import { useSidebar } from "../services/useSidebar";
  *                 recorrência e parcelamento já significam outra coisa aqui;
  *   target        é a meta;
  *   chart-column  é a série de barras por mês da projeção. `trending-up` diria
- *                 "crescendo", e o que a tela mostra é dinheiro a sair.
+ *                 "crescendo", e o que a tela mostra é dinheiro a sair;
+ *   trending-up   é o relatório, que é justamente a linha do tempo: a série
+ *                 sobe e desce com os meses já vividos.
+ *
+ * O quinto destino entrou na lista inteira, sidebar E barra inferior: abaixo
+ * de 768px a sidebar não existe, então deixar Relatórios só nela tornaria a
+ * tela inalcançável no celular — chegável apenas digitando a URL.
  */
 /**
  * Carregamento sob demanda, e não `import` normal.
@@ -86,6 +92,7 @@ const DESTINATIONS = [
   { to: "/transactions", label: "Transações", icon: "list" },
   { to: "/goals", label: "Metas", icon: "target" },
   { to: "/projection", label: "Projeção", icon: "chart-column" },
+  { to: "/reports", label: "Relatórios", icon: "trending-up" },
 ];
 
 const router = useRouter();

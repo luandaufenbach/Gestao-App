@@ -1,3 +1,12 @@
+const { initMonitoring, flushMonitoring } = require("./config/monitoring");
+
+/**
+ * Antes de qualquer require da aplicação: a instrumentação automática do SDK
+ * envolve os módulos no momento em que são carregados, e o Express carregado
+ * antes dela ficaria de fora.
+ */
+initMonitoring();
+
 const { port, nodeEnv } = require("./config/env");
 const app = require("./app");
 const { connectDB, disconnectDB } = require("./database/index");
@@ -36,6 +45,9 @@ async function shutdown(signal) {
 				server.close((error) => (error ? reject(error) : resolve()));
 			});
 		}
+		// Antes de fechar: o envio é assíncrono, e o erro que derrubou a
+		// instância é justamente o que se perderia aqui.
+		await flushMonitoring();
 		await disconnectDB();
 		console.log("Encerrado com sucesso.");
 		process.exit(0);

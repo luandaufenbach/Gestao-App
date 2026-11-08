@@ -11,6 +11,7 @@ const authRoutes = require("./routes/auth");
 const categoriesRoutes = require("./routes/categories");
 const transactionsRoutes = require("./routes/transactions");
 const dashboardRoutes = require("./routes/dashboard");
+const reportsRoutes = require("./routes/reports");
 const goalsRoutes = require("./routes/goals");
 const bankCardsRoutes = require("./routes/bankCards");
 const accountRoutes = require("./routes/account");
@@ -93,6 +94,7 @@ app.use("/auth", authRoutes);
 app.use("/categories", authenticate, categoriesRoutes);
 app.use("/transactions", authenticate, transactionsRoutes);
 app.use("/dashboard", authenticate, dashboardRoutes);
+app.use("/reports", authenticate, reportsRoutes);
 app.use("/goals", authenticate, goalsRoutes);
 app.use("/bank-cards", authenticate, bankCardsRoutes);
 
