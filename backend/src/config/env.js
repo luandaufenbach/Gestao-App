@@ -66,6 +66,11 @@ module.exports = {
 		.split(",")
 		.map((server) => server.trim())
 		.filter(Boolean),
+	/**
+	 * DSN do Sentry. VAZIO = monitoramento desligado: nenhuma chamada de rede.
+	 * É o padrão em desenvolvimento e em teste (ver src/config/monitoring.js).
+	 */
+	sentryDsn: (process.env.SENTRY_DSN || "").trim(),
 	isProduction: process.env.NODE_ENV === "production",
 	isTest: process.env.NODE_ENV === "test",
 };

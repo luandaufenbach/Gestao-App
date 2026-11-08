@@ -7,6 +7,52 @@ As estimativas são grosseiras e servem para ordenar, não para prometer data.
 
 ---
 
+## Estado atual
+
+Marcação lida do código e do histórico de commits, não de um teste de aceite
+rodado agora. Onde diz "falta configurar", o código está pronto e o que falta é
+uma conta ou uma chave fora do repositório.
+
+Atenção ao 0.2 e ao 0.3: o fluxo existe inteiro e tem teste, mas o envio real
+nunca foi ligado. O `PONTO DE EXTENSÃO` em `backend/src/utils/mailer.js` espera
+um provedor, e todo provedor sério exige domínio verificado para remeter — sem
+isso o e-mail é recusado ou cai em spam. Ou seja, o aceite do 0.2, "usuário sem
+acesso recupera a conta sozinho", **ainda não é verdade em produção**. É a única
+coisa do roteiro que a compra do domínio destrava de fato.
+
+| # | Item | Estado |
+| - | ---- | ------ |
+| 0.1 | Sair do plano gratuito do Render | **pendente** — painel do Render, não é código |
+| 0.2 | Recuperação de senha por e-mail | código feito — **não envia e-mail ainda**: sem `MAIL_PROVIDER`, o `deliver` só escreve o link no console |
+| 0.3 | Verificação de e-mail no cadastro | código feito — depende do mesmo envio que falta no 0.2 |
+| 0.4 | Monitoramento de erro (Sentry) | feito — falta configurar `SENTRY_DSN` |
+| 0.5 | Analytics de funil | **pendente** — depende de escolher a ferramenta |
+| 0.6 | LGPD: exportar e excluir conta | feito |
+| 0.7 | Termos de uso e política de privacidade | **pendente** |
+| 0.8 | Zerar `npm audit` | **pendente** — nunca verificado |
+| 1.1 | Projeção de caixa futura | feito |
+| 1.2 | Relatórios de 3 a 12 meses | **pendente** |
+| 1.3 | Tokens, fontes e ícones do design system | feito |
+| 1.4 | Telas migradas, uma a uma | quase lá — 26 dos 28 `.vue` já usam os tokens; faltam `ConfirmDialog.vue` e `TransactionFormFields.vue` |
+| 2.x em diante | — | **pendente** |
+
+### Como o trabalho é distribuído
+
+O que pode correr em paralelo é o que não disputa arquivo. Hoje: 0.7, 0.8 e 1.2
+são independentes entre si — 0.7 e 1.2 só se encostam no `frontend/src/router/index.js`,
+onde cada um acrescenta uma rota.
+
+O **1.4 já passou por quase todo o frontend** e por isso é ele que gera conflito,
+não quem vier depois. Quem criar tela nova nasce direto nos tokens; quem
+encostar num arquivo já migrado tem que escrever na linguagem nova, não em
+Tailwind cru — foi o que aconteceu no `GoalsCard.vue`, onde a quebra do total
+guardado chegou em Tailwind e teve que virar `.goals__totalSplit`.
+
+A Fase 2 não começa antes de duas decisões que não são técnicas: qual gateway e
+o que fica de graça.
+
+---
+
 ## Fase 0 — Antes de gastar o primeiro real em anúncio
 
 Nada aqui é funcionalidade. É o que impede a verba de anúncio de ser desperdiçada.

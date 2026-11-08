@@ -2,6 +2,7 @@ const { ZodError } = require("zod");
 const mongoose = require("mongoose");
 const AppError = require("../utils/AppError");
 const { isProduction } = require("../config/env");
+const { reportServerError } = require("../config/monitoring");
 
 /**
  * Handler de rota não encontrada. Precisa vir DEPOIS de todas as rotas.
@@ -76,6 +77,13 @@ function errorHandler(error, req, res, next) {
 		message: error?.message,
 		stack: error?.stack,
 	});
+
+	/**
+	 * O mesmo erro, notificado. O log do console serve para quem já está
+	 * olhando; este é para quem não está. Só o 500 chega aqui — os ramos
+	 * acima são respostas previstas e já retornaram.
+	 */
+	reportServerError(error, req);
 
 	return res.status(500).json({
 		message: "Erro interno do servidor",
