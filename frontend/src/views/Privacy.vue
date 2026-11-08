@@ -17,20 +17,14 @@
  *   - token no navegador .... tokenStorage em frontend/src/services/http.js
  *   - limites por IP ........ backend/src/app.js, routes/auth.js,
  *                             routes/account.js
+ *   - monitoramento ......... backend/src/config/monitoring.js
  *   - hospedagem ............ render.yaml (API e site no Render; banco no Atlas)
  *
  * ATENÇÃO AO ALTERAR O SISTEMA: se um destes pontos mudar — provedor novo,
  * campo novo no modelo, retenção diferente — este arquivo passa a MENTIR, e
  * uma política de privacidade que mente é um problema jurídico, não um texto
  * desatualizado. Trate-o como parte do contrato do código.
- *
- * DIVERGÊNCIA CONHECIDA: o roteiro prevê monitoramento de erro com Sentry
- * (item 0.4), e o envio foi desenhado para mandar só o id do usuário, sem corpo
- * de requisição, cabeçalhos nem cookies. Na base atual NÃO existe nenhuma
- * integração de monitoramento — nenhum arquivo do backend menciona Sentry. A
- * seção de compartilhamento diz exatamente isso e está marcada para conferência
- * no dia em que o monitoramento entrar no ar.
- */
+ * */
 import LegalShell from "../components/LegalShell.vue";
 </script>
 
@@ -207,13 +201,12 @@ import LegalShell from "../components/LegalShell.vue";
         recuperação de senha. Não enviamos e-mail de propaganda.
       </li>
       <li>
-        <strong>Monitoramento de erros</strong>
-        <span class="legal-todo">[CONFERIR ANTES DE PUBLICAR]</span>: na versão que está no ar hoje
-        não existe nenhum serviço externo de monitoramento — o registro de erro fica apenas nos logs
-        da hospedagem. Quando esse monitoramento entrar, ele receberá a mensagem técnica do erro e o
-        <strong>identificador interno da sua conta</strong>, e nada além disso: sem corpo de
-        requisição, sem cabeçalhos e sem cookies — ou seja, sem o conteúdo dos seus lançamentos.
-        Este parágrafo precisa ser atualizado no mesmo dia em que isso mudar.
+        <strong>Sentry</strong>
+        <span class="legal-todo">[PREENCHER: razão social do Sentry]</span> — monitoramento de
+        erro. Recebe só as falhas inesperadas do servidor: a mensagem técnica, o rastro de pilha e o
+        <strong>identificador interno da sua conta</strong>. Não recebe o corpo da requisição, nem
+        cabeçalhos, nem cookies — ou seja, não recebe o conteúdo dos seus lançamentos. Erro previsto,
+        como um campo preenchido errado, não gera envio nenhum.
       </li>
     </ul>
     <p>
