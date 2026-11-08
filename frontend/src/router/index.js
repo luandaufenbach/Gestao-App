@@ -55,6 +55,15 @@ const routes = [
 		component: () => import("../views/Projection.vue"),
 	},
 	{
+		/**
+		 * Relatórios de 3 a 12 meses (ROADMAP 1.2). Protegida, como toda rota
+		 * que não declara `meta.public`.
+		 */
+		path: "/reports",
+		name: "reports",
+		component: () => import("../views/Reports.vue"),
+	},
+	{
 		// Exportar e excluir os próprios dados (ROADMAP 0.6). Protegida, como
 		// toda rota que não declara `meta.public`.
 		path: "/account",

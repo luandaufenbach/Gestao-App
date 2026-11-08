@@ -16,6 +16,17 @@
  * Tudo em UTC, pelo mesmo motivo de utils/date.js.
  */
 
+const { toMonthKey, monthKeyLabel } = require("./date");
+
+/**
+ * A chave do ciclo É uma chave de mês — a do VENCIMENTO. A formatação e o
+ * rótulo de exibição vêm de utils/date.js; o que é específico daqui é o
+ * SIGNIFICADO, explicado acima. Sem isto o projeto tinha duas listas de nomes
+ * de mês e duas regex de "AAAA-MM" para a mesma coisa.
+ */
+const toCycleKey = toMonthKey;
+const cycleLabel = monthKeyLabel;
+
 /** Último dia do mês (1-12 na entrada, tratando estouro para o ano seguinte). */
 function lastDayOfMonth(year, monthIndex) {
 	return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
@@ -50,11 +61,6 @@ function dueDateForClosing(closingDate, closingDay, dueDay) {
 	const day = Math.min(dueDay, lastDayOfMonth(normalizedYear, normalizedMonth));
 
 	return new Date(Date.UTC(normalizedYear, normalizedMonth, day, 0, 0, 0, 0));
-}
-
-/** Data -> "2026-08" */
-function toCycleKey(date) {
-	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 /** "2026-08" -> { year: 2026, monthIndex: 7 }, ou null se malformado. */
@@ -145,28 +151,6 @@ function recentCycles(card, count = 6, reference = new Date()) {
 	return Array.from({ length: count }, (_, index) =>
 		cycleRange(toCycleKey(new Date(Date.UTC(parsed.year, parsed.monthIndex - index, 1))), card)
 	);
-}
-
-/** Rótulo de exibição: "agosto de 2026". */
-const MONTH_NAMES = [
-	"janeiro",
-	"fevereiro",
-	"março",
-	"abril",
-	"maio",
-	"junho",
-	"julho",
-	"agosto",
-	"setembro",
-	"outubro",
-	"novembro",
-	"dezembro",
-];
-
-function cycleLabel(cycle) {
-	const parsed = parseCycleKey(cycle);
-	if (!parsed) return cycle;
-	return `${MONTH_NAMES[parsed.monthIndex]} de ${parsed.year}`;
 }
 
 /**

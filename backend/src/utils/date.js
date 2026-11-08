@@ -88,4 +88,54 @@ function addMonthsUTC(date, monthsToAdd) {
 	);
 }
 
-module.exports = { getMonthRangeUTC, normalizeToUTCDay, addMonthsUTC };
+/**
+ * Nomes dos meses em português, para rótulos de exibição.
+ *
+ * Moram aqui, e não no invoiceCycle, porque formatar "AAAA-MM" não tem nada de
+ * fatura: o relatório mensal usa a mesma chave para o mês do CALENDÁRIO. O que
+ * é específico da fatura é o SIGNIFICADO da chave (o ano-mês do vencimento), e
+ * esse significado continua documentado em utils/invoiceCycle.js.
+ */
+const MONTH_NAMES = [
+	"janeiro",
+	"fevereiro",
+	"março",
+	"abril",
+	"maio",
+	"junho",
+	"julho",
+	"agosto",
+	"setembro",
+	"outubro",
+	"novembro",
+	"dezembro",
+];
+
+/** Data -> "2026-08", sempre em UTC. */
+function toMonthKey(date) {
+	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * "2026-08" -> "agosto de 2026".
+ *
+ * Devolve a entrada intacta quando ela não é uma chave de mês válida: rótulo é
+ * exibição, e uma chave estranha não vale derrubar a resposta inteira.
+ */
+function monthKeyLabel(key) {
+	const match = /^(\d{4})-(\d{2})$/.exec(String(key ?? ""));
+	if (!match) return key;
+
+	const monthIndex = Number(match[2]) - 1;
+	if (monthIndex < 0 || monthIndex > 11) return key;
+
+	return `${MONTH_NAMES[monthIndex]} de ${Number(match[1])}`;
+}
+
+module.exports = {
+	getMonthRangeUTC,
+	normalizeToUTCDay,
+	addMonthsUTC,
+	toMonthKey,
+	monthKeyLabel,
+};

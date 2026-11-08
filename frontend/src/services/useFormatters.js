@@ -12,6 +12,21 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 });
 
 /**
+ * Moeda abreviada: 123456789 -> "R$ 1,2 mi".
+ *
+ * Existe para o EIXO de gráfico, onde o valor inteiro não cabe: com seis
+ * meses de barras em 375px, "R$ 1.234.567,89" repetido em cinco marcas cobre
+ * o gráfico. Em qualquer outro lugar vale o `formatCurrency`, que não
+ * arredonda nada.
+ */
+const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
+	style: "currency",
+	currency: "BRL",
+	notation: "compact",
+	maximumFractionDigits: 1,
+});
+
+/**
  * BUG CORRIGIDO (C2): a formatação anterior usava toLocaleDateString() sem
  * especificar fuso. Como as datas são gravadas em meia-noite UTC, em
  * America/Sao_Paulo (UTC-3) uma transação de 15/03 era exibida como 14/03.
@@ -50,6 +65,12 @@ export function useFormatters() {
 	function formatCurrency(valueInCents) {
 		const cents = Number(valueInCents);
 		return currencyFormatter.format(Number.isFinite(cents) ? cents / 100 : 0);
+	}
+
+	/** Centavos -> "R$ 1,2 mil". Só para eixo de gráfico; ver o formatador. */
+	function formatCompactCurrency(valueInCents) {
+		const cents = Number(valueInCents);
+		return compactCurrencyFormatter.format(Number.isFinite(cents) ? cents / 100 : 0);
 	}
 
 	/** Data ISO -> "15/03/2026", sempre lida em UTC. */
@@ -147,6 +168,7 @@ export function useFormatters() {
 
 	return {
 		formatCurrency,
+		formatCompactCurrency,
 		formatDate,
 		formatDateForInput,
 		amountSign,

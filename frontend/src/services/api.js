@@ -106,6 +106,32 @@ export const getCategoryBreakdown = (year, month) =>
 export const getProjection = ({ months = 6 } = {}) =>
 	http.get("/dashboard/projection", { params: { months } });
 
+// ── Relatórios ────────────────────────────────────────────────
+/**
+ * Como foram os últimos meses: evolução, categorias e variação.
+ *
+ * Sem year/month: a janela TERMINA sempre no mês corrente, porque a pergunta é
+ * "como foram os últimos meses". `months` é inteiro de 3 a 12 (fora disso o
+ * backend responde 400) e o padrão é 6.
+ *
+ * A resposta é um OBJETO — `{ months, series, totals, categories }` —, e não
+ * um array como a projeção. Em `series` vem um item por mês, em ordem
+ * cronológica e sempre completo: mês sem lançamento vem zerado, nunca ausente.
+ *
+ * Os números são de COMPETÊNCIA: a compra no crédito pesa no mês em que foi
+ * feita e o pagamento da fatura não conta como despesa (ver
+ * backend/src/controllers/reportController.js). Não confunda com a projeção,
+ * que é caixa — lá a fatura conta no mês do vencimento.
+ *
+ * Em `categories`, `monthlyInCents` tem uma posição por mês de `series`, na
+ * mesma ordem. E `change.incomePercent`/`change.expensePercent` vêm `null`
+ * quando o mês anterior foi zero: não há percentual a partir de zero.
+ *
+ * @param {{ months?: number }} [options]
+ */
+export const getMonthlyReport = ({ months = 6 } = {}) =>
+	http.get("/reports/monthly", { params: { months } });
+
 // ── Transactions ──────────────────────────────────────────────
 export const getTransactions = (params = {}) => http.get("/transactions", { params });
 
