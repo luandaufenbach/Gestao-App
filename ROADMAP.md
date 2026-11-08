@@ -31,7 +31,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.7 | Termos de uso e política de privacidade | **pendente** |
 | 0.8 | Zerar `npm audit` | **pendente** — nunca verificado |
 | 1.1 | Projeção de caixa futura | feito |
-| 1.2 | Relatórios de 3 a 12 meses | **pendente** |
+| 1.2 | Relatórios de 3 a 12 meses | feito |
 | 1.3 | Tokens, fontes e ícones do design system | feito |
 | 1.4 | Telas migradas, uma a uma | quase lá — 26 dos 28 `.vue` já usam os tokens; faltam `ConfirmDialog.vue` e `TransactionFormFields.vue` |
 | 2.x em diante | — | **pendente** |
