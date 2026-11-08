@@ -28,7 +28,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.4 | Monitoramento de erro (Sentry) | feito — falta configurar `SENTRY_DSN` |
 | 0.5 | Analytics de funil | **pendente** — depende de escolher a ferramenta |
 | 0.6 | LGPD: exportar e excluir conta | feito |
-| 0.7 | Termos de uso e política de privacidade | **pendente** |
+| 0.7 | Termos de uso e política de privacidade | telas feitas — falta preencher os dados do responsável e a revisão jurídica |
 | 0.8 | Zerar `npm audit` | **pendente** — nunca verificado |
 | 1.1 | Projeção de caixa futura | feito |
 | 1.2 | Relatórios de 3 a 12 meses | feito |
