@@ -73,6 +73,7 @@
       -->
       <div class="dash__side">
         <MyCardsCard />
+        <RecurringCard ref="recurringCard" />
       </div>
     </div>
 
@@ -128,6 +129,7 @@ import PayInvoiceModal from "../components/PayInvoiceModal.vue";
 import GoalsCard from "../components/cards/GoalsCard.vue";
 import CategoryPieChart from "../components/CategoryPieChart.vue";
 import MyCardsCard from "../components/cards/MyCardsCard.vue";
+import RecurringCard from "../components/cards/RecurringCard.vue";
 import TransactionsList from "../components/TransactionsList.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import { useMonthNavigation } from "../services/useMonthNavigation";
@@ -148,6 +150,7 @@ const transactionsList = useTemplateRef("transactionsList");
 const balanceCard = useTemplateRef("balanceCard");
 const invoicesCard = useTemplateRef("invoicesCard");
 const goalsCard = useTemplateRef("goalsCard");
+const recurringCard = useTemplateRef("recurringCard");
 const pieChart = useTemplateRef("pieChart");
 
 /**
@@ -169,6 +172,8 @@ function refreshAll() {
   balanceCard.value?.refetch();
   invoicesCard.value?.refetch();
   goalsCard.value?.refetch();
+  // Um lançamento novo pode fechar o terceiro mês de uma assinatura.
+  recurringCard.value?.refetch();
   pieChart.value?.refetch();
 }
 

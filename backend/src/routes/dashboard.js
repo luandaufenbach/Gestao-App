@@ -12,6 +12,7 @@ const {
 const { monthQuery } = require("../validators/common");
 const validate = require("../middlewares/validate");
 const requirePaidPlan = require("../middlewares/requirePaidPlan");
+const { getRecurringCharges } = require("../controllers/recurringController");
 
 const router = express.Router();
 
@@ -41,5 +42,12 @@ router.get(
 	validate({ query: projectionQuery }),
 	getProjection
 );
+
+/**
+ * Assinaturas recorrentes (ROADMAP 3.4). Fica no grátis: a tabela da Fase 2
+ * cobra pela projeção e pelos relatórios, e esta é uma leitura do que já
+ * aconteceu, não do futuro.
+ */
+router.get("/recurring", getRecurringCharges);
 
 module.exports = router;

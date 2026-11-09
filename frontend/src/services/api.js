@@ -107,6 +107,13 @@ export const getCategoryBreakdown = (year, month) =>
 export const getProjection = ({ months = 6 } = {}) =>
 	http.get("/dashboard/projection", { params: { months } });
 
+/**
+ * Assinaturas detectadas no histórico. Sem parâmetro: a janela é fixa em 12
+ * meses no backend, porque a pergunta "o que me cobra todo mês" não tem
+ * recorte para o usuário escolher.
+ */
+export const getRecurringCharges = () => http.get("/dashboard/recurring");
+
 // ── Relatórios ────────────────────────────────────────────────
 /**
  * Como foram os últimos meses: evolução, categorias e variação.
