@@ -4,6 +4,17 @@ const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const { listInvoices, getInvoiceDetail } = require("../services/invoiceService");
 const { cycleForMonth } = require("../utils/invoiceCycle");
+const { hasPaidAccess, isFutureCycle } = require("../services/paidAccess");
+
+/**
+ * A mesma mensagem do `requirePaidPlan`, porque é o mesmo paywall visto de
+ * outro ângulo. Duas redações para a mesma recusa confundiriam o usuário.
+ */
+const faturaFuturaEhPaga = () =>
+	AppError.paymentRequired(
+		"Ver fatura de mês que ainda não fechou faz parte do plano pago. " +
+			"A fatura atual e todas as anteriores continuam liberadas."
+	);
 
 /**
  * Favorito primeiro, depois os mais recentes.
@@ -127,6 +138,22 @@ const listInvoicesForCard = asyncHandler(async (req, res) => {
 
 	const invoices = await listInvoices(req.userId, card, limit ?? 6, reference);
 
+	/**
+	 * A lista anda para TRÁS a partir da âncora, então no uso normal — âncora
+	 * em hoje ou num mês passado — não existe ciclo futuro e nada aqui muda.
+	 * Só quem navega o dashboard para frente alcança este caminho.
+	 *
+	 * Janela inteira no futuro vira 402 com mensagem; janela que mistura devolve
+	 * só o permitido. Devolver lista vazia seria pior que recusar: o card
+	 * apareceria vazio, como se o cartão não tivesse fatura nenhuma.
+	 */
+	if (!(await hasPaidAccess(req.userId))) {
+		const liberadas = invoices.filter((invoice) => !isFutureCycle(card, invoice.cycle));
+		if (liberadas.length === 0) throw faturaFuturaEhPaga();
+		invoices.length = 0;
+		invoices.push(...liberadas);
+	}
+
 	return res.json({
 		card: {
 			_id: card._id,
@@ -143,6 +170,10 @@ const listInvoicesForCard = asyncHandler(async (req, res) => {
 
 const getInvoice = asyncHandler(async (req, res) => {
 	const card = await loadCardWithCycle(req.params.id, req.userId);
+
+	if (isFutureCycle(card, req.params.cycle) && !(await hasPaidAccess(req.userId))) {
+		throw faturaFuturaEhPaga();
+	}
 
 	const invoice = await getInvoiceDetail(req.userId, card, req.params.cycle);
 
