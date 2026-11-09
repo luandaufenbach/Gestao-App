@@ -13,7 +13,28 @@
 		<!-- O ícone antigo apontava para /vite.svg, arquivo que nunca existiu no
          projeto: a aba ficava com o ícone genérico de página em branco. -->
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="theme-color" content="#0f172a" />
+
+		<!--
+      Cloud (#FAFBFD), o mesmo canvas do design system. Era #0f172a, o slate do
+      visual antigo: a barra de status do celular ficava preta encostada num app
+      claro. Precisa continuar igual ao `theme_color` do manifest.
+    -->
+		<meta name="theme-color" content="#FAFBFD" />
+
+		<!--
+      PWA (ROADMAP 4.1). O manifest é injetado pelo vite-plugin-pwa; o que
+      precisa ficar aqui é o que o iOS NÃO lê do manifest:
+
+      - `apple-touch-icon`: sem ele o iPhone usa um print da tela como ícone.
+      - `apple-mobile-web-app-capable`: é o que faz o app abrir sem a barra do
+        Safari. O `display: standalone` do manifest sozinho não basta no iOS.
+      - `apple-mobile-web-app-title`: o nome embaixo do ícone; sem ele o iOS usa
+        o <title> inteiro, que não cabe.
+    -->
+		<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content="Gestão" />
 
 		<!--
       Preload das duas fontes `latin` (ROADMAP 1.4).

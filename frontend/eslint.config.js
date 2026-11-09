@@ -13,7 +13,9 @@ import globals from "globals";
  */
 export default [
 	{
-		ignores: ["node_modules/**", "dist/**"],
+		// `dev-dist` é o service worker que o vite-plugin-pwa gera para o dev
+		// server. Código gerado, fora do nosso controle e nunca versionado.
+		ignores: ["node_modules/**", "dist/**", "dev-dist/**"],
 	},
 	js.configs.recommended,
 	...pluginVue.configs["flat/recommended"],

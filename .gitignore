@@ -21,6 +21,8 @@ lerna-debug.log*
 node_modules/
 dist/
 dist-ssr/
+# Service worker que o vite-plugin-pwa gera para o dev server.
+dev-dist/
 *.local
 
 # Editor directories and files

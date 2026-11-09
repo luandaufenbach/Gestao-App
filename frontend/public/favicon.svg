@@ -1,13 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Gestão Financeira">
-  <rect width="64" height="64" rx="14" fill="#22c55e" />
-  <text
-    x="32"
-    y="34"
-    text-anchor="middle"
-    dominant-baseline="central"
-    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-    font-size="40"
-    font-weight="700"
-    fill="#0f172a"
-  >G</text>
+  <!--
+    Cobalt #2E44F0 e raio de 28% do lado (18/64), como o design system define
+    para ícone de app. Era verde #22c55e com "G" slate, do visual de antes da
+    migração: a aba do navegador era a última peça ainda na identidade velha.
+
+    A letra vai em `path` e não em `text` porque SVG de favicon não carrega
+    webfont — com `font-family: Outfit` o navegador desenharia na fonte de
+    sistema, e o "G" sairia diferente do ícone do app, que é PNG rasterizado
+    com a Outfit de verdade.
+  -->
+  <rect width="64" height="64" rx="18" fill="#2E44F0" />
+  <path
+    fill="#FFFFFF"
+    d="M32.4 14.6c4.3 0 8.1 1.6 10.8 4.2l-3.8 4.3c-1.9-1.8-4.3-2.8-7-2.8-5.5 0-9.6 4.2-9.6 9.9s4.1 9.9 9.8 9.9c2.6 0 4.9-.8 6.6-2.1v-4.9h-7.1v-5.2h12.8v12.7c-3 3-7.4 4.9-12.4 4.9-9 0-15.6-6.5-15.6-15.3s6.6-15.6 15.5-15.6z"
+  />
 </svg>
