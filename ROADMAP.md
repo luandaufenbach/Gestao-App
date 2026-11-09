@@ -29,12 +29,16 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.5 | Analytics de funil | feito — falta configurar `VITE_POSTHOG_KEY` |
 | 0.6 | LGPD: exportar e excluir conta | feito |
 | 0.7 | Termos de uso e política de privacidade | telas feitas — falta preencher os dados do responsável e a revisão jurídica |
-| 0.8 | Zerar `npm audit` | **pendente** — nunca verificado |
+| 0.8 | Zerar `npm audit` | feito — 0 críticas e 0 altas nos dois pacotes; sobram moderadas só em ferramenta de desenvolvimento |
 | 1.1 | Projeção de caixa futura | feito |
 | 1.2 | Relatórios de 3 a 12 meses | feito |
 | 1.3 | Tokens, fontes e ícones do design system | feito |
 | 1.4 | Telas migradas, uma a uma | quase lá — 26 dos 28 `.vue` já usam os tokens; faltam `ConfirmDialog.vue` e `TransactionFormFields.vue` |
-| 2.x em diante | — | **pendente** |
+| 2.1 | Planos e estado de assinatura no `User` | feito |
+| 2.2 | Gateway de pagamento com Pix | **adiado de propósito** — exige conta verificada com CPF ou CNPJ, e não há usuário para cobrar ainda |
+| 2.3 | Paywall por middleware | feito — desligado por `PAYWALL_ENABLED`, e fatura de ciclo futuro ainda não entra na regra |
+| 2.4 | Teste grátis e expiração | **pendente** — depende do 2.2 |
+| 3.x a 5.x | — | **pendente** |
 
 ### Como o trabalho é distribuído
 
