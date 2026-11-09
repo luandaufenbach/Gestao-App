@@ -38,7 +38,9 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 2.2 | Gateway de pagamento com Pix | **adiado de propósito** — exige conta verificada com CPF ou CNPJ, e não há usuário para cobrar ainda |
 | 2.3 | Paywall por middleware | feito — desligado por `PAYWALL_ENABLED`, e fatura de ciclo futuro ainda não entra na regra |
 | 2.4 | Teste grátis e expiração | **pendente** — depende do 2.2 |
-| 3.x a 5.x | — | **pendente** |
+| 3.x | — | **pendente** |
+| 4.1 | PWA instalável | feito |
+| 4.2 a 5.x | — | **pendente** |
 
 ### Como o trabalho é distribuído
 
@@ -170,7 +172,7 @@ de 80%, o recurso vira promessa quebrada e é melhor não vendê-lo.
 
 | # | Item | Aceite | Agente |
 | - | ---- | ------ | ------ |
-| 4.1 | PWA instalável | App instala na tela inicial e abre sem barra do navegador | `frontend-vue` |
+| 4.1 | PWA instalável | App instala na tela inicial e abre sem barra do navegador | **feito** |
 | 4.2 | Notificações push | "Sua fatura fecha em 3 dias" chega no celular | `frontend-vue` + `backend-api` |
 | 4.3 | Alertas proativos | Gasto acima da média e fatura prestes a fechar disparam aviso | `backend-api` |
 | 4.4 | Conta compartilhada (casal) | Duas contas enxergam o mesmo conjunto de lançamentos, com autoria preservada | `backend-api` + `seguranca-lgpd` |
