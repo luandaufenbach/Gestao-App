@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuth } from "../stores/auth";
+import { trackPage } from "../services/analytics";
 
 const routes = [
 	{
@@ -151,6 +152,17 @@ router.beforeEach(async (to) => {
 	}
 
 	return true;
+});
+
+/**
+ * Primeiro passo do funil: a visita.
+ *
+ * Manda `to.path`, não `to.fullPath`. A diferença não é estética — o fullPath
+ * de /reset-password e /verify-email carrega o token na query, e ele não pode
+ * sair do navegador (ver `stripQuery` em services/analytics.js).
+ */
+router.afterEach((to) => {
+	trackPage(to.path);
 });
 
 export default router;

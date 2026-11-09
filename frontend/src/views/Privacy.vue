@@ -18,6 +18,7 @@
  *   - limites por IP ........ backend/src/app.js, routes/auth.js,
  *                             routes/account.js
  *   - monitoramento ......... backend/src/config/monitoring.js
+ *   - medição de uso ........ frontend/src/services/analytics.js
  *   - hospedagem ............ render.yaml (API e site no Render; banco no Atlas)
  *
  * ATENÇÃO AO ALTERAR O SISTEMA: se um destes pontos mudar — provedor novo,
@@ -129,8 +130,10 @@ import LegalShell from "../components/LegalShell.vue";
       qualquer documento; endereço residencial; telefone; data de nascimento; foto; senha do seu
       banco; número completo de cartão ou código de segurança (CVV); dados de localização; nem
       qualquer dado sensível na definição da LGPD — origem racial, convicção religiosa, opinião
-      política, saúde, vida sexual, biometria ou genética. Também não usamos cookie de publicidade,
-      pixel de rede social, nem ferramenta de análise de comportamento de terceiro.
+      política, saúde, vida sexual, biometria ou genética. Também não usamos cookie de publicidade
+      nem pixel de rede social. Usamos uma ferramenta de medição de uso, e ela está descrita abaixo,
+      em <strong>com quem compartilhamos</strong>: ela registra quais telas foram abertas, não o que
+      está escrito nelas.
     </p>
 
     <h2>Para que usamos cada dado, e com qual base legal</h2>
@@ -163,6 +166,13 @@ import LegalShell from "../components/LegalShell.vue";
         <strong>Proteger o serviço</strong> — limites de requisição por IP e registros do servidor.
         <em>Base legal: legítimo interesse</em> (artigo 7º, inciso IX), no interesse de manter o app
         disponível e as contas protegidas contra ataque automatizado.
+      </li>
+      <li>
+        <strong>Entender se o app está sendo útil</strong> — caminho das telas abertas e três
+        marcos de uso: visita, cadastro concluído e transação criada.
+        <em>Base legal: legítimo interesse</em> (artigo 7º, inciso IX), no interesse de saber onde
+        as pessoas desistem e consertar a parte que atrapalha. O que está escrito nos seus
+        lançamentos não entra nessa medição.
       </li>
       <li>
         <strong>Corrigir falhas</strong> — registros técnicos de erro.
@@ -207,6 +217,18 @@ import LegalShell from "../components/LegalShell.vue";
         <strong>identificador interno da sua conta</strong>. Não recebe o corpo da requisição, nem
         cabeçalhos, nem cookies — ou seja, não recebe o conteúdo dos seus lançamentos. Erro previsto,
         como um campo preenchido errado, não gera envio nenhum.
+      </li>
+      <li>
+        <strong>PostHog</strong>
+        <span class="legal-todo">[PREENCHER: razão social do PostHog]</span> — medição de uso.
+        Serve para uma pergunta só: de cada cem pessoas que chegam ao app, quantas criam conta e
+        quantas chegam a lançar a primeira transação. Recebe o <strong>caminho da tela</strong> que
+        você abriu, sem nada do que vem depois do <code>?</code> no endereço, três marcos de uso
+        (visita, cadastro concluído, transação criada) e o
+        <strong>identificador interno da sua conta</strong>. O tipo do lançamento vai junto —
+        receita, despesa, guardado —, mas <strong>nunca o valor nem a descrição</strong>. A captura
+        automática de cliques e a gravação de tela, que a ferramenta oferece, estão
+        <strong>desligadas</strong>.
       </li>
     </ul>
     <p>
@@ -264,12 +286,21 @@ import LegalShell from "../components/LegalShell.vue";
 
     <h2>Cookies e o que fica no seu navegador</h2>
     <p>
-      O app <strong>não usa cookie de rastreamento</strong> e não tem banner de consentimento porque
-      não há nada para consentir nesse sentido. O que fica guardado no seu navegador é uma coisa só:
-      o <strong>token da sua sessão</strong>, no armazenamento local (<em>localStorage</em>), para
-      que você não precise digitar a senha a cada visita. Ele vale 7 dias e é apagado quando você
-      sai da conta. Nenhum dado seu é enviado a terceiros por meio dele.
+      O app <strong>não usa cookie</strong>, de rastreamento ou de qualquer outro tipo. O que fica
+      guardado no seu navegador, no armazenamento local (<em>localStorage</em>), são duas coisas:
     </p>
+    <ul>
+      <li>
+        o <strong>token da sua sessão</strong>, para que você não precise digitar a senha a cada
+        visita. Vale 7 dias, é apagado quando você sai da conta, e nenhum dado seu é enviado a
+        terceiros por meio dele;
+      </li>
+      <li>
+        um <strong>identificador aleatório de medição</strong>, criado pelo PostHog para não contar
+        a mesma pessoa duas vezes. Ele não tem o seu nome nem o seu e-mail, e também some quando
+        você limpa os dados do navegador.
+      </li>
+    </ul>
 
     <h2>Como protegemos</h2>
     <ul>

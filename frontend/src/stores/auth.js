@@ -1,6 +1,7 @@
 import { ref, computed } from "vue";
 import * as api from "../services/api";
 import { tokenStorage, setUnauthorizedHandler } from "../services/http";
+import { identifyUser, resetAnalytics, trackEvent } from "../services/analytics";
 import { useCategories } from "./categories";
 import { useBankCards } from "./bankCards";
 
@@ -22,6 +23,16 @@ function setSession(response) {
 	token.value = response.token;
 	user.value = response.user;
 	tokenStorage.set(response.token);
+
+	/**
+	 * Só o id. Cadastro e primeira transação acontecem em sessões diferentes,
+	 * e sem isto os dois passos do funil não se ligam à mesma pessoa.
+	 *
+	 * É `id`, não `_id`: o `toPublicJSON` do User renomeia o campo antes de
+	 * mandar para o cliente. Com `_id` isto virava `undefined` em silêncio e o
+	 * funil contava todo mundo como anônimo.
+	 */
+	identifyUser(response.user?.id);
 }
 
 function logout() {
@@ -37,6 +48,9 @@ function logout() {
 	 */
 	useCategories().reset();
 	useBankCards().reset();
+
+	// Sem isto a próxima conta na mesma aba herdaria a identificação anterior.
+	resetAnalytics();
 }
 
 /**
@@ -61,6 +75,14 @@ async function restoreSession() {
 
 	try {
 		user.value = await api.getMe();
+
+		/**
+		 * Também aqui, e não só no `setSession`: quem volta com o token ainda
+		 * válido não passa por login nenhum. Sem esta linha, o funil perderia
+		 * exatamente o caso que ele existe para medir — cadastrou num dia,
+		 * lançou a primeira transação no outro.
+		 */
+		identifyUser(user.value?.id);
 	} catch {
 		// setUnauthorizedHandler já limpou a sessão em caso de 401.
 		logout();
@@ -83,6 +105,9 @@ export function useAuth() {
 		loading.value = true;
 		try {
 			setSession(await api.register(payload));
+			// Segundo passo do funil. Depois do setSession, para o evento já
+			// sair ligado à pessoa que acabou de ser identificada.
+			trackEvent("cadastro_concluido");
 		} finally {
 			loading.value = false;
 		}

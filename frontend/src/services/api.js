@@ -1,4 +1,5 @@
 import { http } from "./http";
+import { trackEvent } from "./analytics";
 
 /**
  * Camada de acesso à API.
@@ -135,7 +136,19 @@ export const getMonthlyReport = ({ months = 6 } = {}) =>
 // ── Transactions ──────────────────────────────────────────────
 export const getTransactions = (params = {}) => http.get("/transactions", { params });
 
-export const createTransaction = (transaction) => http.post("/transactions", transaction);
+/**
+ * O terceiro passo do funil é marcado aqui, e não na tela, porque há mais de um
+ * caminho que cria transação (o modal do dashboard, a página de transações, o
+ * pagamento de fatura). Marcando no único ponto por onde todos passam, nenhum
+ * caminho novo nasce fora da medição.
+ *
+ * Só o tipo vai junto: valor e descrição não saem daqui.
+ */
+export const createTransaction = async (transaction) => {
+	const criada = await http.post("/transactions", transaction);
+	trackEvent("transacao_criada", { tipo: transaction?.type });
+	return criada;
+};
 
 export const updateTransaction = (id, transaction) =>
 	http.patch(`/transactions/${id}`, transaction);
