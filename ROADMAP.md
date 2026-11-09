@@ -38,7 +38,8 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 2.2 | Gateway de pagamento com Pix | **adiado de propósito** — exige conta verificada com CPF ou CNPJ, e não há usuário para cobrar ainda |
 | 2.3 | Paywall por middleware | feito — desligado por `PAYWALL_ENABLED`, e fatura de ciclo futuro ainda não entra na regra |
 | 2.4 | Teste grátis e expiração | **pendente** — depende do 2.2 |
-| 3.x | — | **pendente** |
+| 3.1 a 3.3 | — | **pendente** |
+| 3.4 | Detecção de assinaturas recorrentes | feito — fica no grátis |
 | 4.1 | PWA instalável | feito |
 | 4.2 a 5.x | — | **pendente** |
 
@@ -155,7 +156,7 @@ não ia pagar em nenhum dos modelos, e de graça ela traz as outras.
 | 3.1 | Leitura do QR code do cupom fiscal | Foto do cupom vira compra com itens separados, após confirmação do usuário | `fiscal-nfce` |
 | 3.2 | Fallback por OCR | Cupom cuja chave não resolve ainda gera um rascunho editável | `fiscal-nfce` |
 | 3.3 | Anti-duplicata por chave de acesso | A mesma nota lançada duas vezes é recusada | `fiscal-nfce` + `qa-testes` |
-| 3.4 | Detecção de assinaturas recorrentes | App identifica cobranças mensais repetidas e mostra o total comprometido por mês | `backend-api` |
+| 3.4 | Detecção de assinaturas recorrentes | App identifica cobranças mensais repetidas e mostra o total comprometido por mês | **feito** |
 
 O 3.1 é a aposta. Ler a chave de acesso devolve a nota **item a item**: deixa de ser
 "R$ 320 no mercado" e vira "R$ 47 em refrigerante no mês". Nenhum concorrente grande
