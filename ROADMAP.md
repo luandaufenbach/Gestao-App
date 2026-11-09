@@ -117,8 +117,28 @@ vira conversão ou desistência.
 No Brasil, Pix é obrigatório. Asaas e Mercado Pago atendem; cartão recorrente sozinho
 reduz muito a conversão.
 
-Decisão a tomar antes de 2.3: o que fica grátis. Travar o básico mata a aquisição por
-anúncio; liberar tudo mata a assinatura.
+### O que fica grátis — decidido
+
+**Grátis é o presente; pago é o futuro e o passado.**
+
+| Grátis | Pago |
+| ------ | ---- |
+| Lançar transações, sem teto | Projeção de caixa (`GET /dashboard/projection`) |
+| Categorias, cartões e metas | Relatórios de 3 a 12 meses (`GET /reports/monthly`) |
+| Dashboard do mês corrente | Faturas de ciclos futuros |
+| Fatura do ciclo atual | Leitura do cupom fiscal, quando existir (3.1) |
+
+O raciocínio: o grátis entrega o hábito diário, que é o que prende; o pago entrega
+a resposta que ninguém mais dá. A divisão também cai quase pronta no código — são
+três endpoints distintos, não uma regra espalhada por controller.
+
+**Nunca atrás do paywall**, aconteça o que acontecer com a assinatura: ler o próprio
+histórico, exportar os dados e excluir a conta. Os dois últimos são direito do titular
+pela LGPD (artigo 18), e cobrar por eles seria ilegal, não só feio. É o mesmo que o
+aceite do 2.4 já exige.
+
+O risco assumido: quem só quer anotar gasto nunca paga. É aceitável porque essa pessoa
+não ia pagar em nenhum dos modelos, e de graça ela traz as outras.
 
 ---
 
