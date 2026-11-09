@@ -26,7 +26,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.2 | Recuperação de senha por e-mail | código feito — **não envia e-mail ainda**: sem `MAIL_PROVIDER`, o `deliver` só escreve o link no console |
 | 0.3 | Verificação de e-mail no cadastro | código feito — depende do mesmo envio que falta no 0.2 |
 | 0.4 | Monitoramento de erro (Sentry) | feito — falta configurar `SENTRY_DSN` |
-| 0.5 | Analytics de funil | **pendente** — depende de escolher a ferramenta |
+| 0.5 | Analytics de funil | feito — falta configurar `VITE_POSTHOG_KEY` |
 | 0.6 | LGPD: exportar e excluir conta | feito |
 | 0.7 | Termos de uso e política de privacidade | telas feitas — falta preencher os dados do responsável e a revisão jurídica |
 | 0.8 | Zerar `npm audit` | **pendente** — nunca verificado |
