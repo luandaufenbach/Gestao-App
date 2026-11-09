@@ -4,6 +4,7 @@ const { z } = require("zod");
 
 const { getMonthlyReport, DEFAULT_MONTHS } = require("../controllers/reportController");
 const validate = require("../middlewares/validate");
+const requirePaidPlan = require("../middlewares/requirePaidPlan");
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const reportQuery = z.object({
 	months: z.coerce.number().int().min(3).max(12).default(DEFAULT_MONTHS),
 });
 
-router.get("/monthly", validate({ query: reportQuery }), getMonthlyReport);
+// Recurso pago: ver a tabela da Fase 2 no ROADMAP.md.
+router.get("/monthly", requirePaidPlan, validate({ query: reportQuery }), getMonthlyReport);
 
 module.exports = router;

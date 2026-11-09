@@ -109,9 +109,9 @@ vira conversão ou desistência.
 
 | # | Item | Aceite | Agente |
 | - | ---- | ------ | ------ |
-| 2.1 | Planos e estado de assinatura no `User` | Campo de plano, status e validade, com índice | `backend-api` |
+| 2.1 | Planos e estado de assinatura no `User` | Campo de plano, status e validade, com índice | **feito** |
 | 2.2 | Gateway de pagamento com Pix | Assinatura criada, renovada e cancelada; webhook idempotente | `backend-api` |
-| 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | `backend-api` |
+| 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | **feito** — desligado até 2.2 e até a interface tratar o 402 |
 | 2.4 | Teste grátis e expiração | Fim do teste não apaga dado nem trava a leitura do histórico | `backend-api` + `frontend-vue` |
 
 No Brasil, Pix é obrigatório. Asaas e Mercado Pago atendem; cartão recorrente sozinho

@@ -71,6 +71,11 @@ module.exports = {
 	 * É o padrão em desenvolvimento e em teste (ver src/config/monitoring.js).
 	 */
 	sentryDsn: (process.env.SENTRY_DSN || "").trim(),
+	/**
+	 * Liga o paywall. Desligado = todo recurso pago fica aberto, que é o padrão
+	 * enquanto não existe forma de pagar (ver middlewares/requirePaidPlan.js).
+	 */
+	paywallEnabled: process.env.PAYWALL_ENABLED === "true",
 	isProduction: process.env.NODE_ENV === "production",
 	isTest: process.env.NODE_ENV === "test",
 };

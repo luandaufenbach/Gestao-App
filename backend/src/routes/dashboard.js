@@ -11,6 +11,7 @@ const {
 } = require("../controllers/dashboardController");
 const { monthQuery } = require("../validators/common");
 const validate = require("../middlewares/validate");
+const requirePaidPlan = require("../middlewares/requirePaidPlan");
 
 const router = express.Router();
 
@@ -32,6 +33,13 @@ const projectionQuery = z.object({
 	months: z.coerce.number().int().min(1).max(24).optional(),
 });
 
-router.get("/projection", validate({ query: projectionQuery }), getProjection);
+// Recurso pago: ver a tabela da Fase 2 no ROADMAP.md. O resto deste router
+// é o dashboard do mês, que fica grátis.
+router.get(
+	"/projection",
+	requirePaidPlan,
+	validate({ query: projectionQuery }),
+	getProjection
+);
 
 module.exports = router;

@@ -108,6 +108,36 @@ const UserSchema = new mongoose.Schema(
 			type: Date,
 			select: false,
 		},
+
+		/**
+		 * Estado da assinatura (ROADMAP 2.1).
+		 *
+		 * Três campos e não um: o plano diz O QUE a pessoa comprou, o status diz
+		 * SE vale agora, e a validade diz ATÉ QUANDO. Juntar isso num booleano
+		 * `isPro` parece mais simples até o primeiro pagamento atrasado, quando
+		 * não há onde guardar "era pro, venceu ontem, ainda dá para renovar sem
+		 * perder nada".
+		 *
+		 * Quem decide o acesso é `hasPaidAccess()`, nunca a leitura direta de um
+		 * destes campos — ver a regra lá.
+		 */
+		subscription: {
+			plan: {
+				type: String,
+				enum: ["free", "pro"],
+				default: "free",
+			},
+			status: {
+				type: String,
+				enum: ["none", "trialing", "active", "past_due", "canceled"],
+				default: "none",
+			},
+			/** Fim do período pago ou do teste. Nulo = não há período em curso. */
+			validUntil: {
+				type: Date,
+				default: null,
+			},
+		},
 	},
 	{ timestamps: true }
 );
@@ -133,6 +163,33 @@ UserSchema.index(
 	{ emailVerificationTokenHash: 1 },
 	{ partialFilterExpression: { emailVerificationTokenHash: { $type: "string" } } }
 );
+
+/**
+ * Varredura de vencimento: quem está em teste ou ativo e já passou da validade.
+ *
+ * O filtro parcial deixa de fora todo usuário do plano grátis, que nunca tem
+ * `validUntil` — e que é a maior parte da base, por desenho.
+ */
+UserSchema.index(
+	{ "subscription.status": 1, "subscription.validUntil": 1 },
+	{ partialFilterExpression: { "subscription.validUntil": { $type: "date" } } }
+);
+
+/**
+ * A ÚNICA regra de acesso pago. Todo o resto do código pergunta aqui.
+ *
+ * Vale quando o período em curso ainda não venceu. `past_due` e `canceled`
+ * continuam valendo até a data combinada: quem pagou o mês tem o mês, mesmo
+ * que a renovação falhe ou que o cancelamento seja pedido no dia 2.
+ *
+ * Sem `validUntil` não há acesso pago — é o estado de quem nunca assinou.
+ */
+UserSchema.methods.hasPaidAccess = function hasPaidAccess(now = new Date()) {
+	const { status, validUntil } = this.subscription ?? {};
+	if (!validUntil) return false;
+	if (status === "none") return false;
+	return validUntil.getTime() > now.getTime();
+};
 
 /**
  * Define a senha do usuário já aplicando o hash.
@@ -229,6 +286,13 @@ UserSchema.methods.toPublicJSON = function toPublicJSON() {
 		 * nada por isso: nenhuma rota recusa por falta de verificação. Ver a nota
 		 * de compatibilidade em controllers/authController.js.
 		 */
+		subscription: {
+			plan: this.subscription?.plan ?? "free",
+			status: this.subscription?.status ?? "none",
+			validUntil: this.subscription?.validUntil ?? null,
+			// A interface não deve repetir a regra de acesso: ela pergunta e pronto.
+			hasPaidAccess: this.hasPaidAccess(),
+		},
 		emailVerified: this.isEmailVerified(),
 		emailVerifiedAt: this.emailVerifiedAt ?? null,
 	};

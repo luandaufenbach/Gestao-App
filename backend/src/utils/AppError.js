@@ -24,6 +24,11 @@ class AppError extends Error {
 		return new AppError(401, message);
 	}
 
+	/** 402: autenticado e identificado, mas o recurso exige plano pago. */
+	static paymentRequired(message = "Recurso do plano pago") {
+		return new AppError(402, message);
+	}
+
 	static forbidden(message = "Acesso negado") {
 		return new AppError(403, message);
 	}
