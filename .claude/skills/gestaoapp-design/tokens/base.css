@@ -1,0 +1,14 @@
+/* gestaoApp — element defaults */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:var(--type-body);color:var(--text-primary);background:var(--bg-app);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:var(--fw-medium);letter-spacing:var(--ls-heading);margin:0;color:var(--text-primary)}
+p{margin:0;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:none;transition:color var(--dur-fast) var(--ease-out)}
+a:hover{color:var(--brand-primary-hover);text-decoration:underline;text-underline-offset:3px}
+button{font:inherit;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+::selection{background:var(--cobalt-100);color:var(--cobalt-800)}
+:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.ga-accent-italic{font-style:italic;color:var(--text-brand)}
+.ga-num{font-variant-numeric:tabular-nums}

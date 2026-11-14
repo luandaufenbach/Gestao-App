@@ -38,5 +38,24 @@ Thumbs.db
 *.sw?
 
 
-# Diretório de trabalho do Claude Code
-.claude/
+# Diretório do Claude Code.
+#
+# Ignorado por padrão, com três exceções versionadas de propósito: são o
+# contexto do projeto, e sem elas quem clona em outra máquina perde a
+# linguagem visual e as regras de cada frente de trabalho.
+#
+#   skills/gestaoapp-design  tokens, fontes, ícones e componentes do design
+#                            system — a referência que o ROADMAP 1.3/1.4 segue
+#   agents/                  o que cada agente sabe sobre centavos, UTC e ciclo
+#                            de fatura
+#   launch.json              como subir o dev server
+#
+# Fora: `worktrees/` (são checkouts do próprio git) e `settings.local.json`
+# (permissões desta máquina, não do projeto).
+#
+# A barra depois de `.claude` vira `*` porque o git não entra em diretório
+# ignorado: sem isso as linhas de exceção abaixo nunca seriam lidas.
+.claude/*
+!.claude/agents/
+!.claude/skills/
+!.claude/launch.json

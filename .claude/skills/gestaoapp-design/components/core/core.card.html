@@ -1,0 +1,26 @@
+<!-- @dsCard group="Components" viewport="700x470" name="Core" subtitle="Buttons, icon buttons, badges, avatars, tags, flags, progress" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{padding:20px;background:var(--bg-app)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.col{display:flex;flex-direction:column;gap:14px}.lbl{font:var(--type-micro);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-tertiary);width:84px;flex-shrink:0}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const { Button, IconButton, Badge, StatusBadge, Avatar, AvatarGroup, Kbd, ProgressBar, ProjectTag, PriorityFlag, Icon } = NS;
+const team = [{name:'Marina Alves',tone:'cobalt'},{name:'João Kim',tone:'zest'},{name:'Rosa Silva',tone:'violet'},{name:'Léo Prado',tone:'orange'},{name:'Tom Reis'},{name:'Ana Navarro'}];
+function Demo(){return (<div className="col">
+<div className="row"><span className="lbl">Button</span><Button icon="plus">Nova tarefa</Button><Button variant="secondary" icon="folder">Criar projeto</Button><Button variant="accent" icon="check">Concluir</Button><Button variant="dark" iconRight="arrow-right">Upgrade</Button></div>
+<div className="row"><span className="lbl">More</span><Button variant="ghost" size="sm">Cancelar</Button><Button variant="danger" size="sm" icon="trash-2">Excluir</Button><Button size="sm" icon="plus">Pequeno</Button><Button size="lg" icon="plus">Grande</Button><Button disabled>Desabilitado</Button></div>
+<div className="row"><span className="lbl">IconButton</span><IconButton icon="bell" label="Notificações" variant="outline" shape="circle" dot /><IconButton icon="ellipsis" label="Mais" /><IconButton icon="filter" label="Filtrar" variant="outline" /><IconButton icon="link" label="Link" variant="soft" /><IconButton icon="plus" label="Novo" variant="primary" shape="circle" /><IconButton icon="trash-2" label="Excluir" variant="danger" shape="circle" /><IconButton icon="pencil" label="Editar" variant="outline" shape="circle" size="lg" /></div>
+<div className="row"><span className="lbl">Status</span><StatusBadge status="todo" /><StatusBadge status="progress" /><StatusBadge status="review" /><StatusBadge status="done" /></div>
+<div className="row"><span className="lbl">Badge</span><Badge tone="success">No prazo</Badge><Badge tone="warning">Em risco</Badge><Badge tone="danger">2 dias atrasada</Badge><Badge tone="brand" dot>Em andamento</Badge><Badge tone="accent">5 / 5</Badge><Badge size="sm">4</Badge><Badge tone="brand-solid" size="sm">12</Badge></div>
+<div className="row"><span className="lbl">Avatar</span><Avatar name="Marina Alves" tone="cobalt" size="xs"/><Avatar name="João Kim" tone="zest" size="sm"/><Avatar name="Rosa Silva" tone="violet"/><Avatar name="Léo Prado" tone="orange" size="lg"/><Avatar name="Ana Navarro" tone="ink" size="xl" status="online"/><AvatarGroup people={team} max={4} /></div>
+<div className="row"><span className="lbl">Meta</span><ProjectTag name="Redesign do site" color="var(--project-1)"/><ProjectTag name="Vídeo da marca" color="var(--project-2)"/><ProjectTag name="App mobile" color="var(--project-3)"/><PriorityFlag level="high"/><PriorityFlag level="medium"/><PriorityFlag level="low"/><Kbd>⌘K</Kbd></div>
+<div className="row" style={{flexWrap:'nowrap'}}><span className="lbl">Progress</span><div className="col" style={{flex:1,gap:8}}><ProgressBar value={72}/><ProgressBar value={45} color="var(--project-2)"/><ProgressBar value={96} tone="danger" size="xs"/></div><div style={{flex:1,background:'var(--brand-primary)',borderRadius:12,padding:14}}><ProgressBar value={86} tone="accent" onBrand/></div></div>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

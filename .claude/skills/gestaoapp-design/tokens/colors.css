@@ -1,0 +1,112 @@
+/* gestaoApp — color tokens. Base palettes sampled from the reference screens; semantic aliases below. */
+:root{
+/* Cobalt — focus & every action (brand primary #2E44F0) */
+--cobalt-25:#F5F6FD;--cobalt-50:#F0F2FE;--cobalt-100:#E3E7FF;--cobalt-200:#C8CFFD;--cobalt-300:#A3AEF9;--cobalt-400:#6A7CFA;--cobalt-500:#2E44F0;--cobalt-600:#2337D6;--cobalt-700:#1C29A8;--cobalt-800:#17208A;--cobalt-900:#111866;
+/* Zest — done, wins, highlights (#D4F55A) */
+--zest-50:#F9FDE8;--zest-100:#F0FBC6;--zest-200:#E6F99B;--zest-300:#DDF77A;--zest-400:#D4F55A;--zest-500:#C3E640;--zest-600:#9DBD22;--zest-700:#6E8714;--zest-800:#4A5B0E;
+/* Ink — neutrals (Cloud #FAFBFD → Ink #0B0D14) */
+--ink-0:#FFFFFF;--ink-25:#FAFBFD;--ink-50:#F5F7FB;--ink-75:#F0F2F7;--ink-100:#ECEEF3;--ink-200:#E2E5EC;--ink-300:#CDD1DA;--ink-400:#9DA2AE;--ink-500:#737886;--ink-600:#555A67;--ink-700:#3A3E4A;--ink-800:#232733;--ink-900:#141823;--ink-950:#0B0D14;
+/* Signals */
+--red-50:#FEEEEE;--red-100:#FBD7D8;--red-500:#E5484D;--red-600:#D1343A;--red-700:#A8262B;
+--orange-50:#FFF4E4;--orange-100:#FEE6BF;--orange-500:#F59E0B;--orange-600:#DD8700;--orange-700:#A86400;
+--green-50:#EAF8EF;--green-100:#CDEFD9;--green-500:#22A355;--green-600:#178A45;--green-700:#106B35;
+--violet-50:#F3EEFF;--violet-100:#E6DCFE;--violet-500:#8B5CF6;--violet-600:#7442E8;
+--sky-50:#EAF4FE;--sky-500:#3B9EF5;--sky-600:#1F84DD;
+--lime-500:#A6D63A;
+
+/* ---------- Semantic aliases (light) ---------- */
+--bg-app:var(--ink-25);
+--bg-sidebar:#F4F5FB;
+--surface-card:var(--ink-0);
+--surface-raised:var(--ink-0);
+--surface-sunken:var(--ink-50);
+--surface-hover:#F7F8FC;
+--surface-selected:var(--cobalt-50);
+--surface-inverse:var(--ink-950);
+--surface-brand:var(--cobalt-500);
+--surface-accent:var(--zest-400);
+--surface-overlay:rgba(11,13,20,.36);
+--surface-glass:rgba(255,255,255,.18);
+
+--border-subtle:var(--ink-100);
+--border-default:var(--ink-200);
+--border-strong:var(--ink-300);
+--border-focus:var(--cobalt-500);
+--border-dashed:var(--ink-300);
+
+--text-primary:var(--ink-950);
+--text-secondary:var(--ink-600);
+--text-tertiary:var(--ink-400);
+--text-disabled:var(--ink-300);
+--text-inverse:var(--ink-0);
+--text-on-brand:var(--ink-0);
+--text-on-accent:var(--ink-950);
+--text-link:var(--cobalt-500);
+--text-brand:var(--cobalt-500);
+
+--brand-primary:var(--cobalt-500);
+--brand-primary-hover:var(--cobalt-600);
+--brand-primary-press:var(--cobalt-700);
+--brand-primary-soft:var(--cobalt-50);
+--brand-primary-soft-strong:var(--cobalt-100);
+--accent:var(--zest-400);
+--accent-hover:var(--zest-500);
+--accent-soft:var(--zest-100);
+
+--status-todo:var(--ink-400);--status-todo-bg:var(--ink-75);
+--status-progress:var(--cobalt-500);--status-progress-bg:var(--cobalt-50);
+--status-review:var(--orange-500);--status-review-bg:var(--orange-50);
+--status-done:var(--green-500);--status-done-bg:var(--green-50);
+
+--priority-high:var(--red-500);--priority-medium:var(--orange-500);--priority-low:var(--ink-400);
+
+--feedback-danger:var(--red-500);--feedback-danger-bg:var(--red-50);--feedback-danger-border:var(--red-100);
+--feedback-warning:var(--orange-600);--feedback-warning-bg:var(--orange-50);
+--feedback-success:var(--green-600);--feedback-success-bg:var(--green-50);
+--feedback-info:var(--cobalt-500);--feedback-info-bg:var(--cobalt-50);
+
+/* Project color codes (dots, tags, progress) */
+--project-1:var(--cobalt-500);--project-2:var(--lime-500);--project-3:var(--violet-500);--project-4:var(--orange-500);--project-5:var(--green-500);--project-6:var(--red-500);--project-7:var(--sky-500);
+
+/* Brand gradients */
+--gradient-sky:linear-gradient(180deg,#1B2EC4 0%,#3A52EE 38%,#6B7EF6 72%,#B4BDF8 100%);/* @kind color */
+--gradient-cobalt-card:linear-gradient(150deg,#1F33C9 0%,#3B50EE 55%,#6E80FA 100%);/* @kind color */
+--gradient-halo:radial-gradient(closest-side,rgba(46,68,240,.14),rgba(46,68,240,0));/* @kind color */
+--gradient-halo-zest:radial-gradient(closest-side,rgba(212,245,90,.22),rgba(212,245,90,0));/* @kind color */
+--image-sky:url('../assets/imagery/bg-sky.png');/* @kind other */
+}
+
+/* ---------- Dark theme (semantic overrides only) ---------- */
+[data-theme="dark"]{
+--bg-app:#0B0D14;
+--bg-sidebar:#0F121A;
+--surface-card:#151925;
+--surface-raised:#1A1F2C;
+--surface-sunken:#1B2030;
+--surface-hover:#1E2433;
+--surface-selected:rgba(46,68,240,.18);
+--surface-inverse:#FAFBFD;
+--surface-overlay:rgba(0,0,0,.55);
+--border-subtle:rgba(255,255,255,.06);
+--border-default:rgba(255,255,255,.10);
+--border-strong:rgba(255,255,255,.18);
+--border-dashed:rgba(255,255,255,.16);
+--text-primary:#F4F5FA;
+--text-secondary:#A7ACB9;
+--text-tertiary:#6F7483;
+--text-disabled:#474C5A;
+--text-inverse:#0B0D14;
+--text-link:var(--cobalt-300);
+--text-brand:var(--cobalt-300);
+--brand-primary-soft:rgba(46,68,240,.16);
+--brand-primary-soft-strong:rgba(46,68,240,.26);
+--accent-soft:rgba(212,245,90,.14);
+--status-todo-bg:rgba(255,255,255,.06);
+--status-progress-bg:rgba(46,68,240,.18);
+--status-review-bg:rgba(245,158,11,.14);
+--status-done-bg:rgba(34,163,85,.16);
+--feedback-danger-bg:rgba(229,72,77,.12);--feedback-danger-border:rgba(229,72,77,.28);
+--feedback-warning-bg:rgba(245,158,11,.12);
+--feedback-success-bg:rgba(34,163,85,.14);
+--feedback-info-bg:rgba(46,68,240,.16);
+}

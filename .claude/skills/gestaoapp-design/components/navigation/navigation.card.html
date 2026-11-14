@@ -1,0 +1,38 @@
+<!-- @dsCard group="Components" viewport="700x540" name="Navigation" subtitle="Sidebar, nav items, workspace switcher, breadcrumb, tabs, page header, mobile tab bar" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{padding:20px;background:var(--bg-app)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.col{display:flex;flex-direction:column;gap:14px}.lbl{font:var(--type-micro);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-tertiary);width:84px;flex-shrink:0}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const { Sidebar, NavItem, NavSection, WorkspaceSwitcher, SearchField, Breadcrumb, Tabs, TabBar, PageHeader, Button, IconButton, Avatar } = NS;
+function Demo(){const [nav,setNav]=React.useState('dash');const [tab,setTab]=React.useState('all');const [tb,setTb]=React.useState('home');const [col,setCol]=React.useState(false);return (<div style={{display:'flex',gap:16,height:500}}>
+<div style={{height:500,borderRadius:14,overflow:'hidden',border:'1px solid var(--border-subtle)',flexShrink:0}}>
+<Sidebar collapsed={col} onToggle={()=>setCol(!col)} header={<><WorkspaceSwitcher name="Estúdio Norte"/>{col?null:<SearchField size="sm"/>}</>}>
+<NavSection label="Menu principal">
+<NavItem icon="layout-grid" label="Painel" active={nav==='dash'} onClick={()=>setNav('dash')}/>
+<NavItem icon="square-check" label="Tarefas" count={12} active={nav==='tasks'} onClick={()=>setNav('tasks')}/>
+<NavItem icon="folder" label="Projetos" active={nav==='proj'} onClick={()=>setNav('proj')}/>
+<NavItem icon="calendar" label="Calendário" active={nav==='cal'} onClick={()=>setNav('cal')}/>
+<NavItem icon="users" label="Equipe" active={nav==='team'} onClick={()=>setNav('team')}/>
+<NavItem icon="settings" label="Configurações" active={nav==='set'} onClick={()=>setNav('set')}/>
+</NavSection>
+<NavSection label="Projetos" action={<IconButton icon="plus" label="Novo projeto" size="sm"/>}>
+<NavItem dot="var(--project-1)" label="Redesign do site" count={12}/>
+<NavItem dot="var(--project-2)" label="Vídeo da marca" count={8}/>
+</NavSection>
+</Sidebar></div>
+<div className="col" style={{flex:1,minWidth:0,gap:18}}>
+<PageHeader breadcrumb={['Estúdio Norte','Painel']} title="Bom dia, Marina" subtitle="3 tarefas vencem hoje e 1 reunião." actions={<><IconButton icon="bell" label="Notificações" variant="outline" shape="circle" dot/><Button size="sm" icon="plus">Nova tarefa</Button></>}/>
+<Tabs value={tab} onChange={setTab} tabs={[{value:'all',label:'Todos',count:5},{value:'active',label:'Ativos',count:4},{value:'done',label:'Concluídos',count:1},{value:'arch',label:'Arquivados'}]}/>
+<Breadcrumb items={['Estúdio Norte','Projetos','Redesign do site']}/>
+<div style={{marginTop:'auto',width:340,alignSelf:'center',borderRadius:22,overflow:'hidden',border:'1px solid var(--border-subtle)',boxShadow:'var(--shadow-md)'}}>
+<TabBar value={tb} onChange={setTb} onAdd={()=>{}} items={[{value:'home',label:'Início',icon:'layout-grid'},{value:'tasks',label:'Tarefas',icon:'square-check'},{value:'projects',label:'Projetos',icon:'folder'},{value:'team',label:'Equipe',icon:'users'}]} style={{paddingBottom:10}}/></div>
+</div></div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

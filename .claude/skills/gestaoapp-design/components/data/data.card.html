@@ -1,0 +1,42 @@
+<!-- @dsCard group="Components" viewport="700x1000" name="Data display" subtitle="Cards, stat & goal cards, task rows, project card, chart, table" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{padding:20px;background:var(--bg-app)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.col{display:flex;flex-direction:column;gap:14px}.lbl{font:var(--type-micro);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-tertiary);width:84px;flex-shrink:0}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const { Card, StatCard, GoalCard, TaskRow, ProjectCard, BarChart, DataTable, Avatar, Badge, ProgressBar, IconButton } = NS;
+const week=[{label:'S',value:6,planned:8},{label:'T',value:7,planned:8},{label:'Q',value:4,planned:6,highlight:true},{label:'Q',value:8,planned:9},{label:'S',value:5,planned:6},{label:'S',value:1,planned:2},{label:'D',value:1}];
+function Demo(){const [d,setD]=React.useState(false);return (<div className="col" style={{gap:12}}>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:12}}>
+<StatCard icon="calendar" label="Vencem hoje" value="3" delta="1 atrasada" deltaTrend="down" onMore={()=>{}}/>
+<StatCard icon="square-check" tone="success" label="Concluídas na semana" value="24" delta="18%" deltaTrend="up"/>
+<GoalCard done={24} total={28}/></div>
+<div className="col" style={{gap:8}}>
+<TaskRow title="Finalizar design do site" project="Redesign do site" projectColor="var(--project-1)" time="10:00" priority="high" assignee={{name:'Marina Alves',tone:'cobalt'}} done={d} onToggle={setD} onMore={()=>{}}/>
+<TaskRow title="Revisar feedback do cliente" project="Vídeo da marca" projectColor="var(--project-2)" time="13:30" priority="medium" assignee={{name:'João Kim',tone:'zest'}} selected onMore={()=>{}}/>
+<TaskRow title="Preparar notas da sprint" project="Marketing" projectColor="var(--project-4)" time="09:00" priority="low" assignee={{name:'Léo Prado',tone:'orange'}} done onMore={()=>{}}/>
+<div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:8}}>
+<TaskRow layout="stacked" title="Enviar atualização do projeto" project="App mobile" projectColor="var(--project-3)" time="16:00" priority="low" assignee={{name:'Rosa Silva',tone:'violet'}}/>
+<TaskRow layout="stacked" title="Enviar fatura ao cliente" project="Redesign do site" projectColor="var(--project-1)" time="2 dias atrasada" late priority="high" assignee={{name:'Ana Navarro',tone:'ink'}}/>
+</div></div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:12}}>
+<Card title="Progresso semanal" subtitle="Tarefas concluídas por dia" actions={<Badge tone="success" size="sm">+18%</Badge>}><BarChart data={week} height={110}/></Card>
+<ProjectCard name="Redesign do site" description="Novo site institucional e páginas de preço" icon="layers" color="var(--project-1)" progress={72} tasksDone={18} tasksTotal={25} due="24 out" members={[{name:'Marina Alves',tone:'cobalt'},{name:'Rosa Silva',tone:'violet'},{name:'João Kim',tone:'zest'}]} onMore={()=>{}}/>
+</div>
+<Card padding="none" style={{overflow:'hidden'}}><DataTable compact rowKey="n" columns={[
+{key:'n',header:'Membro',render:r=><span style={{display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}}><Avatar name={r.n} tone={r.t} size="sm"/>{r.n}</span>},
+{key:'r',header:'Função'},
+{key:'o',header:'Abertas',align:'right'},
+{key:'w',header:'Carga',render:r=><span style={{display:'flex',alignItems:'center',gap:8}}><ProgressBar value={r.w} size="xs" tone={r.w>90?'danger':r.w>75?'warning':'brand'} style={{width:72}}/>{r.w+'%'}</span>},
+{key:'s',header:'Status',render:r=><Badge tone={r.w>90?'warning':'success'} size="sm" dot>{r.w>90?'Ocupada':'Ativa'}</Badge>}]}
+rows={[{n:'Marina Alves',r:'Dona',t:'cobalt',o:7,w:82},{n:'João Kim',r:'Admin',t:'zest',o:5,w:64},{n:'Rosa Silva',r:'Membro',t:'violet',o:9,w:96}]}/></Card>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:12}}><Card variant="inverse" padding="sm"><div style={{font:'var(--type-body-strong)'}}>Upgrade para o Pro</div><div style={{font:'var(--type-caption)',opacity:.7,marginTop:4}}>Projetos ilimitados e automações.</div></Card><Card variant="accent" padding="sm"><div style={{font:'var(--type-stat)'}}>81%</div><div style={{font:'var(--type-caption)',marginTop:4}}>querem uma visão clara do próximo passo</div></Card><Card variant="dashed" padding="sm" interactive><div style={{font:'var(--type-body-strong)',textAlign:'center'}}>+ Criar projeto</div><div style={{font:'var(--type-caption)',color:'var(--text-tertiary)',textAlign:'center',marginTop:4}}>Do zero ou de um modelo</div></Card></div>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>
