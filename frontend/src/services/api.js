@@ -200,3 +200,15 @@ export const getCardInvoice = (cardId, cycle) =>
 export const getCategories = () => http.get("/categories");
 export const createCategory = (category) => http.post("/categories", category);
 export const deleteCategory = (id) => http.delete(`/categories/${id}`);
+
+// ── Assinatura ────────────────────────────────────────────────
+/** Estado da assinatura de quem está logado, mais o catálogo do plano pago. */
+export const getMySubscription = () => http.get("/subscriptions/me");
+
+/**
+ * Cria a assinatura e devolve `invoiceUrl`, a página do Asaas com o Pix.
+ * O CPF é exigido pelo provedor; não é guardado na nossa base.
+ */
+export const createSubscription = (cpfCnpj) => http.post("/subscriptions", { cpfCnpj });
+
+export const cancelSubscription = () => http.delete("/subscriptions");

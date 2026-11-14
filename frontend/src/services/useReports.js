@@ -44,6 +44,15 @@ export function useReports(initialMonths = DEFAULT_REPORT_MONTHS) {
 	const loading = ref(false);
 	const error = ref("");
 
+	/**
+	 * A recusa foi do paywall, não uma falha.
+	 *
+	 * Sem este sinal o 402 chegava à tela como texto vermelho de erro, ao lado
+	 * de "falha ao carregar" — e quem quisesse pagar não tinha onde clicar. O
+	 * status se perde quando o erro vira string, então é preciso guardá-lo.
+	 */
+	const paywalled = ref(false);
+
 	// Descarta resposta de requisição antiga que chegue fora de ordem — o
 	// usuário clicando rápido entre 3, 6 e 12 meses.
 	let requestId = 0;
@@ -53,6 +62,7 @@ export function useReports(initialMonths = DEFAULT_REPORT_MONTHS) {
 
 		loading.value = true;
 		error.value = "";
+		paywalled.value = false;
 
 		try {
 			const data = await getMonthlyReport({ months: months.value });
@@ -65,6 +75,7 @@ export function useReports(initialMonths = DEFAULT_REPORT_MONTHS) {
 		} catch (err) {
 			if (currentRequest !== requestId) return;
 
+			paywalled.value = err.status === 402;
 			error.value = err.displayMessage ?? "Erro ao carregar o relatório";
 			series.value = [];
 			totals.value = emptyTotals();
@@ -141,6 +152,7 @@ export function useReports(initialMonths = DEFAULT_REPORT_MONTHS) {
 		chartCategories,
 		loading,
 		error,
+		paywalled,
 		isEmpty,
 		peakExpenseInCents,
 		load,

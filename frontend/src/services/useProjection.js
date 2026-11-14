@@ -27,15 +27,26 @@ export function useProjection(months = PROJECTION_MONTHS) {
 	const loading = ref(false);
 	const error = ref("");
 
+	/**
+	 * A recusa foi do paywall, não uma falha.
+	 *
+	 * Sem este sinal o 402 chegava à tela como texto vermelho de erro, do lado
+	 * de "falha ao carregar" — e quem quisesse pagar não tinha onde clicar. O
+	 * status se perde ao virar string, então é preciso guardá-lo aqui.
+	 */
+	const paywalled = ref(false);
+
 	async function load() {
 		loading.value = true;
 		error.value = "";
+		paywalled.value = false;
 
 		try {
 			// A rota devolve um ARRAY puro, não um objeto com a série dentro.
 			const data = await getProjection({ months });
 			series.value = Array.isArray(data) ? data : [];
 		} catch (err) {
+			paywalled.value = err.status === 402;
 			error.value = err.displayMessage ?? "Erro ao carregar a projeção";
 			series.value = [];
 		} finally {
@@ -80,6 +91,7 @@ export function useProjection(months = PROJECTION_MONTHS) {
 		series,
 		loading,
 		error,
+		paywalled,
 		load,
 		totalCommittedInCents,
 		totalInvoicesInCents,

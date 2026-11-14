@@ -4,6 +4,7 @@ import { tokenStorage, setUnauthorizedHandler } from "../services/http";
 import { identifyUser, resetAnalytics, trackEvent } from "../services/analytics";
 import { useCategories } from "./categories";
 import { useBankCards } from "./bankCards";
+import { useSubscription } from "./subscription";
 
 /**
  * Store de autenticação.
@@ -48,6 +49,7 @@ function logout() {
 	 */
 	useCategories().reset();
 	useBankCards().reset();
+	useSubscription().reset();
 
 	// Sem isto a próxima conta na mesma aba herdaria a identificação anterior.
 	resetAnalytics();

@@ -9,6 +9,8 @@
 
     <p v-if="loading" class="proj__state">Carregando...</p>
 
+    <PaywallNotice v-else-if="paywalled" title="Projeção faz parte do Pro" :message="error" />
+
     <p v-else-if="error" class="proj__state proj__state--error">{{ error }}</p>
 
     <template v-else>
@@ -56,8 +58,8 @@
       <section v-if="isEmpty" class="proj__empty">
         <p class="proj__emptyTitle">Nada comprometido nos próximos meses.</p>
         <p class="proj__emptyText">
-          Você não tem fatura em aberto nem lançamento no débito com data futura. Compras
-          parceladas e faturas aparecem aqui no mês em que vencem.
+          Você não tem fatura em aberto nem lançamento no débito com data futura. Compras parceladas
+          e faturas aparecem aqui no mês em que vencem.
         </p>
       </section>
 
@@ -255,6 +257,7 @@ import { ref, computed, onMounted } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
+import PaywallNotice from "../components/PaywallNotice.vue";
 import { useFormatters } from "../services/useFormatters";
 import { useProjection } from "../services/useProjection";
 import { definePageAction } from "../stores/pageAction";
@@ -266,6 +269,7 @@ const {
   series,
   loading,
   error,
+  paywalled,
   load,
   totalCommittedInCents,
   totalInvoicesInCents,
@@ -341,147 +345,147 @@ onMounted(load);
  * `padding` com breakpoint moram no `AppShell`.
  */
 .proj {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 .proj__head {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 .proj__title {
-	font: var(--type-page-title);
-	letter-spacing: var(--ls-heading);
+  font: var(--type-page-title);
+  letter-spacing: var(--ls-heading);
 }
 .proj__subtitle {
-	font: var(--type-small);
-	color: var(--text-secondary);
+  font: var(--type-small);
+  color: var(--text-secondary);
 }
 
 .proj__state {
-	padding: var(--space-10) 0;
-	text-align: center;
-	font: var(--type-small);
-	color: var(--text-tertiary);
+  padding: var(--space-10) 0;
+  text-align: center;
+  font: var(--type-small);
+  color: var(--text-tertiary);
 }
 .proj__state--error {
-	color: var(--feedback-danger);
+  color: var(--feedback-danger);
 }
 
 /* ── Card do total ─────────────────────────────────────────────────────── */
 /* `.ga-card` da skill, como os cards do dashboard. */
 .proj__total,
 .proj__empty {
-	padding: var(--card-pad);
-	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-card);
-	background: var(--surface-card);
-	box-shadow: var(--shadow-xs);
+  padding: var(--card-pad);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
 }
 .proj__total {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .proj__totalHead {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 .proj__label {
-	font: var(--type-label);
-	letter-spacing: var(--ls-label);
-	text-transform: uppercase;
-	color: var(--text-tertiary);
+  font: var(--type-label);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 /* Quadradinho tingido do padrão `.ga-stat__icon`. */
 .proj__labelIcon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	flex-shrink: 0;
-	border-radius: var(--radius-sm);
-	background: var(--brand-primary-soft);
-	color: var(--brand-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
 }
 
 /* O número é um stat: tinta, não sinal. Ele não diz entra nem sai sozinho —
    quem diz é o aviso logo abaixo. */
 .proj__totalValue {
-	font: var(--fw-medium) 28px / 1 var(--font-display);
-	letter-spacing: -0.02em;
-	font-variant-numeric: tabular-nums;
+  font: var(--fw-medium) 28px / 1 var(--font-display);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .proj__lines {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-0-5);
-	font: var(--type-caption);
-	color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  font: var(--type-caption);
+  color: var(--text-secondary);
 }
 .proj__line {
-	display: flex;
-	justify-content: space-between;
-	gap: var(--space-3);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 .proj__line dd {
-	font-weight: var(--fw-medium);
-	font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Estado vazio ──────────────────────────────────────────────────────── */
 .proj__empty {
-	padding: var(--space-8) var(--card-pad);
-	text-align: center;
+  padding: var(--space-8) var(--card-pad);
+  text-align: center;
 }
 .proj__emptyTitle {
-	font: var(--type-body-strong);
-	color: var(--text-primary);
+  font: var(--type-body-strong);
+  color: var(--text-primary);
 }
 .proj__emptyText {
-	max-width: 44ch;
-	margin: var(--space-2) auto 0;
-	font: var(--type-small);
-	color: var(--text-tertiary);
+  max-width: 44ch;
+  margin: var(--space-2) auto 0;
+  font: var(--type-small);
+  color: var(--text-tertiary);
 }
 
 /* ── Lista de meses ────────────────────────────────────────────────────── */
 .proj__list {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
-	margin: 0;
-	padding: 0;
-	list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .proj__month {
-	border: 1px solid var(--border-subtle);
-	border-radius: var(--radius-card);
-	background: var(--surface-card);
-	box-shadow: var(--shadow-xs);
-	overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
 }
 
 .proj__row {
-	display: block;
-	width: 100%;
-	padding: var(--space-3) var(--space-4);
-	border: 0;
-	background: transparent;
-	text-align: left;
-	cursor: pointer;
-	transition: background var(--dur-fast) var(--ease-out);
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 .proj__row:hover {
-	background: var(--surface-hover);
+  background: var(--surface-hover);
 }
 /*
  * Anel de foco PARA DENTRO: o `<li>` tem `overflow: hidden` — é o que mantém o
@@ -489,195 +493,195 @@ onMounted(load);
  * seria cortado nos quatro lados. Mesmo token, desenhado por dentro.
  */
 .proj__row:focus-visible {
-	outline: none;
-	box-shadow: inset var(--ring-focus);
+  outline: none;
+  box-shadow: inset var(--ring-focus);
 }
 
 .proj__rowTop {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: var(--space-3);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .proj__monthLabel {
-	min-width: 0;
-	font: var(--type-body-strong);
-	color: var(--text-primary);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+  min-width: 0;
+  font: var(--type-body-strong);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /*
  * `::first-letter`, e não a classe `capitalize`: o rótulo é "novembro de 2026"
  * e `capitalize` maiusculiza CADA palavra — viraria "Novembro De 2026".
  */
 .proj__monthLabel::first-letter {
-	text-transform: uppercase;
+  text-transform: uppercase;
 }
 .proj__current {
-	font: var(--type-caption);
-	color: var(--text-tertiary);
+  font: var(--type-caption);
+  color: var(--text-tertiary);
 }
 
 .proj__rowEnd {
-	display: flex;
-	flex-shrink: 0;
-	align-items: center;
-	gap: var(--space-1-5);
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1-5);
 }
 .proj__amount {
-	font: var(--fw-semibold) var(--fs-body-lg) / 1.3 var(--font-ui);
-	color: var(--text-primary);
-	font-variant-numeric: tabular-nums;
+  font: var(--fw-semibold) var(--fs-body-lg) / 1.3 var(--font-ui);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 /* Zero continua sendo informação, só não é o assunto: tertiary, não disabled. */
 .proj__amount--zero {
-	color: var(--text-tertiary);
+  color: var(--text-tertiary);
 }
 .proj__chev {
-	color: var(--text-tertiary);
-	transition: transform var(--dur-fast) var(--ease-out);
+  color: var(--text-tertiary);
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 .proj__chev--open {
-	transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 
 /* `.ga-progress` da skill. A cor é sinal — ver o comentário do script. */
 .proj__bar {
-	width: 100%;
-	height: 8px;
-	margin-top: var(--space-2);
-	border-radius: var(--radius-pill);
-	background: var(--ink-100);
-	overflow: hidden;
+  width: 100%;
+  height: 8px;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--ink-100);
+  overflow: hidden;
 }
 .proj__barFill {
-	height: 100%;
-	border-radius: inherit;
-	background: var(--orange-100);
-	transition: width var(--dur-slow) var(--ease-out);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--orange-100);
+  transition: width var(--dur-slow) var(--ease-out);
 }
 .proj__barFill--peak {
-	background: var(--orange-500);
+  background: var(--orange-500);
 }
 
 .proj__summary {
-	margin-top: var(--space-1-5);
-	font: var(--type-caption);
-	color: var(--text-tertiary);
+  margin-top: var(--space-1-5);
+  font: var(--type-caption);
+  color: var(--text-tertiary);
 }
 
 /* ── Abertura do mês ───────────────────────────────────────────────────── */
 .proj__detail {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-5);
-	padding: var(--space-4);
-	border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .proj__sectionTitle {
-	display: flex;
-	align-items: center;
-	gap: var(--space-1-5);
-	margin-bottom: var(--space-2);
-	font: var(--type-label);
-	letter-spacing: var(--ls-label);
-	text-transform: uppercase;
-	color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-2);
+  font: var(--type-label);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 .proj__flip {
-	transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 
 .proj__cards {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2-5);
-	margin: 0;
-	padding: 0;
-	list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .proj__card {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: var(--space-3);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 .proj__cardMain {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--space-2);
-	min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .proj__dot {
-	width: 12px;
-	height: 12px;
-	margin-top: 4px;
-	flex-shrink: 0;
-	border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  flex-shrink: 0;
+  border-radius: 50%;
 }
 .proj__cardText {
-	min-width: 0;
+  min-width: 0;
 }
 .proj__cardName {
-	font: var(--type-body);
-	color: var(--text-primary);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+  font: var(--type-body);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .proj__cardDigits,
 .proj__cardMeta {
-	font: var(--type-caption);
-	color: var(--text-tertiary);
+  font: var(--type-caption);
+  color: var(--text-tertiary);
 }
 
 .proj__cardEnd {
-	flex-shrink: 0;
-	text-align: right;
+  flex-shrink: 0;
+  text-align: right;
 }
 .proj__cardValue {
-	font: var(--fw-semibold) var(--fs-body) / 1.45 var(--font-ui);
-	color: var(--text-primary);
-	font-variant-numeric: tabular-nums;
+  font: var(--fw-semibold) var(--fs-body) / 1.45 var(--font-ui);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* `.ga-badge--sm` da skill, com os tokens do selo "paga" do card de faturas. */
 .proj__paid {
-	display: inline-flex;
-	align-items: center;
-	height: 18px;
-	margin-top: var(--space-0-5);
-	padding: 0 var(--space-1-5);
-	border-radius: var(--radius-pill);
-	background: var(--feedback-success-bg);
-	color: var(--feedback-success);
-	font: var(--type-micro);
-	letter-spacing: var(--ls-label);
-	text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  margin-top: var(--space-0-5);
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-pill);
+  background: var(--feedback-success-bg);
+  color: var(--feedback-success);
+  font: var(--type-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
 }
 
 .proj__debits {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: var(--space-3);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 .proj__debitsText {
-	font: var(--type-body);
-	color: var(--text-secondary);
+  font: var(--type-body);
+  color: var(--text-secondary);
 }
 .proj__debitsValue {
-	flex-shrink: 0;
-	font: var(--fw-semibold) var(--fs-body) / 1.45 var(--font-ui);
-	color: var(--text-primary);
-	font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  font: var(--fw-semibold) var(--fs-body) / 1.45 var(--font-ui);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .proj__nothing {
-	font: var(--type-small);
-	color: var(--text-tertiary);
+  font: var(--type-small);
+  color: var(--text-tertiary);
 }
 </style>

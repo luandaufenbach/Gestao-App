@@ -90,6 +90,15 @@ const routes = [
 		component: () => import("../views/Reports.vue"),
 	},
 	{
+		/**
+		 * Planos e assinatura (ROADMAP 2.2). É o destino do aviso de recurso
+		 * pago: sem ela, a recusa de 402 não teria para onde apontar.
+		 */
+		path: "/plans",
+		name: "plans",
+		component: () => import("../views/Plans.vue"),
+	},
+	{
 		// Exportar e excluir os próprios dados (ROADMAP 0.6). Protegida, como
 		// toda rota que não declara `meta.public`.
 		path: "/account",

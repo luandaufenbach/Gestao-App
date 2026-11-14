@@ -29,6 +29,8 @@
 
     <p v-if="loading" class="rep__state">Carregando...</p>
 
+    <PaywallNotice v-else-if="paywalled" title="Relatórios fazem parte do Pro" :message="error" />
+
     <p v-else-if="error" class="rep__state rep__state--error">{{ error }}</p>
 
     <template v-else>
@@ -259,6 +261,7 @@ import {
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
+import PaywallNotice from "../components/PaywallNotice.vue";
 import { useFormatters } from "../services/useFormatters";
 import { useReports, REPORT_WINDOWS } from "../services/useReports";
 import { definePageAction } from "../stores/pageAction";
@@ -296,6 +299,7 @@ const {
   chartCategories,
   loading,
   error,
+  paywalled,
   isEmpty,
   peakExpenseInCents,
   load,

@@ -156,6 +156,7 @@ function runPageAction() {
           <p v-if="user" class="shell__user">{{ user.name }}</p>
 
           <GaNavSection>
+            <GaNavItem to="/plans" icon="star" label="Plano" />
             <GaNavItem to="/account" icon="user" label="Minha conta" />
             <GaNavItem icon="log-out" label="Sair" @click="handleLogout" />
           </GaNavSection>
