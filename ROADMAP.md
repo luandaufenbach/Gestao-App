@@ -35,7 +35,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 1.3 | Tokens, fontes e ícones do design system | feito |
 | 1.4 | Telas migradas, uma a uma | feito — nenhum dos 32 `.vue` tem classe utilitária do Tailwind em `class=` |
 | 2.1 | Planos e estado de assinatura no `User` | feito |
-| 2.2 | Gateway de pagamento com Pix | **adiado de propósito** — exige conta verificada com CPF ou CNPJ, e não há usuário para cobrar ainda |
+| 2.2 | Gateway de pagamento com Pix | código feito (Asaas, Pix) — **falta a conta**: sem ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN a assinatura recusa com mensagem clara |
 | 2.3 | Paywall por middleware | feito — projeção, relatórios e fatura de ciclo futuro; desligado por `PAYWALL_ENABLED` |
 | 2.4 | Teste grátis e expiração | **pendente** — depende do 2.2 |
 | 3.1 a 3.3 | — | **pendente** |
@@ -117,7 +117,7 @@ vira conversão ou desistência.
 | # | Item | Aceite | Agente |
 | - | ---- | ------ | ------ |
 | 2.1 | Planos e estado de assinatura no `User` | Campo de plano, status e validade, com índice | **feito** |
-| 2.2 | Gateway de pagamento com Pix | Assinatura criada, renovada e cancelada; webhook idempotente | `backend-api` |
+| 2.2 | Gateway de pagamento com Pix | Assinatura criada, renovada e cancelada; webhook idempotente | **feito** — falta a conta e as chaves |
 | 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | **feito** — desligado até 2.2 e até a interface tratar o 402 |
 | 2.4 | Teste grátis e expiração | Fim do teste não apaga dado nem trava a leitura do histórico | `backend-api` + `frontend-vue` |
 

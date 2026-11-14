@@ -137,6 +137,27 @@ const UserSchema = new mongoose.Schema(
 				type: Date,
 				default: null,
 			},
+
+			/**
+			 * Ids do Asaas (ROADMAP 2.2).
+			 *
+			 * Guardados porque o webhook chega identificando a assinatura, não o
+			 * usuário: sem `subscriptionId` indexado não há como saber de quem é o
+			 * pagamento. O `customerId` evita recriar cliente a cada tentativa — a
+			 * API do Asaas aceita duplicados sem reclamar, e duplicar cliente
+			 * espalha o histórico de cobrança da mesma pessoa em dois cadastros.
+			 *
+			 * O CPF em si NÃO fica aqui: ele vai para o Asaas e só. Guardá-lo
+			 * seria assumir a guarda de um dado sensível que não usamos para nada.
+			 */
+			customerId: {
+				type: String,
+				default: null,
+			},
+			subscriptionId: {
+				type: String,
+				default: null,
+			},
 		},
 	},
 	{ timestamps: true }
@@ -173,6 +194,19 @@ UserSchema.index(
 UserSchema.index(
 	{ "subscription.status": 1, "subscription.validUntil": 1 },
 	{ partialFilterExpression: { "subscription.validUntil": { $type: "date" } } }
+);
+
+/**
+ * Busca do webhook: o Asaas notifica identificando a assinatura, nunca o
+ * usuário. Único porque uma assinatura pertence a uma conta só — se duas
+ * contas apontarem para a mesma, o pagamento de uma liberaria a outra.
+ */
+UserSchema.index(
+	{ "subscription.subscriptionId": 1 },
+	{
+		unique: true,
+		partialFilterExpression: { "subscription.subscriptionId": { $type: "string" } },
+	}
 );
 
 /**

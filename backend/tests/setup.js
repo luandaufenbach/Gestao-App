@@ -17,6 +17,14 @@ process.env.JWT_SECRET = "chave-de-teste-com-mais-de-32-caracteres-para-passar-n
 process.env.MONGO_URI = "mongodb://placeholder/test";
 process.env.CORS_ORIGINS = "http://localhost:5173";
 
+// Asaas: a chave só precisa existir para o cliente não recusar antes de sair;
+// nenhuma requisição real acontece, o `fetch` é dublado no teste. O ambiente
+// fica em sandbox de propósito — errar o par chave/ambiente é o engano mais
+// comum da integração, e em teste ele seria silencioso.
+process.env.ASAAS_API_KEY = "chave-de-teste";
+process.env.ASAAS_ENV = "sandbox";
+process.env.ASAAS_WEBHOOK_TOKEN = "token-de-webhook-de-teste-com-mais-de-32-caracteres";
+
 let mongoServer;
 
 beforeAll(async () => {

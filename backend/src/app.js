@@ -15,6 +15,8 @@ const reportsRoutes = require("./routes/reports");
 const goalsRoutes = require("./routes/goals");
 const bankCardsRoutes = require("./routes/bankCards");
 const accountRoutes = require("./routes/account");
+const subscriptionsRoutes = require("./routes/subscriptions");
+const { handleAsaasWebhook } = require("./controllers/subscriptionController");
 
 const app = express();
 
@@ -86,6 +88,18 @@ app.get("/health", (req, res) => res.json({ status: "ok", uptime: process.uptime
 app.use("/auth", authRoutes);
 
 /**
+ * Webhook do Asaas: público por necessidade — quem chama é o provedor, que não
+ * tem token nosso. A autenticidade é verificada dentro do handler, pelo header
+ * `asaas-access-token`, e o endpoint recusa tudo enquanto esse segredo não
+ * estiver configurado.
+ *
+ * Fica aqui em cima, e não dentro de `/subscriptions`, para que a exceção à
+ * regra de "toda rota nasce protegida" seja visível neste arquivo em vez de
+ * escondida num router.
+ */
+app.post("/webhooks/asaas", handleAsaasWebhook);
+
+/**
  * A partir daqui, tudo exige autenticação.
  *
  * Aplicar o middleware no nível do app (e não rota a rota) garante que
@@ -103,6 +117,7 @@ app.use("/bank-cards", authenticate, bankCardsRoutes);
  * As duas rotas têm limite de requisição próprio (ver routes/account.js).
  */
 app.use("/account", authenticate, accountRoutes);
+app.use("/subscriptions", authenticate, subscriptionsRoutes);
 
 // Precisam vir por último, nesta ordem.
 app.use(notFoundHandler);

@@ -40,6 +40,15 @@ class AppError extends Error {
 	static conflict(message) {
 		return new AppError(409, message);
 	}
+
+	/**
+	 * Falha nossa, mas com mensagem útil — ao contrário do 500 genérico do
+	 * `errorHandler`. Use quando a causa é conhecida e não revela nada do
+	 * interior: provedor externo fora do ar, chave de API ausente.
+	 */
+	static internal(message) {
+		return new AppError(500, message);
+	}
 }
 
 module.exports = AppError;

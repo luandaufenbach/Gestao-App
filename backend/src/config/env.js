@@ -76,6 +76,26 @@ module.exports = {
 	 * enquanto não existe forma de pagar (ver middlewares/requirePaidPlan.js).
 	 */
 	paywallEnabled: process.env.PAYWALL_ENABLED === "true",
+
+	/**
+	 * Asaas (ROADMAP 2.2). VAZIO = assinatura indisponível, e tentar assinar
+	 * falha com mensagem clara em vez de um 401 do provedor.
+	 *
+	 * A chave de sandbox NÃO funciona em produção e vice-versa, por isso a base
+	 * acompanha o ambiente: errar o par é o engano mais comum da integração.
+	 */
+	asaasApiKey: (process.env.ASAAS_API_KEY || "").trim(),
+	asaasBaseUrl:
+		process.env.ASAAS_ENV === "production"
+			? "https://api.asaas.com/v3"
+			: "https://api-sandbox.asaas.com/v3",
+	/**
+	 * Token que o Asaas devolve no header `asaas-access-token`, provando que a
+	 * notificação veio dele. Sem ele configurado, o webhook recusa tudo: um
+	 * endpoint que muda assinatura não pode ficar aberto à internet.
+	 */
+	asaasWebhookToken: (process.env.ASAAS_WEBHOOK_TOKEN || "").trim(),
+
 	isProduction: process.env.NODE_ENV === "production",
 	isTest: process.env.NODE_ENV === "test",
 };
