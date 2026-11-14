@@ -52,14 +52,46 @@ function getMonthRangeUTC(year, month) {
 	};
 }
 
+/** Captura o dia COMO ESCRITO no início de uma string de data. */
+const WRITTEN_DAY = /^(\d{4})-(\d{2})-(\d{2})/;
+
 /**
  * Normaliza uma data de entrada para meia-noite UTC.
  *
  * O front envia "2026-03-15" (input type="date"). Ancorar em 00:00:00.000Z
  * garante que o dia gravado é exatamente o dia escolhido pelo usuário e que
  * ele cai sempre dentro do intervalo do mês correspondente.
+ *
+ * BUG CORRIGIDO (um dia de diferença nas compras no crédito): a versão
+ * anterior fazia `new Date(input)` e depois lia o dia em UTC do INSTANTE
+ * resultante. Para "2026-11-04" dá no mesmo, mas para qualquer string com hora
+ * o dia gravado passava a depender de fuso — do fuso do payload e do fuso do
+ * processo:
+ *
+ *   "2026-11-04T00:00:00+03:00" -> instante 2026-11-03T21:00Z -> gravava dia 03
+ *   "2026-11-04T23:59:00"       -> dia 04 em UTC, dia 05 em America/Sao_Paulo
+ *
+ * Era exatamente o sintoma relatado: escolhe-se o dia 04 e a fatura exibe 03.
+ *
+ * A causa de fundo é conceitual: o dia de uma compra NÃO é um instante, é o dia
+ * que a pessoa marcou no calendário. Por isso ele agora é lido da própria
+ * string, sem passar pelo parser sensível a fuso. Só quando a entrada não
+ * declara um dia (um Date já pronto) é que caímos no caminho antigo.
  */
 function normalizeToUTCDay(input) {
+	if (typeof input === "string") {
+		const match = WRITTEN_DAY.exec(input.trim());
+
+		if (match) {
+			const [, year, month, day] = match.map(Number);
+			const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+
+			// "2026-02-30" casa com o regex mas não existe: Date.UTC rola para
+			// março e a comparação abaixo recusa.
+			return date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
+		}
+	}
+
 	const date = input instanceof Date ? input : new Date(input);
 	if (Number.isNaN(date.getTime())) return null;
 

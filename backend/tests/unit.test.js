@@ -79,6 +79,42 @@ describe("date.normalizeToUTCDay", () => {
 	it("devolve null para data inválida", () => {
 		expect(normalizeToUTCDay("não é data")).toBeNull();
 	});
+
+	/**
+	 * REGRESSÃO (um dia de diferença nas compras no crédito).
+	 *
+	 * O dia gravado é o dia ESCRITO na string, não o dia em UTC do instante que
+	 * ela representa. Antes desta correção o deslocamento abaixo gravava 03 — o
+	 * usuário escolhia 04 e a fatura exibia 03.
+	 */
+	it("mantém o dia escrito quando a data vem com fuso declarado", () => {
+		expect(normalizeToUTCDay("2026-11-04T00:00:00+03:00").toISOString()).toBe(
+			"2026-11-04T00:00:00.000Z"
+		);
+		expect(normalizeToUTCDay("2026-11-04T21:00:00-03:00").toISOString()).toBe(
+			"2026-11-04T00:00:00.000Z"
+		);
+		expect(normalizeToUTCDay("2026-11-04T23:59:00.000Z").toISOString()).toBe(
+			"2026-11-04T00:00:00.000Z"
+		);
+	});
+
+	/**
+	 * Sem fuso declarado, o `new Date()` interpreta a string no fuso LOCAL do
+	 * processo: o mesmo payload gravava dia 04 num servidor em UTC e dia 05 num
+	 * servidor em America/Sao_Paulo. Lendo o dia da string, o resultado não
+	 * depende mais de onde o processo roda.
+	 */
+	it("não depende do fuso do processo quando a data traz hora sem fuso", () => {
+		expect(normalizeToUTCDay("2026-11-04T23:59:00").toISOString()).toBe(
+			"2026-11-04T00:00:00.000Z"
+		);
+	});
+
+	it("recusa um dia que não existe no calendário", () => {
+		expect(normalizeToUTCDay("2026-02-30")).toBeNull();
+		expect(normalizeToUTCDay("2026-13-01")).toBeNull();
+	});
 });
 
 describe("date.addMonthsUTC", () => {

@@ -499,3 +499,199 @@ describe("lista ancorada em um mês", () => {
 		expect(semAncora.body.invoices[0].cycle >= cicloCorrente).toBe(true);
 	});
 });
+
+/**
+ * REGRESSÃO — "as compras no crédito estão dando um dia de diferença".
+ *
+ * Sintoma relatado: escolhe-se o dia 04 e a fatura exibe a compra no dia 03.
+ *
+ * A causa não estava na exibição nem no intervalo do mês: estava no contrato do
+ * campo `date`. O validador aceitava qualquer string que o `new Date()`
+ * engolisse, e `normalizeToUTCDay` derivava o dia do INSTANTE resultante — o
+ * que faz o dia gravado depender do fuso declarado no payload e do fuso do
+ * processo. Ver backend/src/utils/date.js e backend/src/validators/common.js.
+ *
+ * O percurso completo é verificado aqui: o que entra no POST tem de sair igual
+ * na listagem E no detalhe da fatura.
+ */
+describe("o dia gravado é o dia escolhido", () => {
+	const diaDaCompra = (transacao) => transacao.date.slice(0, 10);
+
+	it("compra no dia 04 aparece no dia 04, não no 03", async () => {
+		const criada = await comprar(10_000, "2026-11-04", "Compra dia 04");
+
+		expect(diaDaCompra(criada.body)).toBe("2026-11-04");
+
+		const lista = await user.auth(request(app).get("/transactions")).expect(200);
+		expect(diaDaCompra(lista.body[0])).toBe("2026-11-04");
+
+		// Cartão que fecha 01 e vence 05: a compra de 04/11 vence em 05/12.
+		const dezembro = await fatura("2026-12").expect(200);
+		expect(dezembro.body.transactions).toHaveLength(1);
+		expect(diaDaCompra(dezembro.body.transactions[0])).toBe("2026-11-04");
+	});
+
+	/**
+	 * Este é o payload que reproduzia o defeito: o instante correspondente é
+	 * 2026-11-03T21:00:00Z, e o dia gravado era 03.
+	 */
+	it("data com fuso declarado não escorrega para o dia anterior", async () => {
+		const criada = await comprar(10_000, "2026-11-04T00:00:00+03:00", "Com fuso");
+
+		expect(diaDaCompra(criada.body)).toBe("2026-11-04");
+
+		const dezembro = await fatura("2026-12").expect(200);
+		expect(diaDaCompra(dezembro.body.transactions[0])).toBe("2026-11-04");
+	});
+
+	/**
+	 * Sem fuso, a string era interpretada no fuso LOCAL do processo: o mesmo
+	 * corpo gravava dia 04 em UTC e dia 05 em America/Sao_Paulo. O teste trava
+	 * o resultado independentemente de onde a suíte roda.
+	 */
+	it("data com hora e sem fuso não depende do fuso do servidor", async () => {
+		const criada = await comprar(10_000, "2026-11-04T23:59:00", "Sem fuso");
+
+		expect(diaDaCompra(criada.body)).toBe("2026-11-04");
+	});
+
+	/**
+	 * "04/11/2026" é como se escreve a data no Brasil. O parser não-ISO do V8 a
+	 * lia como MM/DD/AAAA, ou seja 11 de ABRIL: o lançamento ia para outro mês,
+	 * em outra fatura, sem erro nenhum. Agora é recusado na borda.
+	 */
+	it("recusa data fora do formato em vez de trocar dia por mês", async () => {
+		const resposta = await user
+			.auth(request(app).post("/transactions"))
+			.send({
+				type: "credit",
+				description: "Data brasileira",
+				totalValueInCents: 10_000,
+				date: "04/11/2026",
+				category: categoryId,
+				bankCard: cardId,
+			})
+			.expect(400);
+
+		expect(JSON.stringify(resposta.body)).toContain("AAAA-MM-DD");
+	});
+
+	it("recusa um dia que não existe no calendário", async () => {
+		await user
+			.auth(request(app).post("/transactions"))
+			.send({
+				type: "credit",
+				description: "31 de fevereiro",
+				totalValueInCents: 10_000,
+				date: "2026-02-31",
+				category: categoryId,
+				bankCard: cardId,
+			})
+			.expect(400);
+	});
+
+	it("a edição também preserva o dia escolhido", async () => {
+		const criada = await comprar(10_000, "2026-11-10", "Para editar");
+
+		const editada = await user
+			.auth(request(app).patch(`/transactions/${criada.body._id}`))
+			.send({ date: "2026-11-04T00:00:00+03:00" })
+			.expect(200);
+
+		expect(diaDaCompra(editada.body)).toBe("2026-11-04");
+	});
+});
+
+/**
+ * AUDITORIA DE PARCELAMENTO — cartão que fecha 01 e vence 05.
+ *
+ * O cenário concreto do usuário: compra em 2x no dia 23. A primeira parcela
+ * cai na fatura em aberto; a segunda, na seguinte. Cada caso abaixo fixa qual
+ * é a data gravada de cada parcela e em qual ciclo ela aparece.
+ */
+describe("auditoria das parcelas no ciclo que fecha dia 01", () => {
+	const parcelar = (valor, data, parcelas) =>
+		user
+			.auth(request(app).post("/transactions"))
+			.send({
+				type: "credit",
+				description: `Compra em ${parcelas}x`,
+				totalValueInCents: valor,
+				date: data,
+				category: categoryId,
+				bankCard: cardId,
+				installments: parcelas,
+			})
+			.expect(201);
+
+	const datas = (resposta) => resposta.body.transactions.map((t) => t.date.slice(0, 10));
+
+	it("compra em 23/11 em 2x: parcela 1 em novembro, parcela 2 em dezembro", async () => {
+		const criada = await parcelar(20_000, "2026-11-23", 2);
+
+		expect(datas(criada)).toEqual(["2026-11-23", "2026-12-23"]);
+
+		// 23/11 está dentro de 02/11–01/12, que vence em 05/12.
+		const dezembro = await fatura("2026-12").expect(200);
+		// 23/12 está dentro de 02/12–01/01, que vence em 05/01.
+		const janeiro = await fatura("2027-01").expect(200);
+
+		expect(dezembro.body.totalInCents).toBe(10_000);
+		expect(janeiro.body.totalInCents).toBe(10_000);
+		expect(datas(criada)[1]).toBe(janeiro.body.transactions[0].date.slice(0, 10));
+	});
+
+	it("a mesma compra em 1x fica inteira na primeira fatura", async () => {
+		await parcelar(20_000, "2026-11-23", 1);
+
+		const dezembro = await fatura("2026-12").expect(200);
+		const janeiro = await fatura("2027-01").expect(200);
+
+		expect(dezembro.body.totalInCents).toBe(20_000);
+		expect(janeiro.body.totalInCents).toBe(0);
+	});
+
+	it("a compra do dia do fechamento ainda entra na fatura que fecha nele", async () => {
+		await comprar(1_000, "2026-11-01", "No fechamento");
+
+		const novembro = await fatura("2026-11").expect(200);
+		expect(novembro.body.totalInCents).toBe(1_000);
+	});
+
+	it("a compra do dia seguinte ao fechamento já vai para a fatura seguinte", async () => {
+		await comprar(1_000, "2026-11-02", "Depois do fechamento");
+
+		const novembro = await fatura("2026-11").expect(200);
+		const dezembro = await fatura("2026-12").expect(200);
+
+		expect(novembro.body.totalInCents).toBe(0);
+		expect(dezembro.body.totalInCents).toBe(1_000);
+	});
+
+	it("compra no dia 31 em 2x: a parcela cai no último dia do mês curto", async () => {
+		const criada = await parcelar(20_000, "2026-01-31", 2);
+
+		// Fevereiro não tem 31; a parcela ancora em 28 em vez de pular para março.
+		expect(datas(criada)).toEqual(["2026-01-31", "2026-02-28"]);
+
+		const fevereiro = await fatura("2026-02").expect(200);
+		const marco = await fatura("2026-03").expect(200);
+
+		expect(fevereiro.body.totalInCents).toBe(10_000);
+		expect(marco.body.totalInCents).toBe(10_000);
+	});
+
+	it("o parcelamento atravessa a virada de ano", async () => {
+		const criada = await parcelar(30_000, "2026-12-23", 3);
+
+		expect(datas(criada)).toEqual(["2026-12-23", "2027-01-23", "2027-02-23"]);
+
+		const janeiro = await fatura("2027-01").expect(200);
+		const fevereiro = await fatura("2027-02").expect(200);
+		const marco = await fatura("2027-03").expect(200);
+
+		expect(janeiro.body.totalInCents).toBe(10_000);
+		expect(fevereiro.body.totalInCents).toBe(10_000);
+		expect(marco.body.totalInCents).toBe(10_000);
+	});
+});
