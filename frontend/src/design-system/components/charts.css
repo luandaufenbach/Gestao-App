@@ -1,0 +1,118 @@
+/*
+ * ACRESCENTADO À SKILL — gráficos (data viz).
+ *
+ * PROVENIÊNCIA, que é o que importa aqui: este arquivo NÃO é cópia de nada da
+ * skill `gestaoapp-design`. A estrutura veio do `BarChart` do pacote **Lumen
+ * Design System** (`components/data/BarChart.jsx`), que resolve o gráfico em
+ * HTML e CSS, sem canvas. As CORES e as medidas são todas tokens do gestaoApp:
+ * nenhum hexa do Lumen entrou.
+ *
+ * O `BarChart` da própria skill gestaoApp ficou de fora porque responde a
+ * outra pergunta: ele é um progresso semanal de tarefas (feito / hoje /
+ * planejado), sem eixo de valor, sem linha de grade e sem tooltip. O que as
+ * telas de dinheiro precisam — eixo Y com números redondos, grade, rótulo de
+ * mês, valor no hover, barra empilhada e linha sobreposta que pode ser
+ * negativa — não existe lá.
+ *
+ * ── Por que sair do Chart.js nas barras ───────────────────────────────────
+ *
+ * O Chart.js desenha em canvas, e canvas não resolve `var(--token)`. O
+ * resultado era seis cores do design system copiadas à mão como hexa dentro de
+ * `Reports.vue`, com o comentário explicando a duplicação. Em HTML o token
+ * vale direto: a grade é `var(--border-subtle)`, o tick é
+ * `var(--text-tertiary)`, e o tema escuro passa a funcionar sem uma segunda
+ * lista de cores.
+ *
+ * A rosca do dashboard continua no Chart.js: arco é a única forma que não sai
+ * mais simples em CSS.
+ *
+ * ── O que é do Lumen, exatamente ──────────────────────────────────────────
+ *
+ *   grade horizontal atrás das barras, uma linha por tick
+ *   eixo em fonte mono, 11px, terciário, números tabulares
+ *   topo da barra com um realce claro, no lugar do "glowing column" dele
+ *   hover escurece as outras colunas e clareia a ativa
+ *   valor em pastilha acima da coluna, com um fio de 8px descendo até ela
+ *
+ * O que NÃO veio: fundo preto, azul #298DFF, fonte Geist, cantos de 2px e o
+ * `0 0 16px` de glow. São a marca do Lumen, não a nossa.
+ */
+
+/* ── Tokens de data viz ───────────────────────────────────────────────────
+ *
+ * Aliases, no padrão dos outros tokens: a série aponta para a paleta, e o
+ * tema escuro não precisa de nada porque `--border-subtle` e
+ * `--text-tertiary` já trocam sozinhos.
+ */
+:root {
+	--data-income: var(--green-500);
+	--data-expense: var(--red-500);
+	--data-result: var(--brand-primary);
+	--data-grid: var(--border-subtle);
+	--data-tick: var(--text-tertiary);
+
+	/*
+	 * Realce do topo da barra. O Lumen usa um gradiente que some para
+	 * transparente embaixo, porque o canvas dele é preto e a coluna "nasce da
+	 * escuridão". Em fundo claro isso lê como barra cortada, então aqui o
+	 * realce é um branco de 28% no topo, aplicado SOBRE a cor da série.
+	 *
+	 * Fica em cima de qualquer cor, o que importa: na barra empilhada por
+	 * categoria a cor é dado do usuário, não token.
+	 */
+	--data-bar-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 60%);
+}
+
+/* No escuro o branco estoura; o realce vira um clarão mais discreto. */
+[data-theme="dark"] {
+	--data-bar-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%);
+}
+
+/* ── Pastilha de valor (ValueTag) ─────────────────────────────────────────
+ *
+ * Mono, tabular e 24px de altura, como no Lumen. A seta ▲/▼ é do componente
+ * `GaValueTag`; a classe aqui serve também para a linha do tooltip.
+ */
+.ga-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1-5);
+	height: 24px;
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-xs);
+	font-family: var(--font-mono);
+	font-size: var(--fs-micro);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+}
+.ga-tag--dark {
+	background: var(--surface-inverse);
+	color: var(--text-inverse);
+}
+.ga-tag--light {
+	background: var(--surface-card);
+	color: var(--text-primary);
+	box-shadow: 0 0 0 1px var(--border-default);
+}
+.ga-tag--brand {
+	background: var(--brand-primary);
+	color: var(--text-on-brand);
+}
+.ga-tag__arrow {
+	font-size: 9px;
+	line-height: 1;
+}
+.ga-tag__arrow--up {
+	color: var(--data-income);
+}
+.ga-tag__arrow--down {
+	color: var(--data-expense);
+}
+/* Em fundo escuro ou de marca, a seta herda a cor do texto: verde sobre
+   cobalto não tem contraste. */
+.ga-tag--dark .ga-tag__arrow,
+.ga-tag--brand .ga-tag__arrow {
+	color: currentColor;
+	opacity: 0.85;
+}

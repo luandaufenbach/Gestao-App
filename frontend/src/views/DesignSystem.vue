@@ -19,6 +19,9 @@
  */
 import GaButton from "../design-system/components/GaButton.vue";
 import GaIcon from "../design-system/components/GaIcon.vue";
+import GaBarChart from "../design-system/components/GaBarChart.vue";
+import GaDonutChart from "../design-system/components/GaDonutChart.vue";
+import GaValueTag from "../design-system/components/GaValueTag.vue";
 import { ICON_NAMES } from "../design-system/icons";
 
 const VARIANTS = [
@@ -103,6 +106,84 @@ const TYPE_STYLES = [
   { token: "type-micro", spec: "Outfit 500 · 11 / 1.3", sample: "3 vencem hoje" },
   { token: "type-stat", spec: "Outfit 500 · 32 / 1", sample: "R$ 8.175,00" },
 ];
+
+/*
+ * Dados de exemplo dos gráficos, em CENTAVOS como no resto do projeto.
+ *
+ * Esta página abre sem backend, então os números são fixos aqui. O resultado
+ * de "set" é negativo de propósito: é o caso que faz o eixo descer abaixo do
+ * zero e a linha do zero aparecer.
+ */
+const DEMO_MONTHS = ["abr/26", "mai/26", "jun/26", "jul/26", "ago/26", "set/26"];
+
+const DEMO_SERIES = [
+  {
+    key: "income",
+    label: "Receita",
+    color: "var(--data-income)",
+    data: [420_000, 435_000, 420_000, 510_000, 420_000, 398_000],
+  },
+  {
+    key: "expense",
+    label: "Despesa",
+    color: "var(--data-expense)",
+    data: [312_000, 389_000, 296_000, 344_000, 401_000, 452_000],
+  },
+];
+
+const DEMO_LINE = {
+  label: "Resultado",
+  color: "var(--data-result)",
+  data: [108_000, 46_000, 124_000, 166_000, 19_000, -54_000],
+};
+
+/* Cores de categoria são dado do usuário, não token — aqui entram cruas, como
+   viriam do backend. */
+const DEMO_STACK = [
+  {
+    key: "mercado",
+    label: "Mercado",
+    color: "#2E44F0",
+    data: [120_000, 142_000, 98_000, 131_000, 155_000, 168_000],
+  },
+  {
+    key: "transporte",
+    label: "Transporte",
+    color: "#22A355",
+    data: [62_000, 71_000, 58_000, 66_000, 74_000, 88_000],
+  },
+  {
+    key: "casa",
+    label: "Casa",
+    color: "#F59E0B",
+    data: [88_000, 112_000, 92_000, 94_000, 118_000, 126_000],
+  },
+  {
+    key: "lazer",
+    label: "Lazer",
+    color: "#E5484D",
+    data: [42_000, 64_000, 48_000, 53_000, 54_000, 70_000],
+  },
+];
+
+const DEMO_DONUT = DEMO_STACK.map((item) => ({
+  label: item.label,
+  value: item.data.reduce((sum, value) => sum + value, 0),
+  color: item.color,
+}));
+
+/*
+ * Formatadores locais, e não o `useFormatters`: aquele é um composable da
+ * aplicação, e esta página precisa abrir sem sessão nem store.
+ */
+const demoCurrency = (cents) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const demoCompact = (cents) => {
+  const reais = cents / 100;
+  if (Math.abs(reais) >= 1000) return `${Math.round(reais / 1000)}k`;
+  return String(Math.round(reais));
+};
 </script>
 
 <template>
@@ -227,6 +308,56 @@ const TYPE_STYLES = [
         </div>
       </div>
     </section>
+
+    <section class="ds__section">
+      <h2 class="ds__h2">Gráficos</h2>
+      <p class="ds__note">
+        Estrutura portada do Lumen Design System, cores e medidas em tokens daqui. Barra é HTML e
+        CSS — o token vale direto. Só a rosca continua em canvas. Passe o ponteiro nas colunas.
+      </p>
+
+      <h3 class="ds__h3">Barras lado a lado, com linha sobreposta</h3>
+      <div class="ds__chart">
+        <GaBarChart
+          :labels="DEMO_MONTHS"
+          :series="DEMO_SERIES"
+          :line="DEMO_LINE"
+          :format="demoCurrency"
+          :format-tick="demoCompact"
+          aria-label="Exemplo de receita, despesa e resultado em seis meses."
+        />
+      </div>
+
+      <h3 class="ds__h3">Barras empilhadas</h3>
+      <div class="ds__chart">
+        <GaBarChart
+          :labels="DEMO_MONTHS"
+          :series="DEMO_STACK"
+          mode="stacked"
+          :format="demoCurrency"
+          :format-tick="demoCompact"
+          aria-label="Exemplo de despesa por categoria em seis meses."
+        />
+      </div>
+
+      <h3 class="ds__h3">Rosca</h3>
+      <div class="ds__chart ds__chart--center">
+        <GaDonutChart
+          :items="DEMO_DONUT"
+          :format="demoCurrency"
+          aria-label="Exemplo de distribuição por categoria."
+        />
+      </div>
+
+      <h3 class="ds__h3">Pastilha de valor</h3>
+      <div class="ds__samples">
+        <GaValueTag value="R$ 1.240,00" direction="up" />
+        <GaValueTag value="R$ 318,50" direction="down" />
+        <GaValueTag value="R$ 980,00" />
+        <GaValueTag value="R$ 1.240,00" direction="up" variant="light" />
+        <GaValueTag value="R$ 1.240,00" direction="up" variant="brand" />
+      </div>
+    </section>
   </div>
 </template>
 
@@ -340,6 +471,24 @@ const TYPE_STYLES = [
 	flex-wrap: wrap;
 	gap: var(--space-3);
 }
+/*
+ * Os gráficos vão dentro de um card, como nas telas reais: a pastilha do
+ * tooltip e o realce do topo da barra foram medidos contra `--surface-card`,
+ * não contra o fundo da página.
+ */
+.ds__chart {
+	padding: var(--card-pad);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-xs);
+	min-width: 0;
+}
+.ds__chart--center {
+	display: flex;
+	justify-content: center;
+}
+
 /* A variante `glass` só se lê sobre a imagem de marca. */
 .ds__samples--onBrand {
 	background: var(--gradient-sky);

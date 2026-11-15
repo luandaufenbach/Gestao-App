@@ -3,14 +3,11 @@
     <span class="pie__label">Gastos por categoria</span>
 
     <div v-if="hasData" class="pie__body">
-      <div class="pie__canvasWrap">
-        <canvas
-          ref="chartCanvas"
-          class="pie__canvas"
-          role="img"
-          :aria-label="`Gráfico de gastos por categoria. ${ariaSummary}`"
-        ></canvas>
-      </div>
+      <GaDonutChart
+        :items="donutItems"
+        :format="formatCurrency"
+        :aria-label="`Gráfico de gastos por categoria. ${ariaSummary}`"
+      />
 
       <ul class="pie__legend">
         <li v-for="item in breakdown" :key="item.categoryId ?? item.category" class="pie__item">
@@ -37,29 +34,37 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
-import { Chart, ArcElement, DoughnutController, Tooltip } from "chart.js";
+import { ref, computed, onMounted, watch } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
+import GaDonutChart from "@/design-system/components/GaDonutChart.vue";
 import { getCategoryBreakdown } from "@/services/api";
 import { useFormatters } from "@/services/useFormatters";
 
 /**
- * Registro apenas dos módulos usados — o `Legend` estava registrado mas
- * desativado nas options (`legend: { display: false }`), já que a legenda é
- * renderizada em HTML logo abaixo. Removê-lo reduz o bundle.
+ * O DESENHO da rosca saiu daqui para `GaDonutChart`, no design system. O que
+ * sobrou neste arquivo é o que não é gráfico: a casca do card, a busca no
+ * backend, o estado vazio e a legenda com o valor de cada categoria.
+ *
+ * A separação é o que mantém o design system apresentacional — um componente
+ * de lá não busca dados.
  */
-Chart.register(ArcElement, DoughnutController, Tooltip);
-
 const props = defineProps({ year: Number, month: Number });
 
 const { formatCurrency } = useFormatters();
 
 const breakdown = ref([]);
 const error = ref("");
-const chartCanvas = ref(null);
-let chartInstance = null;
 
 const hasData = computed(() => breakdown.value.length > 0);
+
+/** A rosca recebe `{ label, value, color }`; o backend devolve outro formato. */
+const donutItems = computed(() =>
+  breakdown.value.map((item) => ({
+    label: item.category,
+    value: item.totalInCents,
+    color: item.color,
+  }))
+);
 
 /**
  * As cores agora vêm sempre do backend, que já aplica um padrão via $ifNull
@@ -70,50 +75,6 @@ const hasData = computed(() => breakdown.value.length > 0);
 const ariaSummary = computed(() =>
   breakdown.value.map((i) => `${i.category}: ${formatCurrency(i.totalInCents)}`).join(", ")
 );
-
-function destroyChart() {
-  chartInstance?.destroy();
-  chartInstance = null;
-}
-
-function buildChart() {
-  if (!chartCanvas.value || !hasData.value) return;
-
-  destroyChart();
-
-  chartInstance = new Chart(chartCanvas.value, {
-    type: "doughnut",
-    data: {
-      labels: breakdown.value.map((i) => i.category),
-      datasets: [
-        {
-          data: breakdown.value.map((i) => i.totalInCents),
-          backgroundColor: breakdown.value.map((i) => i.color),
-          borderWidth: 2,
-          // A borda separa as fatias com a cor da superfície do card
-          // (`--ink-0`). Vai literal porque o Chart.js desenha em canvas, onde
-          // `var(--…)` não é resolvido.
-          borderColor: "#ffffff",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "65%",
-      animation: { duration: 250 },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            // O dataset está em centavos; formatCurrency faz a conversão.
-            label: (ctx) => ` ${formatCurrency(ctx.parsed)}`,
-          },
-        },
-      },
-    },
-  });
-}
 
 async function refetch() {
   error.value = "";
@@ -127,19 +88,10 @@ async function refetch() {
     error.value = err.displayMessage ?? "Erro ao carregar o gráfico";
     breakdown.value = [];
   }
-
-  if (!hasData.value) {
-    destroyChart();
-    return;
-  }
-
-  await nextTick();
-  buildChart();
 }
 
 onMounted(refetch);
 watch(() => [props.year, props.month], refetch);
-onBeforeUnmount(destroyChart);
 
 defineExpose({ refetch });
 </script>
@@ -183,20 +135,8 @@ defineExpose({ refetch });
 	align-items: center;
 	gap: var(--space-4);
 }
-.pie__canvasWrap {
-	position: relative;
-	width: 160px;
-	height: 160px;
-}
-/*
- * O Chart.js escreve width/height inline no canvas a cada redesenho. Era
- * `w-full! h-full!` (o `!important` do Tailwind); em CSS comum o `!important`
- * continua sendo o que vence o atributo de estilo.
- */
-.pie__canvas {
-	width: 100% !important;
-	height: 100% !important;
-}
+/* O tamanho da rosca e o truque de `!important` contra o estilo inline que o
+   Chart.js escreve moram agora em `GaDonutChart`. */
 
 .pie__legend {
 	display: flex;

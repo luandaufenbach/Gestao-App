@@ -84,6 +84,11 @@
  * As outras três pastas da skill (`core`, `data`, `navigation`) não foram
  * trazidas: o que as telas precisavam delas já está dentro dos componentes
  * `.vue` migrados, em `<style scoped>`.
+ *
+ * `charts.css` é a exceção, e está marcado como tal: ele NÃO é cópia da skill.
+ * Os tokens de data viz e a pastilha de valor vieram do pacote Lumen Design
+ * System, traduzidos para os tokens daqui. O arquivo explica a proveniência
+ * inteira no próprio cabeçalho.
  */
 
 /* @font-face não participa da cascata de layers e não colide com nada. */
@@ -100,3 +105,4 @@
 
 @import "./components/forms.css";
 @import "./components/overlays.css";
+@import "./components/charts.css";

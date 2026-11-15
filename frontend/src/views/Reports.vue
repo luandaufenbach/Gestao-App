@@ -93,14 +93,14 @@
             <span class="rep__label">Evolução por mês</span>
           </div>
 
-          <div class="rep__canvasWrap">
-            <canvas
-              ref="evolutionCanvas"
-              class="rep__canvas"
-              role="img"
-              :aria-label="`Receita, despesa e resultado de cada mês. ${evolutionSummary}`"
-            ></canvas>
-          </div>
+          <GaBarChart
+            :labels="axisLabels"
+            :series="evolutionSeries"
+            :line="evolutionLine"
+            :format="formatCurrency"
+            :format-tick="formatCompactCurrency"
+            :aria-label="`Receita, despesa e resultado de cada mês. ${evolutionSummary}`"
+          />
 
           <ul class="rep__legend">
             <li class="rep__legendItem">
@@ -125,17 +125,18 @@
           </div>
 
           <template v-if="chartCategories.length">
-            <div class="rep__canvasWrap">
-              <canvas
-                ref="categoriesCanvas"
-                class="rep__canvas"
-                role="img"
-                :aria-label="`Despesa por categoria em cada mês. ${categoriesSummary}`"
-              ></canvas>
-            </div>
+            <GaBarChart
+              :labels="axisLabels"
+              :series="categorySeries"
+              mode="stacked"
+              :format="formatCurrency"
+              :format-tick="formatCompactCurrency"
+              :aria-label="`Despesa por categoria em cada mês. ${categoriesSummary}`"
+            />
 
-            <!-- A legenda é HTML, e não a do Chart.js: ela carrega também o
-                 total da janela de cada categoria, que o gráfico não mostra. -->
+            <!-- A legenda fica aqui, e não dentro do gráfico: ela carrega
+                 também o total da janela de cada categoria, que o gráfico não
+                 mostra. -->
             <ul class="rep__legend rep__legend--stack">
               <li
                 v-for="item in chartCategories"
@@ -238,57 +239,26 @@
  * por isso conta a fatura no mês do vencimento. Misturar as duas contaria o
  * mesmo gasto duas vezes — ver o cabeçalho do `reportController.js`.
  *
- * ── Chart.js em canvas: a cor vai literal ────────────────────────────────
+ * ── Os gráficos saíram do canvas ─────────────────────────────────────────
  *
- * O Chart.js desenha em canvas, onde `var(--token)` não é resolvido. Os hexes
- * abaixo são os dos tokens do design system, copiados à mão, como já acontece
- * no gráfico de rosca do dashboard (ver CategoryPieChart.vue). As cores das
- * categorias NÃO são daqui: vêm do backend, de cada categoria cadastrada pelo
- * usuário, e por isso casam com a bolinha da legenda.
+ * Os dois gráficos de barra eram Chart.js em canvas, e canvas não resolve
+ * `var(--token)`: seis cores do design system estavam copiadas à mão como hexa
+ * aqui dentro. Agora são `GaBarChart`, em HTML e CSS, e a série aponta para o
+ * token — `var(--data-income)` chega como estilo inline e o navegador resolve.
+ *
+ * As cores das CATEGORIAS continuam não sendo token: vêm do backend, de cada
+ * categoria cadastrada pelo usuário, e é isso que casa a faixa da barra com a
+ * bolinha da legenda.
  */
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
-import {
-  Chart,
-  BarController,
-  BarElement,
-  LineController,
-  LineElement,
-  PointElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-} from "chart.js";
+import { ref, computed, onMounted } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
+import GaBarChart from "@/design-system/components/GaBarChart.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import PaywallNotice from "../components/PaywallNotice.vue";
 import { useFormatters } from "../services/useFormatters";
 import { useReports, REPORT_WINDOWS } from "../services/useReports";
 import { definePageAction } from "../stores/pageAction";
-
-/**
- * Só os módulos usados. `Legend` fica de fora porque as duas legendas são
- * HTML: a de categorias precisa mostrar o total da janela ao lado do nome, e
- * a do Chart.js não tem onde pôr isso.
- */
-Chart.register(
-  BarController,
-  BarElement,
-  LineController,
-  LineElement,
-  PointElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip
-);
-
-/** Hexes dos tokens — ver o comentário sobre canvas no cabeçalho. */
-const COLOR_INCOME = "#22A355"; // --green-500
-const COLOR_EXPENSE = "#E5484D"; // --red-500
-const COLOR_RESULT = "#2E44F0"; // --cobalt-500
-const COLOR_GRID = "#ECEEF3"; // --ink-100
-const COLOR_TICK = "#9DA2AE"; // --ink-400
-const COLOR_SURFACE = "#FFFFFF"; // --ink-0
 
 const { formatCurrency, formatCompactCurrency } = useFormatters();
 
@@ -305,11 +275,6 @@ const {
   load,
   setMonths,
 } = useReports();
-
-const evolutionCanvas = ref(null);
-const categoriesCanvas = ref(null);
-let evolutionChart = null;
-let categoriesChart = null;
 
 /** Modal de "Nova transação", aberto só pelo FAB da barra inferior. */
 const showNewTransaction = ref(false);
@@ -338,8 +303,9 @@ const currentMonth = computed(() => {
 /**
  * Rótulo curto do eixo: "nov/26".
  *
- * O `label` que vem do backend é "novembro de 2026" — com doze meses no eixo,
- * o Chart.js o gira na diagonal e o gráfico perde metade da altura.
+ * O `label` que vem do backend é "novembro de 2026" — doze desses no eixo não
+ * cabem em 375px de jeito nenhum. Mesmo abreviado, o `GaBarChart` esconde um
+ * rótulo a cada dois no celular quando a janela passa de seis meses.
  */
 const MONTH_ABBR = [
   "jan",
@@ -380,136 +346,55 @@ const categoriesSummary = computed(() =>
     .join(", ")
 );
 
-/** Eixo de valor: mesmas opções nos dois gráficos. */
-const valueAxis = (stacked = false) => ({
-  stacked,
-  beginAtZero: true,
-  border: { display: false },
-  grid: { color: COLOR_GRID },
-  ticks: {
-    color: COLOR_TICK,
-    font: { size: 11 },
-    // O eixo recebe centavos; a conversão é do formatador, como sempre.
-    callback: (value) => formatCompactCurrency(value),
+/**
+ * Séries do gráfico de evolução.
+ *
+ * A cor vai como TOKEN, não como hexa: o `GaBarChart` é HTML, e `var(--...)`
+ * em estilo inline o navegador resolve. Era isto que o canvas não fazia.
+ */
+const evolutionSeries = computed(() => [
+  {
+    key: "income",
+    label: "Receita",
+    color: "var(--data-income)",
+    data: series.value.map((item) => item.incomeInCents),
   },
-});
-
-const monthAxis = (stacked = false) => ({
-  stacked,
-  grid: { display: false },
-  border: { display: false },
-  ticks: { color: COLOR_TICK, font: { size: 11 } },
-});
-
-const currencyTooltip = {
-  callbacks: {
-    label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+  {
+    key: "expense",
+    label: "Despesa",
+    color: "var(--data-expense)",
+    data: series.value.map((item) => item.expenseInCents),
   },
-};
+]);
 
-function destroyCharts() {
-  evolutionChart?.destroy();
-  evolutionChart = null;
-  categoriesChart?.destroy();
-  categoriesChart = null;
-}
+/**
+ * O resultado é linha, e não uma terceira barra: ele pode ser negativo, e
+ * barra negativa ao lado de duas positivas se lê como "gastei menos", quando
+ * significa o contrário.
+ */
+const evolutionLine = computed(() => ({
+  label: "Resultado",
+  color: "var(--data-result)",
+  data: series.value.map((item) => item.netResultInCents),
+}));
 
-function buildEvolutionChart() {
-  if (!evolutionCanvas.value) return;
-
-  evolutionChart?.destroy();
-
-  evolutionChart = new Chart(evolutionCanvas.value, {
-    type: "bar",
-    data: {
-      labels: axisLabels.value,
-      datasets: [
-        {
-          label: "Receita",
-          data: series.value.map((item) => item.incomeInCents),
-          backgroundColor: COLOR_INCOME,
-          borderRadius: 4,
-          // `order` maior desenha ANTES: as barras ficam atrás da linha.
-          order: 2,
-        },
-        {
-          label: "Despesa",
-          data: series.value.map((item) => item.expenseInCents),
-          backgroundColor: COLOR_EXPENSE,
-          borderRadius: 4,
-          order: 2,
-        },
-        {
-          /**
-           * O resultado é linha, e não uma terceira barra: ele pode ser
-           * negativo, e barra negativa ao lado de duas positivas se lê como
-           * "gastei menos", quando significa o contrário.
-           */
-          type: "line",
-          label: "Resultado",
-          data: series.value.map((item) => item.netResultInCents),
-          borderColor: COLOR_RESULT,
-          backgroundColor: COLOR_SURFACE,
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: COLOR_RESULT,
-          tension: 0.25,
-          order: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 250 },
-      interaction: { mode: "index", intersect: false },
-      scales: { x: monthAxis(), y: valueAxis() },
-      plugins: { legend: { display: false }, tooltip: currencyTooltip },
-    },
-  });
-}
-
-function buildCategoriesChart() {
-  if (!categoriesCanvas.value || chartCategories.value.length === 0) return;
-
-  categoriesChart?.destroy();
-
-  categoriesChart = new Chart(categoriesCanvas.value, {
-    type: "bar",
-    data: {
-      labels: axisLabels.value,
-      /**
-       * Barras EMPILHADAS: a altura da coluna é a despesa total do mês, e cada
-       * faixa é uma categoria. Lado a lado, doze meses × seis categorias dariam
-       * 72 barras de dois pixels em 375px.
-       *
-       * `monthlyInCents` já vem alinhado posição por posição com a série, então
-       * o dataset vai direto, sem procurar mês por chave.
-       */
-      datasets: chartCategories.value.map((item) => ({
-        label: item.category,
-        data: item.monthlyInCents,
-        backgroundColor: item.color,
-        borderRadius: 2,
-      })),
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 250 },
-      scales: { x: monthAxis(true), y: valueAxis(true) },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          ...currencyTooltip,
-          // Categoria com zero no mês não vira linha de tooltip: com seis
-          // categorias, a caixa viraria uma lista de zeros.
-          filter: (ctx) => ctx.parsed.y > 0,
-        },
-      },
-    },
-  });
-}
+/**
+ * Séries do comparativo por categoria, EMPILHADAS: a altura da coluna é a
+ * despesa total do mês, e cada faixa é uma categoria. Lado a lado, doze meses
+ * × seis categorias dariam 72 barras de dois pixels em 375px.
+ *
+ * `monthlyInCents` já vem alinhado posição por posição com a série, então vai
+ * direto, sem procurar mês por chave.
+ */
+const categorySeries = computed(() =>
+  chartCategories.value.map((item) => ({
+    key: item.categoryId ?? item.category,
+    label: item.category,
+    // Cor da categoria, escolhida pelo usuário: é dado, não token.
+    color: item.color,
+    data: item.monthlyInCents,
+  }))
+);
 
 /** Largura da barra do mês, de 0 a 100, relativa ao mês de maior despesa. */
 function barPercent(item) {
@@ -565,32 +450,7 @@ function summaryLine(item) {
   return parts.join(" · ");
 }
 
-/**
- * Os gráficos são construídos DEPOIS do `nextTick`: o canvas só existe no DOM
- * quando a série já tem dados (`v-if`), e construir antes acertaria um `null`.
- */
-async function drawCharts() {
-  if (isEmpty.value || series.value.length === 0) {
-    destroyCharts();
-    return;
-  }
-
-  await nextTick();
-  buildEvolutionChart();
-  buildCategoriesChart();
-}
-
-/**
- * Um `watch` só, e nenhum desenho no `onMounted`: a série muda uma vez por
- * carregamento (primeira carga e troca de janela), e é essa mudança que manda
- * redesenhar. Desenhar também no `onMounted` construiria o gráfico duas vezes
- * na abertura — a primeira sobre um canvas que ainda não existe.
- */
-watch([series, chartCategories], drawCharts);
-
 onMounted(load);
-
-onBeforeUnmount(destroyCharts);
 </script>
 
 <style scoped>
@@ -705,7 +565,7 @@ onBeforeUnmount(destroyCharts);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  /* Sem isto, o canvas do Chart.js alarga o card no celular. */
+  /* Sem isto, o gráfico alarga o card no celular em vez de caber nele. */
   min-width: 0;
 }
 
@@ -785,27 +645,12 @@ onBeforeUnmount(destroyCharts);
   color: var(--text-tertiary);
 }
 
-/* ── Gráficos ──────────────────────────────────────────────────────────── */
+/* ── Legendas ──────────────────────────────────────────────────────────── */
 /*
- * Altura fixa no envoltório, e não no canvas: com `maintainAspectRatio: false`
- * o Chart.js escreve width/height inline no canvas a cada redesenho, e sem uma
- * altura de referência o gráfico cresce a cada resize.
+ * As alturas dos gráficos moram no `GaBarChart` (220px no celular, 280px a
+ * partir de 768px) — o envoltório com altura fixa que existia aqui era
+ * exigência do canvas, que escrevia width/height inline a cada redesenho.
  */
-.rep__canvasWrap {
-  position: relative;
-  width: 100%;
-  height: 220px;
-}
-@media (min-width: 768px) {
-  .rep__canvasWrap {
-    height: 280px;
-  }
-}
-.rep__canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
 .rep__legend {
   display: flex;
   flex-wrap: wrap;
@@ -827,17 +672,19 @@ onBeforeUnmount(destroyCharts);
   flex-shrink: 0;
   border-radius: var(--radius-xs);
 }
+/* Os mesmos tokens que as séries do gráfico usam: a amostra não pode divergir
+   da barra que ela explica. */
 .rep__swatch--income {
-  background: var(--green-500);
+  background: var(--data-income);
 }
 .rep__swatch--expense {
-  background: var(--red-500);
+  background: var(--data-expense);
 }
 /* O resultado é linha no gráfico, então a amostra também é uma linha. */
 .rep__swatch--result {
   height: 3px;
   border-radius: var(--radius-pill);
-  background: var(--brand-primary);
+  background: var(--data-result);
 }
 
 .rep__legend--stack {
