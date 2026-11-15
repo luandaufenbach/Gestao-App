@@ -77,6 +77,25 @@ function parseCycleKey(cycle) {
 }
 
 /**
+ * Desloca uma chave de ciclo em N meses. "2026-11" + 2 -> "2027-01".
+ *
+ * Existe para as compras parceladas: a parcela N cai na N-ésima fatura DEPOIS
+ * da primeira, e isso é aritmética de mês, não de data. Derivar o ciclo da
+ * data de cada parcela não funciona, porque `addMonthsUTC` encurta o dia nos
+ * meses curtos (31/01 + 1 mês = 28/02) e o dia encurtado pode cair em cima do
+ * fechamento do ciclo que a parcela anterior já ocupa — duas parcelas na mesma
+ * fatura e a seguinte vazia.
+ *
+ * @returns {string|null} Nova chave, ou null se a entrada é malformada.
+ */
+function shiftCycle(cycle, months) {
+	const parsed = parseCycleKey(cycle);
+	if (!parsed) return null;
+
+	return toCycleKey(new Date(Date.UTC(parsed.year, parsed.monthIndex + months, 1)));
+}
+
+/**
  * Em qual fatura cai uma compra?
  *
  * A compra entra na primeira fatura cujo fechamento seja igual ou posterior a
@@ -182,6 +201,7 @@ module.exports = {
 	recentCycles,
 	toCycleKey,
 	parseCycleKey,
+	shiftCycle,
 	cycleLabel,
 	closingDateFor,
 	dueDateForClosing,

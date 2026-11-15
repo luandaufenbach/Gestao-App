@@ -695,3 +695,115 @@ describe("auditoria das parcelas no ciclo que fecha dia 01", () => {
 		expect(marco.body.totalInCents).toBe(10_000);
 	});
 });
+
+/**
+ * Parcelas e o mês da fatura.
+ *
+ * O ano é o que vem, e não um fixo: compra no dia 31 de janeiro, cujo "mais um
+ * mês" cai num fevereiro sempre mais curto. Com fechamento no dia 30 o
+ * encurtamento vale tanto em ano bissexto quanto fora dele — com fechamento 28
+ * o bug desaparece nos bissextos, e o teste passaria sem testar nada.
+ */
+describe("compra parcelada no fim do mês", () => {
+	const ano = new Date().getUTCFullYear() + 1;
+	let cartaoId;
+
+	const detalhe = (ciclo) => user.auth(request(app).get(`/bank-cards/${cartaoId}/invoices/${ciclo}`));
+
+	beforeEach(async () => {
+		const card = await user
+			.auth(request(app).post("/bank-cards"))
+			.send({
+				name: "Cartão que fecha 30",
+				lastFourDigits: "9876",
+				type: "credit",
+				closingDay: 30,
+				dueDay: 10,
+			})
+			.expect(201);
+
+		cartaoId = card.body._id;
+	});
+
+	const comprarParcelado = (parcelas = 3) =>
+		user
+			.auth(request(app).post("/transactions"))
+			.send({
+				type: "credit",
+				description: "Geladeira",
+				totalValueInCents: 30_000,
+				date: `${ano}-01-31`,
+				category: categoryId,
+				bankCard: cartaoId,
+				installments: parcelas,
+			})
+			.expect(201);
+
+	it("cada parcela cai numa fatura consecutiva, mesmo com a data encurtada", async () => {
+		const { body } = await comprarParcelado();
+
+		// A data da parcela 2 é encurtada para o último dia de fevereiro, que é o
+		// fechamento da fatura da parcela 1. Antes isso punha as duas na mesma.
+		expect(body.transactions.map((t) => t.date.slice(0, 10))).toEqual([
+			`${ano}-01-31`,
+			`${ano}-02-${new Date(Date.UTC(ano, 2, 0)).getUTCDate()}`,
+			`${ano}-03-31`,
+		]);
+
+		for (const [indice, ciclo] of [`${ano}-03`, `${ano}-04`, `${ano}-05`].entries()) {
+			const fatura = await detalhe(ciclo).expect(200);
+
+			expect(fatura.body.totalInCents, `fatura ${ciclo}`).toBe(10_000);
+			expect(fatura.body.transactionCount, `fatura ${ciclo}`).toBe(1);
+			expect(fatura.body.transactions[0].installment.current).toBe(indice + 1);
+		}
+	});
+
+	it("editar o valor do grupo não tira as parcelas das faturas", async () => {
+		const { body } = await comprarParcelado();
+
+		await user
+			.auth(request(app).patch(`/transactions/${body.transactions[0]._id}`))
+			.send({ totalValueInCents: 60_000 })
+			.expect(200);
+
+		for (const ciclo of [`${ano}-03`, `${ano}-04`, `${ano}-05`]) {
+			const fatura = await detalhe(ciclo).expect(200);
+
+			expect(fatura.body.totalInCents, `fatura ${ciclo}`).toBe(20_000);
+			expect(fatura.body.transactionCount, `fatura ${ciclo}`).toBe(1);
+		}
+	});
+
+	it("trocar o cartão recalcula a fatura das parcelas", async () => {
+		const { body } = await comprarParcelado();
+
+		const outro = await user
+			.auth(request(app).post("/bank-cards"))
+			.send({
+				name: "Cartão que fecha 05",
+				lastFourDigits: "5555",
+				type: "credit",
+				closingDay: 5,
+				dueDay: 15,
+			})
+			.expect(201);
+
+		await user
+			.auth(request(app).patch(`/transactions/${body.transactions[0]._id}`))
+			.send({ bankCard: outro.body._id })
+			.expect(200);
+
+		// Fecha 05: a compra de 31/01 entra na fatura que fecha em 05/02.
+		for (const ciclo of [`${ano}-02`, `${ano}-03`, `${ano}-04`]) {
+			const fatura = await user
+				.auth(request(app).get(`/bank-cards/${outro.body._id}/invoices/${ciclo}`))
+				.expect(200);
+
+			expect(fatura.body.totalInCents, `fatura ${ciclo}`).toBe(10_000);
+		}
+
+		const antiga = await detalhe(`${ano}-03`).expect(200);
+		expect(antiga.body.totalInCents).toBe(0);
+	});
+});

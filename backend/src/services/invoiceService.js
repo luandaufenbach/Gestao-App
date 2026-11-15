@@ -5,6 +5,64 @@ const { cycleRange, recentCycles, cycleLabel } = require("../utils/invoiceCycle"
 const toObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
 /**
+ * De onde sai a fatura de uma compra: do campo `invoiceCycle`, quando ele
+ * existe, e só então do intervalo de datas.
+ *
+ * As parcelas de uma compra parcelada gravam o ciclo (ver `shiftCycle`),
+ * porque a data delas é encurtada nos meses curtos e deixa de identificar a
+ * fatura certa. Todo o resto — compras à vista e as parcelas criadas antes
+ * desta mudança — continua sendo localizado pela data.
+ *
+ * As duas funções abaixo são a mesma regra em dois lugares da agregação: uma
+ * filtra, a outra agrupa. Ficam juntas de propósito; separadas, uma mudaria
+ * sem a outra e a soma passaria a contar transação que o filtro já descartou.
+ */
+
+/** Filtro das compras de crédito que pertencem a algum dos ciclos dados. */
+function purchaseMatchForCycles(userId, cardId, ranges) {
+	const ascending = [...ranges].sort((a, b) => a.start - b.start);
+
+	return {
+		user: toObjectId(userId),
+		bankCard: toObjectId(cardId),
+		type: "credit",
+		$or: [
+			{ invoiceCycle: { $in: ascending.map((range) => range.cycle) } },
+			{
+				// `null` também casa com o campo ausente, que é o caso dos
+				// documentos anteriores a esta mudança.
+				invoiceCycle: null,
+				date: { $gte: ascending[0].start, $lte: ascending[ascending.length - 1].end },
+			},
+		],
+	};
+}
+
+/**
+ * Expressão que devolve o ciclo de cada compra, para usar como `_id` do
+ * `$group`. As fronteiras vêm dos ranges já calculados em JS, então o
+ * fechamento não é recalculado dentro do banco.
+ */
+function purchaseCycleExpression(ranges) {
+	return {
+		$ifNull: [
+			"$invoiceCycle",
+			{
+				$switch: {
+					branches: ranges.map((range) => ({
+						case: {
+							$and: [{ $gte: ["$date", range.start] }, { $lte: ["$date", range.end] }],
+						},
+						then: range.cycle,
+					})),
+					default: "fora",
+				},
+			},
+		],
+	};
+}
+
+/**
  * Serviço de faturas.
  *
  * DECISÃO DE MODELAGEM: a fatura NÃO é uma coleção no banco. Ela é calculada
@@ -35,58 +93,39 @@ function resolveStatus({ totalInCents, paidInCents, dueDate }, now = new Date())
 /**
  * Soma das compras de crédito de cada ciclo, em UMA consulta.
  *
- * `$bucket` divide as transações pelas fronteiras dos ciclos, então N faturas
- * custam uma ida ao banco em vez de N. As fronteiras são os inícios de cada
- * ciclo mais o fim do último, em ordem crescente.
+ * O agrupamento é pelo ciclo que `purchaseCycleExpression` resolve, então N
+ * faturas custam uma ida ao banco em vez de N.
+ *
+ * Antes isto era um `$bucket` sobre a data. Um `$group` com `$switch` faz o
+ * mesmo trabalho e, diferente do `$bucket`, aceita a compra que já carrega o
+ * ciclo gravado — que é o caso das parcelas.
  */
 async function sumPurchasesByCycle(userId, cardId, ranges) {
 	if (ranges.length === 0) return new Map();
 
 	const ascending = [...ranges].sort((a, b) => a.start - b.start);
 
-	/**
-	 * A última fronteira leva +1ms porque o `$bucket` trata o limite superior
-	 * como EXCLUSIVO. Sem isso, uma compra feita exatamente no instante do
-	 * fechamento cairia no bucket "fora" e sumiria da fatura.
-	 */
-	const lastEnd = ascending[ascending.length - 1].end;
-	const boundaries = [...ascending.map((r) => r.start), new Date(lastEnd.getTime() + 1)];
-
-	const buckets = await Transaction.aggregate([
+	const rows = await Transaction.aggregate([
+		{ $match: purchaseMatchForCycles(userId, cardId, ascending) },
 		{
-			$match: {
-				user: toObjectId(userId),
-				bankCard: toObjectId(cardId),
-				type: "credit",
-				date: { $gte: boundaries[0], $lte: boundaries[boundaries.length - 1] },
-			},
-		},
-		{
-			$bucket: {
-				groupBy: "$date",
-				boundaries,
-				default: "fora",
-				output: {
-					totalInCents: { $sum: "$valueInCents" },
-					transactionCount: { $sum: 1 },
-				},
+			$group: {
+				_id: purchaseCycleExpression(ascending),
+				totalInCents: { $sum: "$valueInCents" },
+				transactionCount: { $sum: 1 },
 			},
 		},
 	]);
 
-	// O _id de cada bucket é a fronteira inferior, ou seja, o início do ciclo.
-	const byStart = new Map(
-		buckets.filter((b) => b._id !== "fora").map((b) => [new Date(b._id).getTime(), b])
-	);
+	const byCycle = new Map(rows.filter((row) => row._id !== "fora").map((row) => [row._id, row]));
 
 	return new Map(
 		ascending.map((range) => {
-			const bucket = byStart.get(range.start.getTime());
+			const row = byCycle.get(range.cycle);
 			return [
 				range.cycle,
 				{
-					totalInCents: bucket?.totalInCents ?? 0,
-					transactionCount: bucket?.transactionCount ?? 0,
+					totalInCents: row?.totalInCents ?? 0,
+					transactionCount: row?.transactionCount ?? 0,
 				},
 			];
 		})
@@ -169,12 +208,7 @@ async function getInvoiceDetail(userId, card, cycle) {
 	const range = cycleRange(cycle, card);
 	if (!range) return null;
 
-	const purchaseMatch = {
-		user: toObjectId(userId),
-		bankCard: toObjectId(card._id),
-		type: "credit",
-		date: { $gte: range.start, $lte: range.end },
-	};
+	const purchaseMatch = purchaseMatchForCycles(userId, card._id, [range]);
 
 	const [byCategory, transactions, payments] = await Promise.all([
 		Transaction.aggregate([
@@ -247,4 +281,10 @@ async function getInvoiceDetail(userId, card, cycle) {
 	return invoice;
 }
 
-module.exports = { listInvoices, getInvoiceDetail, resolveStatus };
+module.exports = {
+	listInvoices,
+	getInvoiceDetail,
+	resolveStatus,
+	purchaseMatchForCycles,
+	purchaseCycleExpression,
+};

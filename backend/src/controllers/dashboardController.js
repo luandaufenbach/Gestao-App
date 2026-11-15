@@ -4,7 +4,11 @@ const BankCard = require("../models/BankCard");
 const Transaction = require("../models/Transaction");
 const asyncHandler = require("../utils/asyncHandler");
 const { getMonthRangeUTC } = require("../utils/date");
-const { listInvoices } = require("../services/invoiceService");
+const {
+	listInvoices,
+	purchaseMatchForCycles,
+	purchaseCycleExpression,
+} = require("../services/invoiceService");
 const { recentCycles, toCycleKey, cycleLabel } = require("../utils/invoiceCycle");
 
 const toObjectId = (id) => new mongoose.Types.ObjectId(String(id));
@@ -301,9 +305,9 @@ function projectionMonthKeys(count, now = new Date()) {
 /**
  * Quantas parcelas de compra parcelada caem em cada ciclo, em UMA consulta.
  *
- * As fronteiras do `$bucket` saem dos ranges que o invoiceCycle já calculou —
- * aqui não se recalcula fechamento nem vencimento, só se distribuem as
- * transações pelos intervalos que ele definiu.
+ * O ciclo de cada parcela sai da mesma regra da fatura (campo gravado, e só
+ * então a data), reaproveitada do invoiceService para que a projeção e a
+ * fatura nunca discordem sobre em que mês uma parcela cai.
  *
  * O invoiceService devolve `transactionCount`, que conta toda compra do ciclo.
  * A projeção quer outra coisa: quantas PARCELAS de compras parceladas pesam
@@ -314,41 +318,26 @@ async function countInstallmentsByCycle(userId, cardId, ranges) {
 
 	const ascending = [...ranges].sort((a, b) => a.start - b.start);
 
-	// O limite superior do $bucket é EXCLUSIVO; o +1ms evita perder a compra
-	// feita exatamente no instante do fechamento. Mesmo motivo do invoiceService.
-	const lastEnd = ascending[ascending.length - 1].end;
-	const boundaries = [...ascending.map((range) => range.start), new Date(lastEnd.getTime() + 1)];
-
-	const buckets = await Transaction.aggregate([
+	const rows = await Transaction.aggregate([
 		{
 			$match: {
-				user: toObjectId(userId),
-				bankCard: toObjectId(cardId),
-				type: "credit",
+				...purchaseMatchForCycles(userId, cardId, ascending),
 				"installment.total": { $gt: 1 },
-				date: { $gte: boundaries[0], $lte: boundaries[boundaries.length - 1] },
 			},
 		},
 		{
-			$bucket: {
-				groupBy: "$date",
-				boundaries,
-				default: "fora",
-				output: { installmentCount: { $sum: 1 } },
+			$group: {
+				_id: purchaseCycleExpression(ascending),
+				installmentCount: { $sum: 1 },
 			},
 		},
 	]);
 
-	// O _id do bucket é a fronteira inferior, ou seja, o início do ciclo.
-	const byStart = new Map(
-		buckets
-			.filter((bucket) => bucket._id !== "fora")
-			.map((bucket) => [new Date(bucket._id).getTime(), bucket.installmentCount])
+	const byCycle = new Map(
+		rows.filter((row) => row._id !== "fora").map((row) => [row._id, row.installmentCount])
 	);
 
-	return new Map(
-		ascending.map((range) => [range.cycle, byStart.get(range.start.getTime()) ?? 0])
-	);
+	return new Map(ascending.map((range) => [range.cycle, byCycle.get(range.cycle) ?? 0]));
 }
 
 /**

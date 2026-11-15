@@ -9,6 +9,7 @@ const Goal = require("../models/Goal");
 const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const { getMonthRangeUTC, normalizeToUTCDay, addMonthsUTC } = require("../utils/date");
+const { cycleForPurchase, shiftCycle } = require("../utils/invoiceCycle");
 const { splitIntoInstallments } = require("../utils/money");
 
 const EXPENSE_TYPES = ["debit", "credit"];
@@ -42,11 +43,16 @@ async function resolveCategory(categoryId, userId) {
  *
  * `mustBeCredit` é usado nas compras parceladas/no crédito: vincular a compra a
  * um cartão de débito faria a fatura procurá-la num cartão que não tem fatura.
+ *
+ * Devolve o documento, e não só o `_id`, porque as parcelas precisam do ciclo
+ * do cartão (`closingDay`/`dueDay`) para gravar em qual fatura caem.
  */
 async function resolveBankCard(bankCardId, userId, { mustBeCredit = false } = {}) {
 	if (!bankCardId) return null;
 
-	const card = await BankCard.findOne({ _id: bankCardId, user: userId }).select("_id type").lean();
+	const card = await BankCard.findOne({ _id: bankCardId, user: userId })
+		.select("_id type closingDay dueDay")
+		.lean();
 
 	if (!card) {
 		throw AppError.badRequest("Cartão não encontrado");
@@ -54,7 +60,32 @@ async function resolveBankCard(bankCardId, userId, { mustBeCredit = false } = {}
 	if (mustBeCredit && card.type !== "credit") {
 		throw AppError.badRequest("Compras no crédito precisam de um cartão de crédito");
 	}
-	return card._id;
+	return card;
+}
+
+/**
+ * Em qual fatura cai cada parcela de uma compra parcelada.
+ *
+ * A primeira sai da data da compra; as seguintes são a aritmética de mês sobre
+ * a chave do ciclo, NÃO o ciclo recalculado a partir da data de cada parcela.
+ *
+ * BUG CORRIGIDO (parcela voltando para a fatura anterior): a data da parcela é
+ * encurtada nos meses curtos — 31/01 + 1 mês = 28/02 — e o dia encurtado pode
+ * cair exatamente no fechamento do ciclo que a parcela anterior já ocupa. Num
+ * cartão que fecha dia 28, uma compra de 31/01 em 3x punha as parcelas 1 e 2
+ * na fatura de março e deixava abril vazia.
+ *
+ * Cartão sem fechamento configurado não monta fatura nenhuma: devolve null em
+ * todas as posições e as parcelas seguem sendo localizadas pela data.
+ */
+function installmentCycles(startDate, count, card) {
+	if (!startDate || !card || card.closingDay == null || card.dueDay == null) {
+		return Array.from({ length: count }, () => null);
+	}
+
+	const first = cycleForPurchase(startDate, card).cycle;
+
+	return Array.from({ length: count }, (_, index) => shiftCycle(first, index));
 }
 
 /**
@@ -229,9 +260,10 @@ const createTransaction = asyncHandler(async (req, res) => {
 	const categoryId = isExpenseType(type)
 		? await resolveCategory(req.body.category, userId)
 		: null;
-	const bankCardId = await resolveBankCard(req.body.bankCard, userId, {
+	const card = await resolveBankCard(req.body.bankCard, userId, {
 		mustBeCredit: type === "credit",
 	});
+	const bankCardId = card?._id ?? null;
 	// Guardar sem meta é o caso comum: o dinheiro vai para a reserva geral.
 	const goalId = SAVINGS_TYPES.includes(type) ? await resolveGoal(req.body.goal, userId) : null;
 
@@ -294,6 +326,7 @@ const createTransaction = asyncHandler(async (req, res) => {
 	 */
 	const parcels = splitIntoInstallments(totalValueInCents, installments);
 	const installmentGroupId = crypto.randomUUID();
+	const cycles = installmentCycles(startDate, installments, card);
 
 	const documents = parcels.map((valueInCents, index) => ({
 		...base,
@@ -301,6 +334,9 @@ const createTransaction = asyncHandler(async (req, res) => {
 		// addMonthsUTC trata o estouro de dia: 31/01 + 1 mês vira 28/02,
 		// e não 03/03 como faria o setMonth() nativo.
 		date: addMonthsUTC(startDate, index),
+		// E porque a data é encurtada, ela não serve para dizer em que fatura a
+		// parcela cai: o ciclo é gravado. Ver installmentCycles.
+		invoiceCycle: cycles[index],
 		installment: { total: installments, current: index + 1, totalValueInCents },
 		installmentGroupId,
 	}));
@@ -350,10 +386,13 @@ const updateTransaction = asyncHandler(async (req, res) => {
 	 * `await` no meio deixar o objeto num estado parcial, e o leitor consegue
 	 * ver a forma final do update de uma vez só.
 	 */
-	const nextBankCard =
+	const nextCard =
 		req.body.bankCard !== undefined
 			? await resolveBankCard(req.body.bankCard, userId, { mustBeCredit: nextType === "credit" })
-			: existing.bankCard;
+			: null;
+
+	const nextBankCard =
+		req.body.bankCard !== undefined ? (nextCard?._id ?? null) : existing.bankCard;
 
 	/**
 	 * A meta acompanha o tipo: virar despesa ou receita desfaz o vínculo, do
@@ -468,12 +507,27 @@ const updateTransaction = asyncHandler(async (req, res) => {
 		installmentGroupId: existing.installmentGroupId,
 	})
 		.sort({ "installment.current": 1 })
-		.select("_id");
+		.select("_id date");
 
 	// Calcula o rateio uma única vez, não uma vez por parcela.
 	const newParcels =
 		req.body.totalValueInCents !== undefined
 			? splitIntoInstallments(req.body.totalValueInCents, siblings.length)
+			: null;
+
+	/**
+	 * O ciclo gravado em cada parcela só muda quando o CARTÃO muda, porque é o
+	 * fechamento dele que define a fatura. Nas outras edições ele é preservado:
+	 * as datas não se movem (ver abaixo), então a fatura também não.
+	 *
+	 * Ao recalcular, a âncora é a data da primeira parcela — a única que nunca
+	 * foi encurtada, por ser a data real da compra. Se ela tiver sido excluída
+	 * individualmente, a âncora passa a ser a menor parcela restante e pode
+	 * estar encurtada; é a aproximação aceita em troca de não recriar o grupo.
+	 */
+	const nextCycles =
+		nextType === "credit" && req.body.bankCard !== undefined
+			? installmentCycles(siblings[0]?.date, siblings.length, nextCard)
 			: null;
 
 	const bulkOperations = siblings.map((sibling, index) => {
@@ -487,6 +541,13 @@ const updateTransaction = asyncHandler(async (req, res) => {
 
 		// `date` nunca é propagada: cada parcela tem o próprio vencimento.
 		delete perParcel.date;
+
+		if (nextType === "credit") {
+			// `updates.invoiceCycle` vale null para tudo que não é pagamento de
+			// fatura; numa parcela isso apagaria a fatura dela.
+			if (nextCycles) perParcel.invoiceCycle = nextCycles[index];
+			else delete perParcel.invoiceCycle;
+		}
 
 		return {
 			updateOne: {

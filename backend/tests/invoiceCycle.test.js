@@ -5,6 +5,7 @@ import {
 	recentCycles,
 	cycleForMonth,
 	cycleLabel,
+	shiftCycle,
 } from "../src/utils/invoiceCycle.js";
 
 /** O cartão do usuário: fecha dia 01, vence dia 05 do mesmo mês. */
@@ -168,5 +169,58 @@ describe("cycleForMonth — qual fatura recebe as compras do mês", () => {
 describe("cycleLabel", () => {
 	it("formata em português", () => {
 		expect(cycleLabel("2026-08")).toBe("agosto de 2026");
+	});
+});
+
+describe("shiftCycle — aritmética de mês sobre a chave do ciclo", () => {
+	it("avança dentro do ano", () => {
+		expect(shiftCycle("2026-08", 1)).toBe("2026-09");
+		expect(shiftCycle("2026-08", 4)).toBe("2026-12");
+	});
+
+	it("atravessa a virada de ano", () => {
+		expect(shiftCycle("2026-11", 2)).toBe("2027-01");
+		expect(shiftCycle("2026-11", 14)).toBe("2028-01");
+	});
+
+	it("deslocamento zero devolve o próprio ciclo", () => {
+		expect(shiftCycle("2026-08", 0)).toBe("2026-08");
+	});
+
+	it("aceita deslocamento negativo", () => {
+		expect(shiftCycle("2027-01", -1)).toBe("2026-12");
+	});
+
+	it("chave malformada devolve null", () => {
+		expect(shiftCycle("agosto", 1)).toBeNull();
+		expect(shiftCycle(null, 1)).toBeNull();
+	});
+});
+
+/**
+ * As parcelas não podem tirar a fatura da própria data, porque a data é
+ * encurtada nos meses curtos. Estes testes fixam a regra que `shiftCycle`
+ * existe para sustentar; a prova de ponta a ponta está em invoices.test.js.
+ */
+describe("parcela encurtada não volta para a fatura anterior", () => {
+	const CARD_30_10 = { closingDay: 30, dueDay: 10 };
+
+	it("derivar o ciclo da data da parcela repete a fatura (o bug)", () => {
+		// 31/01 + 1 mês = 28/02, que é o fechamento do ciclo da parcela 1.
+		const parcela1 = cycleForPurchase(new Date(Date.UTC(2027, 0, 31)), CARD_30_10).cycle;
+		const parcela2 = cycleForPurchase(new Date(Date.UTC(2027, 1, 28)), CARD_30_10).cycle;
+
+		expect(parcela1).toBe("2027-03");
+		expect(parcela2).toBe("2027-03");
+	});
+
+	it("deslocar a chave do ciclo dá faturas consecutivas", () => {
+		const primeiro = cycleForPurchase(new Date(Date.UTC(2027, 0, 31)), CARD_30_10).cycle;
+
+		expect([0, 1, 2].map((i) => shiftCycle(primeiro, i))).toEqual([
+			"2027-03",
+			"2027-04",
+			"2027-05",
+		]);
 	});
 });
