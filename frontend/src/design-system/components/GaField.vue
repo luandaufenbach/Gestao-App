@@ -26,6 +26,22 @@
  * O `id` é gerado com `useId` quando não vem de fora. É isso que liga
  * `<label for>` ao controle: sem ele, clicar no rótulo não foca o campo e o
  * leitor de tela anuncia um campo sem nome.
+ *
+ * ── Duas adições da etapa do GaSelect ────────────────────────────────────
+ *
+ * `size`: existe no `Select.jsx` e no `TextField.jsx` da skill
+ * (`size !== 'md' && 'ga-input--' + size`) e o `.ga-input--sm` já estava
+ * copiado em `forms.css` sem nada que o acionasse. Quem precisa dele é o
+ * seletor de cartão do card de Faturas, que vive no cabeçalho de um card e
+ * ficaria desproporcional com os 40px de `--control-md`.
+ *
+ * `labelId` no slot: o `GaSelect` acima de 768px troca o `<select>` por um
+ * `<button role="combobox">`, e aí o nome acessível tem de vir por
+ * `aria-labelledby`. Com o nome vindo do `<label>` pelo atributo `for`, o
+ * leitor de tela leria o rótulo NO LUGAR do valor escolhido — é a diferença
+ * entre anunciar "Tipo, caixa de combinação, Crédito" e anunciar só "Tipo".
+ * Nenhum chamador antigo precisa mudar: quem não desestrutura `labelId` segue
+ * recebendo só `id`.
  */
 import { computed, useId } from "vue";
 import GaIcon from "./GaIcon.vue";
@@ -62,15 +78,23 @@ const props = defineProps({
    * indistinguível de um campo de texto.
    */
   select: { type: Boolean, default: false },
+  /** Altura da caixa: `md` são 40px (`--control-md`), `sm` são 32 (`--control-sm`). */
+  size: {
+    type: String,
+    default: "md",
+    validator: (value) => ["sm", "md"].includes(value),
+  },
   disabled: { type: Boolean, default: false },
 });
 
 const uid = useId();
 const controlId = computed(() => props.controlId || uid);
+const labelId = computed(() => `${controlId.value}-label`);
 
 const boxClasses = computed(() => [
   "ga-input",
   props.variant && `ga-input--${props.variant}`,
+  props.size !== "md" && `ga-input--${props.size}`,
   props.tone === "error" && "ga-input--error",
   props.disabled && "ga-input--disabled",
 ]);
@@ -78,10 +102,10 @@ const boxClasses = computed(() => [
 
 <template>
   <div class="ga-field">
-    <label v-if="label" :for="controlId" class="ga-field__label">{{ label }}</label>
+    <label v-if="label" :id="labelId" :for="controlId" class="ga-field__label">{{ label }}</label>
 
     <div :class="boxClasses">
-      <slot :id="controlId" />
+      <slot :id="controlId" :label-id="labelId" />
       <span v-if="select" class="ga-input__chev">
         <GaIcon name="chevron-down" :size="16" />
       </span>

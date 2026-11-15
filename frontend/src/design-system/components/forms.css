@@ -14,6 +14,11 @@
  * segmentado) e `.ga-chip` (filtro em pílula). Entram quando houver tela que
  * peça — copiar agora seria CSS morto no bundle, que é o mesmo motivo de a
  * etapa 1.3 não ter usado `@theme`.
+ *
+ * NÃO passe o Prettier neste arquivo. As regras são de uma linha de
+ * propósito: é o formato do `forms.css` da skill, e é o que permite comparar
+ * os dois lado a lado quando a skill for atualizada. O `.prettierrc.json` da
+ * raiz expandiria cada uma em cinco linhas e essa comparação morreria.
  */
 
 .ga-field{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -94,6 +99,62 @@
 .ga-input--color input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
 .ga-input--color input[type="color"]::-webkit-color-swatch{border:1px solid var(--border-subtle);border-radius:7px}
 .ga-input--color input[type="color"]::-moz-color-swatch{border:1px solid var(--border-subtle);border-radius:7px}
+
+/*
+ * ACRESCENTADO À SKILL — o painel do seletor (`GaSelect`).
+ *
+ * Isto não é porte: é acréscimo. O `Select` da skill é o `<select>` NATIVO
+ * embelezado ("dropdown using the native select (best on mobile) with a
+ * chevron", no `Select.prompt.md`), e o `forms.css` dela estiliza só o
+ * controle FECHADO — a caixa, a seta, o foco, o erro, o desabilitado. A pasta
+ * inteira da skill não tem nenhum padrão de menu flutuante: zero
+ * `role="listbox"`, zero `role="option"`, zero `aria-activedescendant`, zero
+ * `aria-expanded`.
+ *
+ * O painel existe porque o menu do `<select>` no desktop é desenhado pelo
+ * Windows e não aceita CSS: fonte do sistema, sem raio, sem a cor de seleção
+ * do sistema. Abaixo de 768px NADA disto é usado — ali o `GaSelect` mantém o
+ * `<select>` nativo, que abre a roleta do iOS e o seletor do Android.
+ *
+ * Nenhum valor foi inventado. O painel inteiro sai de tokens que já existem:
+ *
+ *   painel       `--surface-card` · `--border-subtle` · `--radius-control` ·
+ *                `--shadow-xl` (o readme reserva esta sombra para "floating
+ *                notification cards", que é o que o painel é) · `--space-1`
+ *                de respiro para a linha não encostar na borda
+ *   linhas       `--radius-md` · `--space-1-5`/`--space-3` de respiro ·
+ *                `--space-0-5` entre elas · `--type-body`, como o controle
+ *   altura       `--hit-min` (44px). O painel próprio começa em 768px, e a
+ *                faixa de 768 a 1023 é de tablet, que é toque: a regra de
+ *                alvo de 44px do readme vale para ela.
+ *   ativa        `--surface-sunken`, o "faint cool tint" que o readme pede em
+ *                superfície neutra sob o cursor
+ *   marcada      `--brand-primary` no texto e no ícone de confirmação. Sem
+ *                fundo: o cobalt já é o sinal, e dois fundos na mesma lista
+ *                competiriam com a linha ativa
+ *   desabilitada `--text-disabled`
+ *   camada       `--z-tooltip` (80), acima de `--z-modal` (60) e do diálogo
+ *                de confirmação (70) — ver `overlays.css`
+ *   movimento    `ga-pop`, o mesmo quadro de chave que `overlays.css` já
+ *                trouxe da skill, em `--dur-fast`/`--ease-out`
+ *
+ * O `position:fixed` com as coordenadas vindas do componente é o que impede o
+ * painel de ser cortado pelo `overflow` do card de Faturas e do corpo rolável
+ * do modal: ele é teleportado para o `<body>`, então não tem ancestral que o
+ * recorte.
+ */
+.ga-select__trigger{flex:1;min-width:0;display:flex;align-items:center;height:100%;border:0;outline:0;background:transparent;font:var(--type-body);color:inherit;padding:0;margin:0;text-align:left;cursor:pointer}
+/* O anel de foco é da CAIXA, pelo `:focus-within` lá em cima — não do controle. */
+.ga-select__trigger:focus-visible{box-shadow:none}
+.ga-select__value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ga-select__panel{position:fixed;z-index:var(--z-tooltip);box-sizing:border-box;display:flex;flex-direction:column;gap:var(--space-0-5);overflow-y:auto;overscroll-behavior:contain;padding:var(--space-1);border:1px solid var(--border-subtle);border-radius:var(--radius-control);background:var(--surface-card);box-shadow:var(--shadow-xl);animation:ga-pop var(--dur-fast) var(--ease-out)}
+.ga-select__opt{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--hit-min);padding:var(--space-1-5) var(--space-3);border-radius:var(--radius-md);font:var(--type-body);color:var(--text-primary);cursor:pointer;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+/* O rótulo quebra em duas linhas em vez de ser cortado: opção cortada deixa de
+   ser distinguível das outras, que é o oposto do que a lista serve. */
+.ga-select__optLabel{min-width:0}
+.ga-select__opt--active{background:var(--surface-sunken)}
+.ga-select__opt--selected{color:var(--brand-primary)}
+.ga-select__opt[aria-disabled="true"]{color:var(--text-disabled);cursor:not-allowed}
 
 .ga-check{position:relative;display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;font:var(--type-body);color:var(--text-primary);user-select:none}
 .ga-check input{position:absolute;opacity:0;width:1px;height:1px;margin:0}

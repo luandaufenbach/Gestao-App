@@ -7,11 +7,14 @@
         Seletor de cartão. Com um cartão só ele fica escondido. O favorito vem
         primeiro e marcado com estrela, e é o selecionado por padrão.
       -->
-      <select v-if="creditCards.length > 1" v-model="selectedCardId" aria-label="Cartão" class="inv__select">
-        <option v-for="card in creditCards" :key="card._id" :value="card._id">
-          {{ card.starred ? "★ " : "" }}{{ card.bank || card.name }}
-        </option>
-      </select>
+      <GaSelect
+        v-if="creditCards.length > 1"
+        v-model="selectedCardId"
+        :options="cardOptions"
+        aria-label="Cartão"
+        size="sm"
+        class="inv__select"
+      />
       <span v-else-if="currentCard" class="inv__cardName">
         {{ currentCard.bank || currentCard.name }}
       </span>
@@ -106,6 +109,7 @@
  */
 import { ref, computed, watch, onMounted } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
+import GaSelect from "@/design-system/components/GaSelect.vue";
 import { getCardInvoices } from "@/services/api";
 import { useBankCards } from "@/stores/bankCards";
 import { useFormatters } from "@/services/useFormatters";
@@ -143,6 +147,14 @@ const STATUS_LABELS = {
 
 const currentCard = computed(
   () => creditCards.value.find((card) => card._id === selectedCardId.value) ?? null
+);
+
+/** Mesmo rótulo de antes: estrela do favorito e banco (ou nome). */
+const cardOptions = computed(() =>
+  creditCards.value.map((card) => ({
+    value: card._id,
+    label: `${card.starred ? "★ " : ""}${card.bank || card.name}`,
+  }))
 );
 
 /** O favorito entre os cartões de crédito, se houver. */
@@ -281,20 +293,19 @@ defineExpose({ refetch });
 	color: var(--text-tertiary);
 }
 
+/*
+ * Só a largura máxima fica aqui.
+ *
+ * O resto era uma caixa inventada em cima do `<select>` nativo: raio
+ * `--radius-sm` (6px, que é o raio de TAG no sistema, não de controle),
+ * `--space-1`/`--space-2` de respiro, texto em `--type-caption` e o foco
+ * copiado à mão. Nada disso era o `.ga-input`: o campo era o único controle
+ * de formulário do app fora do padrão mesmo FECHADO. Agora é o `GaSelect`, em
+ * `size="sm"` — a variante de 32px (`--control-sm`) que o `Select.jsx` da
+ * skill já prevê e que o `forms.css` já trazia copiada.
+ */
 .inv__select {
 	max-width: 50%;
-	padding: var(--space-1) var(--space-2);
-	border: 1px solid var(--border-default);
-	border-radius: var(--radius-sm);
-	background: var(--surface-card);
-	font: var(--type-caption);
-	color: var(--text-secondary);
-	cursor: pointer;
-}
-.inv__select:focus-visible {
-	outline: none;
-	border-color: var(--border-focus);
-	box-shadow: var(--ring-focus);
 }
 .inv__cardName {
 	font: var(--fw-medium) var(--fs-caption) / 1.4 var(--font-ui);

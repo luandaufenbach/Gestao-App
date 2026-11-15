@@ -1,33 +1,18 @@
 <template>
-  <GaField v-slot="{ id }" label="Tipo" select>
-    <select :id="id" v-model="type">
-      <option value="debit">Débito</option>
-      <option value="credit">Crédito</option>
-      <option value="income">Adicionar saldo</option>
-      <option value="savings">Guardar valor</option>
-      <option value="withdrawal">Resgatar guardado</option>
-    </select>
-  </GaField>
+  <GaSelect v-model="type" label="Tipo" :options="TYPE_OPTIONS" />
 
   <GaField v-slot="{ id }" label="Data" variant="date">
     <input :id="id" v-model="date" type="date" required />
   </GaField>
 
-  <GaField
+  <GaSelect
     v-if="requiresCategory"
-    v-slot="{ id }"
+    v-model="categoryId"
     label="Categoria"
-    select
+    :options="categoryOptions"
     :hint="categoryHint"
     :tone="categoryHint ? 'warning' : 'default'"
-  >
-    <select :id="id" v-model="categoryId">
-      <option value="">Selecione uma categoria</option>
-      <option v-for="category in categories" :key="category._id" :value="category._id">
-        {{ category.name }}
-      </option>
-    </select>
-  </GaField>
+  />
 
   <!--
     BUG CORRIGIDO: este campo não existia.
@@ -37,42 +22,27 @@
     pelo cartão, as compras simplesmente não apareciam nela — sem erro, sem
     aviso, só um card de Faturas vazio.
   -->
-  <GaField
+  <GaSelect
     v-if="requiresBankCard"
-    v-slot="{ id }"
+    v-model="bankCardId"
     label="Cartão"
-    select
+    :options="cardOptions"
     :hint="cardHint"
     :tone="cardHint ? 'warning' : 'default'"
-  >
-    <select :id="id" v-model="bankCardId">
-      <option value="">Selecione o cartão</option>
-      <option v-for="card in creditCards" :key="card._id" :value="card._id">
-        {{ card.starred ? "★ " : "" }}{{ card.bank || card.name }}
-        <template v-if="card.lastFourDigits">· {{ card.lastFourDigits }}</template>
-      </option>
-    </select>
-  </GaField>
+  />
 
   <!--
     Meta de destino da reserva. Opcional de propósito: o vínculo diz para onde
     o dinheiro foi, mas guardar sem objetivo continua sendo guardar — e o total
     da reserva é o mesmo com ou sem meta.
   -->
-  <GaField
+  <GaSelect
     v-if="supportsGoal"
-    v-slot="{ id }"
+    v-model="goalId"
     label="Meta"
-    select
+    :options="goalOptions"
     :hint="goalHint"
-  >
-    <select :id="id" v-model="goalId">
-      <option value="">{{ noGoalLabel }}</option>
-      <option v-for="goal in goals" :key="goal._id" :value="goal._id">
-        {{ goal.name }}
-      </option>
-    </select>
-  </GaField>
+  />
 
   <GaField
     v-if="supportsInstallments"
@@ -140,9 +110,18 @@
  *
  * As duas dicas que já eram neutras — parcelas travadas e prévia do valor da
  * parcela — continuam neutras.
+ *
+ * ── Etapa do GaSelect ────────────────────────────────────────────────────
+ *
+ * Os quatro seletores — tipo, categoria, cartão e meta — passaram de `GaField`
+ * + `<select>` para `GaSelect`. Rótulo, dica e tom continuam vindo pelas
+ * mesmas propriedades, porque o `GaSelect` usa o próprio `GaField` por dentro.
+ * Os três campos que não são seletores (data, parcelas, valor, descrição)
+ * seguem no `GaField` com slot, como antes.
  */
 import { computed, onMounted, watch } from "vue";
 import GaField from "@/design-system/components/GaField.vue";
+import GaSelect from "@/design-system/components/GaSelect.vue";
 import { useFormatters } from "../services/useFormatters";
 import { useGoals } from "../services/useGoals";
 import { useBankCards } from "../stores/bankCards";
@@ -227,6 +206,52 @@ watch(
 const noGoalLabel = computed(() =>
   type.value === "withdrawal" ? "Da reserva geral" : "Sem meta — só guardar"
 );
+
+/* ── Opções dos quatro seletores ─────────────────────────────────────────── */
+
+/*
+ * As opções saíram do template e viraram listas porque o `GaSelect` as recebe
+ * por propriedade: acima de 768px o menu é desenhado por ele, e `<option>`
+ * no template não teria onde ser renderizado. Os VALORES são os mesmos de
+ * antes, um por um, e a opção vazia continua existindo com `value: ""` — é o
+ * que o formulário trata como "nada escolhido" ao validar e ao montar o
+ * payload.
+ */
+const TYPE_OPTIONS = [
+  { value: "debit", label: "Débito" },
+  { value: "credit", label: "Crédito" },
+  { value: "income", label: "Adicionar saldo" },
+  { value: "savings", label: "Guardar valor" },
+  { value: "withdrawal", label: "Resgatar guardado" },
+];
+
+const categoryOptions = computed(() => [
+  { value: "", label: "Selecione uma categoria" },
+  ...props.categories.map((category) => ({ value: category._id, label: category.name })),
+]);
+
+/*
+ * O rótulo do cartão era montado por interpolação no `<option>`, com um
+ * `<template v-if>` no meio para os quatro dígitos. Aqui ele é a mesma frase,
+ * montada em JS: estrela do favorito, banco (ou nome), e os dígitos depois do
+ * ponto médio quando existem. O `<select>` nativo colapsava os espaços do
+ * template, então o texto na tela é o mesmo.
+ */
+const cardOptions = computed(() => [
+  { value: "", label: "Selecione o cartão" },
+  ...creditCards.value.map((card) => {
+    const star = card.starred ? "★ " : "";
+    const name = card.bank || card.name;
+    const digits = card.lastFourDigits ? ` · ${card.lastFourDigits}` : "";
+
+    return { value: card._id, label: `${star}${name}${digits}` };
+  }),
+]);
+
+const goalOptions = computed(() => [
+  { value: "", label: noGoalLabel.value },
+  ...goals.value.map((goal) => ({ value: goal._id, label: goal.name })),
+]);
 
 const { formatCurrency, parseCurrencyToCents } = useFormatters();
 

@@ -2,45 +2,10 @@
   <div class="tx">
     <div class="tx__bar">
       <div class="tx__filters">
-        <GaField v-slot="{ id }" select>
-          <select :id="id" v-model.number="selectedMonth" aria-label="Mês" class="tx__month">
-            <option v-for="m in 12" :key="m" :value="m">{{ MONTH_NAMES[m - 1] }}</option>
-          </select>
-        </GaField>
-
-        <GaField v-slot="{ id }" select>
-          <select :id="id" v-model.number="selectedYear" aria-label="Ano">
-            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-          </select>
-        </GaField>
-
-        <GaField v-slot="{ id }" select>
-          <select :id="id" v-model="typeFilter" aria-label="Tipo">
-            <option value="all">Todos os tipos</option>
-            <option value="income">Receita</option>
-            <option value="debit">Débito</option>
-            <option value="credit">Crédito</option>
-            <option value="savings">Guardado</option>
-            <option value="withdrawal">Resgate</option>
-            <option value="invoice_payment">Fatura paga</option>
-          </select>
-        </GaField>
-
-        <GaField v-slot="{ id }" select>
-          <select :id="id" v-model="categoryFilter" aria-label="Categoria">
-            <option value="all">Todas as categorias</option>
-            <!--
-              BUG CORRIGIDO (M6): a opção "sem categoria" não existia. O filtro
-              comparava (t.category || "outros") com o nome da categoria, mas
-              "outros" nunca aparecia na lista de opções, então transações sem
-              categoria eram impossíveis de filtrar.
-            -->
-            <option value="none">Sem categoria</option>
-            <option v-for="cat in categories" :key="cat._id" :value="cat._id">
-              {{ cat.name }}
-            </option>
-          </select>
-        </GaField>
+        <GaSelect v-model="selectedMonth" :options="monthOptions" aria-label="Mês" />
+        <GaSelect v-model="selectedYear" :options="yearOptions" aria-label="Ano" />
+        <GaSelect v-model="typeFilter" :options="TYPE_OPTIONS" aria-label="Tipo" />
+        <GaSelect v-model="categoryFilter" :options="categoryOptions" aria-label="Categoria" />
       </div>
 
       <!--
@@ -143,8 +108,29 @@
  *   pelo próprio campo: a caixa usa `appearance: none`, que apaga a seta
  *   nativa.
  * - O `capitalize` do filtro de mês saiu. Ele maiusculiza cada palavra, e o
- *   que se quer é só a primeira letra do nome do mês — `::first-letter` faz
- *   isso sem tocar no resto.
+ *   que se quer é só a primeira letra do nome do mês.
+ *
+ * ── Etapa do GaSelect ────────────────────────────────────────────────────
+ *
+ * Os quatro filtros passaram de `GaField` + `<select>` para `GaSelect`, que
+ * acima de 768px desenha o próprio painel e abaixo mantém o nativo. As opções
+ * saíram do template e viraram listas, que é o contrato do componente (e o do
+ * `Select` da skill, que também recebe `options`).
+ *
+ * Duas consequências que valem registro:
+ *
+ * - O `v-model.number` dos filtros de mês e ano saiu. O modificador não vale
+ *   para componente — ele chega como `modelModifiers` para o componente
+ *   aplicar. Não faz falta: as opções declaram `value` NUMÉRICO, e é esse
+ *   valor que o componente emite, então `selectedMonth` e `selectedYear`
+ *   continuam recebendo número. Confirmado no navegador: trocar o mês
+ *   recarrega a lista, o que só acontece com o `watch` enxergando mudança.
+ * - A maiúscula do nome do mês saiu do CSS (`.tx__month::first-letter`) e foi
+ *   para o rótulo da opção. O painel é teleportado para o `<body>`, fora do
+ *   escopo do `<style scoped>` desta tela, então uma regra daqui não
+ *   alcançaria as linhas do painel — e as linhas precisam da mesma maiúscula
+ *   que o controle fechado. O resultado na tela é o mesmo de antes: só a
+ *   primeira letra, nunca a de cada palavra.
  *
  * ── Esqueleto de navegação ───────────────────────────────────────────────
  *
@@ -154,8 +140,8 @@
  */
 import { computed, onMounted, ref, watch } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
-import GaField from "@/design-system/components/GaField.vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
+import GaSelect from "@/design-system/components/GaSelect.vue";
 import TransactionRow from "../components/TransactionRow.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import EditTransactionModal from "../components/EditTransactionModal.vue";
@@ -181,7 +167,43 @@ const deleting = ref(false);
 const deleteError = ref("");
 
 const currentYear = new Date().getUTCFullYear();
-const yearOptions = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
+
+/*
+ * `value` numérico, e é por isso que o `v-model` sem `.number` basta: o
+ * GaSelect emite o valor da opção como ele é declarado aqui.
+ */
+const yearOptions = Array.from({ length: 7 }, (_, i) => {
+  const year = currentYear - 3 + i;
+  return { value: year, label: String(year) };
+});
+
+/** Só a primeira letra, nunca a de cada palavra — ver o cabeçalho do arquivo. */
+const monthOptions = MONTH_NAMES.map((name, index) => ({
+  value: index + 1,
+  label: name.charAt(0).toUpperCase() + name.slice(1),
+}));
+
+const TYPE_OPTIONS = [
+  { value: "all", label: "Todos os tipos" },
+  { value: "income", label: "Receita" },
+  { value: "debit", label: "Débito" },
+  { value: "credit", label: "Crédito" },
+  { value: "savings", label: "Guardado" },
+  { value: "withdrawal", label: "Resgate" },
+  { value: "invoice_payment", label: "Fatura paga" },
+];
+
+/*
+ * BUG CORRIGIDO (M6), mantido: a opção "sem categoria" não existia. O filtro
+ * comparava (t.category || "outros") com o nome da categoria, mas "outros"
+ * nunca aparecia na lista de opções, então transações sem categoria eram
+ * impossíveis de filtrar.
+ */
+const categoryOptions = computed(() => [
+  { value: "all", label: "Todas as categorias" },
+  { value: "none", label: "Sem categoria" },
+  ...categories.value.map((category) => ({ value: category._id, label: category.name })),
+]);
 
 // O FAB central da barra inferior abre o mesmo modal do botão primário da tela.
 definePageAction({ label: "Nova transação", run: () => (showModal.value = true) });
@@ -292,15 +314,6 @@ watch([selectedYear, selectedMonth], () => {
 	.tx__filters > * {
 		width: 150px;
 	}
-}
-
-/*
- * `::first-letter`, e não a classe `capitalize`: a lista é de nomes de mês de
- * uma palavra hoje, mas `capitalize` maiusculiza CADA palavra e quebraria no
- * dia em que o rótulo tiver duas.
- */
-.tx__month::first-letter {
-	text-transform: uppercase;
 }
 
 .tx__actions {

@@ -88,10 +88,14 @@
         class="cards__input"
       />
 
-      <select v-model="form.type" class="cards__input cards__input--select">
-        <option value="credit">Crédito</option>
-        <option value="debit">Débito</option>
-      </select>
+      <!--
+        `aria-label` porque este campo nunca teve rótulo: os outros do
+        formulário se explicam pelo `placeholder`, e um `<select>` não tem
+        placeholder. Sem ele o leitor de tela anuncia um seletor sem nome. É
+        invisível de propósito — pôr um rótulo visível só aqui desalinharia o
+        campo dos outros cinco.
+      -->
+      <GaSelect v-model="form.type" :options="CARD_TYPE_OPTIONS" aria-label="Tipo do cartão" />
 
       <!--
         Só cartão de crédito tem fatura. Sem estes dois dias, as compras não
@@ -158,6 +162,7 @@
 import { ref, reactive, onMounted } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
+import GaSelect from "@/design-system/components/GaSelect.vue";
 import { useBankCards } from "@/stores/bankCards";
 import { useDeleteConfirmation } from "@/services/useDeleteConfirmation";
 import ConfirmDialog from "../ConfirmDialog.vue";
@@ -184,6 +189,21 @@ import ConfirmDialog from "../ConfirmDialog.vue";
  * - A cor padrão do cartão era `#1e293b` (slate-800, da paleta antiga). Virou
  *   `#141823`, que é o `--ink-900`. É só o padrão do seletor: a cor escolhida
  *   pelo usuário continua intocada, e a de quem já tem cartão salvo também.
+ *
+ * ── Etapa do GaSelect ────────────────────────────────────────────────────
+ *
+ * O seletor de tipo virou `GaSelect`. Ele era o outro controle do app fora do
+ * padrão mesmo fechado: usava `.cards__input--select`, uma caixa local de
+ * `padding: 8px 12px` que imitava o `.ga-input` sem ser ele — altura diferente
+ * (a do sistema são 40px, `--control-md`), e sem a seta `chevron-down`, então
+ * ficava indistinguível dos três campos de texto logo acima. Agora é a caixa
+ * do sistema, com a seta.
+ *
+ * PENDENTE, e deliberadamente fora desta etapa: os cinco `<input>` deste
+ * formulário continuam em `.cards__input`, que é cópia local dos valores do
+ * sistema (raio `--radius-control`, fio `--border-default`, foco cobalt) e não
+ * o `.ga-input` do `GaField`. Trocá-los muda a altura dos cinco campos e o
+ * espaçamento do formulário inteiro, que é mais do que esta etapa pediu.
  */
 const {
   cards: bankCards,
@@ -205,6 +225,12 @@ const starringId = ref(null);
 
 /** `--ink-900`, o neutro escuro do design system. */
 const DEFAULT_CARD_COLOR = "#141823";
+
+/** Mesmos dois valores do `<select>` de antes, na mesma ordem. */
+const CARD_TYPE_OPTIONS = [
+  { value: "credit", label: "Crédito" },
+  { value: "debit", label: "Débito" },
+];
 
 const form = reactive({
   name: "",
@@ -526,9 +552,7 @@ onMounted(loadBankCards);
 	border-color: var(--border-focus);
 	box-shadow: var(--ring-focus);
 }
-.cards__input--select {
-	cursor: pointer;
-}
+/* `.cards__input--select` saiu junto com o `<select>` que a usava. */
 
 .cards__days {
 	display: grid;
