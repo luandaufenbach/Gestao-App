@@ -4,7 +4,6 @@ const { z } = require("zod");
 
 const {
 	getMonthlyBalance,
-	getSavedMoney,
 	getTotalSavedMoney,
 	getCategoryBreakdown,
 	getProjection,
@@ -21,7 +20,10 @@ const router = express.Router();
 const withMonth = validate({ query: monthQuery });
 
 router.get("/monthly-balance", withMonth, getMonthlyBalance);
-router.get("/saved-money", withMonth, getSavedMoney);
+/**
+ * O acumulado ignora year/month: a reserva é um saldo de todo o histórico, não
+ * do mês. O `withMonth` fica para recusar query malformada, como nas outras.
+ */
 router.get("/saved-money-total", withMonth, getTotalSavedMoney);
 router.get("/category-breakdown", withMonth, getCategoryBreakdown);
 

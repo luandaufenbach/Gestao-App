@@ -50,8 +50,13 @@ describe("efeito no valor guardado total", () => {
 		await guardar(50_000, "2026-03-05").expect(201);
 		await resgatar(20_000, "2026-03-20").expect(201);
 
-		const mes = await buscar("/dashboard/saved-money?year=2026&month=3");
-		expect(mes.body.savedInCents).toBe(30_000);
+		/**
+		 * Quem responde pela variação da reserva NO MÊS é o `monthly-balance`,
+		 * em `netSavedInCents`. A rota `/dashboard/saved-money` existia para
+		 * isto e saiu: nenhuma tela a chamava, só este teste.
+		 */
+		const mes = await buscar("/dashboard/monthly-balance?year=2026&month=3");
+		expect(mes.body.netSavedInCents).toBe(30_000);
 	});
 });
 

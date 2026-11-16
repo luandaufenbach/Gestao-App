@@ -199,13 +199,6 @@ async function sumNetSavings(match) {
 	return result?.total ?? 0;
 }
 
-/** Quanto a reserva variou no mês selecionado. */
-const getSavedMoney = asyncHandler(async (req, res) => {
-	const match = monthMatch(req.userId, req.validatedQuery);
-
-	return res.json({ savedInCents: await sumNetSavings(match) });
-});
-
 /**
  * Saldo acumulado da reserva, de todo o histórico.
  *
@@ -470,7 +463,6 @@ const getProjection = asyncHandler(async (req, res) => {
 
 module.exports = {
 	getMonthlyBalance,
-	getSavedMoney,
 	getTotalSavedMoney,
 	getCategoryBreakdown,
 	getProjection,

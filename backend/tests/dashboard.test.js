@@ -315,8 +315,8 @@ describe("GET /dashboard/category-breakdown", () => {
 	});
 });
 
-describe("GET /dashboard/saved-money", () => {
-	it("separa o guardado do mês do acumulado total", async () => {
+describe("GET /dashboard/saved-money-total", () => {
+	it("acumula o guardado de todos os meses, não só do mês pedido", async () => {
 		await lancar({
 			type: "savings",
 			description: "Fev",
@@ -330,11 +330,11 @@ describe("GET /dashboard/saved-money", () => {
 			date: "2026-03-10",
 		});
 
-		const mes = await buscar("/dashboard/saved-money?year=2026&month=3");
-		const total = await buscar("/dashboard/saved-money-total");
+		// Com year/month na query, justamente para provar que são ignorados: a
+		// reserva é um saldo do histórico inteiro.
+		const { body } = await buscar("/dashboard/saved-money-total?year=2026&month=3");
 
-		expect(mes.body.savedInCents).toBe(25_000);
-		expect(total.body.savedInCents).toBe(35_000);
+		expect(body.savedInCents).toBe(35_000);
 	});
 });
 
