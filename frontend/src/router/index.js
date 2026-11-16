@@ -107,26 +107,41 @@ const routes = [
 		// Sem botão de criar na barra inferior: ver `showFab` em GaTabBar.vue.
 		meta: { hideFab: true },
 	},
-	{
-		/**
-		 * Amostra da fundação do design system (ROADMAP 1.3).
-		 *
-		 * Não aparece em nenhum menu: é página de conferência, chegada só por
-		 * URL. Pública e com `allowAuthenticated` porque precisa abrir dos dois
-		 * jeitos — sem sessão, para olhar a fundação sem backend nenhum, e com
-		 * sessão, sem que o guard desvie para o dashboard.
-		 */
-		path: "/design-system",
-		name: "design-system",
-		component: () => import("../views/DesignSystem.vue"),
-		meta: { public: true, allowAuthenticated: true },
-	},
 	// Antes, uma URL inexistente renderizava uma página em branco sem aviso.
+	// Precisa ser a ÚLTIMA rota: ela casa com qualquer caminho.
 	{
 		path: "/:pathMatch(.*)*",
 		redirect: "/dashboard",
 	},
 ];
+
+/**
+ * Amostra da fundação do design system (ROADMAP 1.3). SÓ EM DESENVOLVIMENTO.
+ *
+ * Não aparece em nenhum menu: é página de conferência, chegada só por URL.
+ * Pública e com `allowAuthenticated` porque precisa abrir dos dois jeitos —
+ * sem sessão, para olhar a fundação sem backend nenhum, e com sessão, sem que
+ * o guard desvie para o dashboard.
+ *
+ * ── Por que não vai para produção ────────────────────────────────────────
+ *
+ * O `vite-plugin-pwa` PRÉ-CARREGA todo chunk do build. Medido no `dist/sw.js`:
+ * `DesignSystem-*.js` e `DesignSystem-*.css` estavam na lista, ou seja, todo
+ * usuário com o app instalado baixava a página interna de conferência.
+ *
+ * O `import()` fica dentro do `if` de propósito: o Vite troca
+ * `import.meta.env.DEV` por `false` no build, o ramo morre e o Rollup não gera
+ * o chunk. Mover a rota para fora do array também importa — ela tem que entrar
+ * ANTES do catch-all, senão `/design-system` cairia no redirect do dashboard.
+ */
+if (import.meta.env.DEV) {
+	routes.splice(routes.length - 1, 0, {
+		path: "/design-system",
+		name: "design-system",
+		component: () => import("../views/DesignSystem.vue"),
+		meta: { public: true, allowAuthenticated: true },
+	});
+}
 
 const router = createRouter({
 	history: createWebHistory(),
