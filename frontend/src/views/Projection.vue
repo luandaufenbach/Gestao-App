@@ -63,7 +63,43 @@
         </p>
       </section>
 
-      <ul v-else class="proj__list">
+      <template v-else>
+        <!--
+          O que a lista abaixo não responde: a FORMA da janela. A lista é boa
+          para "quanto sai em março" e péssima para "qual mês pesa mais" — a
+          barrinha de proporção dentro de cada linha compara com o pico, mas
+          não deixa ver os seis meses de uma vez.
+
+          Empilhado porque a coluna é a soma de duas coisas de naturezas
+          diferentes: a fatura que fecha e o débito já agendado. Separá-las é o
+          que mostra de onde vem o mês pesado.
+        -->
+        <section class="proj__card">
+          <div class="proj__cardHead">
+            <span class="proj__label">A sair, mês a mês</span>
+          </div>
+
+          <GxColumnChart
+            :data="chartRows"
+            :series="CHART_SERIES"
+            mode="stacked"
+            :y-format="formatCompactCurrency"
+            :aria-label="`Valor a sair em cada um dos próximos ${months} meses. ${chartSummary}`"
+          />
+
+          <ul class="proj__legend">
+            <li class="proj__legendItem">
+              <span class="proj__swatch proj__swatch--invoices"></span>
+              Faturas de cartão
+            </li>
+            <li class="proj__legendItem">
+              <span class="proj__swatch proj__swatch--debits"></span>
+              Débitos agendados
+            </li>
+          </ul>
+        </section>
+
+        <ul class="proj__list">
         <li v-for="entry in series" :key="entry.month" class="proj__month">
           <!--
             A linha inteira é o botão: a área de clique passa dos 44px de
@@ -183,7 +219,8 @@
             </p>
           </div>
         </li>
-      </ul>
+        </ul>
+      </template>
     </template>
 
     <!--
@@ -255,6 +292,7 @@
  */
 import { ref, computed, onMounted } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
+import GxColumnChart from "@/design-system/graficos/GxColumnChart.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import PaywallNotice from "../components/PaywallNotice.vue";
@@ -262,7 +300,7 @@ import { useFormatters } from "../services/useFormatters";
 import { useProjection } from "../services/useProjection";
 import { definePageAction } from "../stores/pageAction";
 
-const { formatCurrency, formatDate } = useFormatters();
+const { formatCurrency, formatCompactCurrency, formatDate } = useFormatters();
 
 const {
   months,
@@ -307,6 +345,61 @@ const currentMonth = computed(() => {
 });
 
 const isOpen = (entry) => openMonth.value === entry.month;
+
+/**
+ * ── Gráfico da janela ────────────────────────────────────────────────────
+ *
+ * O `label` que vem do backend é "novembro de 2026"; no eixo ele é abreviado,
+ * pelo mesmo motivo de Relatórios — seis desses por extenso não cabem em
+ * 375px.
+ */
+const MONTH_ABBR = [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+];
+
+function shortLabel(month) {
+  const [year, monthNumber] = String(month).split("-");
+  return `${MONTH_ABBR[Number(monthNumber) - 1] ?? month}/${year.slice(2)}`;
+}
+
+/**
+ * Faturas e débitos são as DUAS partes do comprometido, e o backend já manda
+ * as duas separadas — a coluna empilhada é a soma delas, que é exatamente o
+ * `committedInCents` da linha da lista.
+ *
+ * As cores são da paleta categórica, em ordem: cobalto e laranja. Não são
+ * `--chart-positive`/`--chart-negative` porque nenhuma das duas é boa ou ruim
+ * — são duas origens do mesmo dinheiro a sair.
+ */
+const CHART_SERIES = [
+  { key: "faturas", label: "Faturas de cartão", color: "var(--chart-1)", format: formatCurrency },
+  { key: "debitos", label: "Débitos agendados", color: "var(--chart-2)", format: formatCurrency },
+];
+
+const chartRows = computed(() =>
+  series.value.map((entry) => ({
+    label: shortLabel(entry.month),
+    faturas: entry.invoicesInCents ?? 0,
+    debitos: entry.debitsInCents ?? 0,
+  }))
+);
+
+const chartSummary = computed(() =>
+  series.value
+    .map((entry) => `${entry.label}: ${formatCurrency(entry.committedInCents)}`)
+    .join(". ")
+);
 
 /** O mês mais pesado da janela ganha a barra mais escura. */
 const isPeak = (entry) => peakInCents.value > 0 && entry.committedInCents === peakInCents.value;
@@ -390,11 +483,57 @@ onMounted(load);
   gap: var(--space-3);
 }
 
-.proj__totalHead {
+.proj__totalHead,
+.proj__cardHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+/* ── Card do gráfico ───────────────────────────────────────────────────── */
+.proj__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--card-pad);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+  /* Sem isto o gráfico alarga o card no celular em vez de caber nele. */
+  min-width: 0;
+  /* As consultas `@container` do `charts.css` medem o card. */
+  container-type: inline-size;
+}
+
+.proj__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--type-caption);
+  color: var(--text-secondary);
+}
+.proj__legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+/* Os mesmos tokens das séries: a amostra não pode divergir da coluna. */
+.proj__swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+}
+.proj__swatch--invoices {
+  background: var(--chart-1);
+}
+.proj__swatch--debits {
+  background: var(--chart-2);
 }
 .proj__label {
   font: var(--type-label);
