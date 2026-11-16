@@ -7,12 +7,21 @@
       destaque da fatia nos dois sentidos. A lista que existia aqui saiu: eram
       duas legendas para o mesmo gráfico, e só uma reagia ao ponteiro.
     -->
+    <!--
+      Duas medidas para o centro caber, porque a fonte dele é fixa em 26px no
+      `charts.css` e o furo encolhe junto com o anel:
+        - valor compacto ("R$ 2,1 mil") em vez do cheio;
+        - tamanho padrão do componente (184), e não 160 — medido, 160 deixa o
+          furo em 110px e um compacto de dez caracteres já passa disso.
+      A legenda abaixo continua com o valor exato de cada categoria.
+    -->
     <GxDonutChart
       v-if="hasData"
       :data="donutItems"
       :format="formatCurrency"
+      :center-value="formatCompactCurrency(totalInCents)"
+      center-label="Total do mês"
       legend="bottom"
-      :size="160"
       :aria-label="`Gastos por categoria. ${ariaSummary}`"
     />
 
@@ -46,20 +55,64 @@ import { useFormatters } from "@/services/useFormatters";
  */
 const props = defineProps({ year: Number, month: Number });
 
-const { formatCurrency } = useFormatters();
+const { formatCurrency, formatCompactCurrency } = useFormatters();
 
 const breakdown = ref([]);
 const error = ref("");
 
 const hasData = computed(() => breakdown.value.length > 0);
 
-/** A rosca recebe `{ label, value, color }`; o backend devolve outro formato. */
-const donutItems = computed(() =>
-  breakdown.value.map((item) => ({
+/**
+ * A rosca recebe `{ label, value, color }`; o backend devolve outro formato.
+ *
+ * ── Por que a cauda é agrupada ───────────────────────────────────────────
+ *
+ * O README da skill limita a rosca a seis fatias e manda juntar o resto em
+ * "Outros". Não é regra estética: com onze categorias, as últimas viram
+ * fatias de 4% que ninguém distingue, e a legenda cresce mais que o gráfico.
+ *
+ * O usuário PODE ter uma categoria chamada "Outros" — é comum. Quando tem, a
+ * cauda soma nela em vez de criar uma segunda linha com o mesmo nome, e a cor
+ * escolhida por ele é preservada.
+ */
+const MAX_SLICES = 6;
+
+const donutItems = computed(() => {
+  const ordered = [...breakdown.value].sort((a, b) => b.totalInCents - a.totalInCents);
+
+  const toItem = (item) => ({
     label: item.category,
     value: item.totalInCents,
     color: item.color,
-  }))
+  });
+
+  if (ordered.length <= MAX_SLICES) return ordered.map(toItem);
+
+  const head = ordered.slice(0, MAX_SLICES - 1).map(toItem);
+  const tail = ordered.slice(MAX_SLICES - 1);
+  const tailTotal = tail.reduce((sum, item) => sum + item.totalInCents, 0);
+
+  // Já existe uma categoria "Outros"? Então a cauda entra nela.
+  const existing = head.find((item) => item.label.trim().toLowerCase() === "outros");
+  if (existing) {
+    existing.value += tailTotal;
+    return head;
+  }
+
+  return [
+    ...head,
+    {
+      label: "Outros",
+      value: tailTotal,
+      // Cinza do sistema: "Outros" não é uma categoria, é o resto.
+      color: "var(--chart-8)",
+    },
+  ];
+});
+
+/** Soma de tudo, inclusive o que foi agrupado. */
+const totalInCents = computed(() =>
+  breakdown.value.reduce((sum, item) => sum + item.totalInCents, 0)
 );
 
 /**

@@ -359,9 +359,12 @@ const DEMO_DONUT = DEMO_CATEGORIES.map((item) => ({
 
       <h3 class="ds__h3">Rosca</h3>
       <div class="ds__chart">
+        <!-- `center-value` compacto: a fonte do centro é fixa em 26px e o
+             valor cheio não cabe no furo. -->
         <GxDonutChart
           :data="DEMO_DONUT"
           :format="demoCurrency"
+          :center-value="demoCompact(DEMO_DONUT.reduce((s, i) => s + i.value, 0))"
           center-label="Despesa"
           aria-label="Exemplo de distribuição por categoria."
         />

@@ -40,6 +40,12 @@
         <span class="gx-donut__cv">{{ centerCurrentValue }}</span>
         <span class="gx-donut__cl">{{ hovered ? hovered.label : centerLabel }}</span>
       </div>
+
+      <!--
+        O total completo fica legível para o leitor de tela mesmo quando o
+        centro exibe a versão compacta.
+      -->
+      <span class="gx-sr">{{ centerLabel }}: {{ formatValue(total, format) }}</span>
     </div>
 
     <div v-if="legend !== 'none'" class="gx-donut__list">
@@ -90,6 +96,16 @@ const props = defineProps({
   thickness: { type: Number, default: 22 },
 
   centerLabel: { type: String, default: "Total" },
+
+  /**
+   * O que escrever no centro quando não há fatia sob o ponteiro. Sem isto, o
+   * centro mostra o total formatado por `format`.
+   *
+   * Existe porque o furo é pequeno e a fonte do centro é fixa em 26px no
+   * `charts.css`: "R$ 2.072,36" num anel de 160px passa por cima do arco.
+   * Quem chama decide o que cabe — em dinheiro, a versão compacta.
+   */
+  centerValue: { type: String, default: null },
 
   /** Nome de formato do `chartCore` ou função. Ver a nota em `formatValue`. */
   format: { type: [String, Function], default: null },
@@ -147,6 +163,6 @@ const centerCurrentValue = computed(() => {
       ? percent(hovered.value.frac)
       : formatValue(hovered.value.value, props.format);
   }
-  return formatValue(total.value, props.format);
+  return props.centerValue ?? formatValue(total.value, props.format);
 });
 </script>
