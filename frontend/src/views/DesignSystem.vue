@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 /**
  * Página de amostra da fundação do design system (ROADMAP 1.3).
  *
@@ -186,6 +187,14 @@ const DEMO_STACK_ROWS = DEMO_MONTHS.map((label, monthIndex) => {
   return row;
 });
 
+/* Estado da legenda clicável da amostra. */
+const demoHidden = ref([]);
+const demoToggle = (key) => {
+  const i = demoHidden.value.indexOf(key);
+  if (i >= 0) demoHidden.value.splice(i, 1);
+  else demoHidden.value.push(key);
+};
+
 const DEMO_DONUT = DEMO_CATEGORIES.map((item) => ({
   label: item.label,
   value: item.values.reduce((sum, value) => sum + value, 0),
@@ -324,16 +333,47 @@ const DEMO_DONUT = DEMO_CATEGORIES.map((item) => ({
         fatias.
       </p>
 
-      <h3 class="ds__h3">Colunas lado a lado</h3>
-      <div class="ds__chart">
-        <GxColumnChart
-          :data="DEMO_ROWS"
-          :series="DEMO_SERIES"
-          mode="grouped"
-          :y-format="demoCompact"
-          aria-label="Exemplo de receita e despesa em seis meses."
-        />
-      </div>
+      <h3 class="ds__h3">Card do sistema, com legenda clicável</h3>
+      <!--
+        Esta é a moldura que as telas usam: `gx-card` com título como pergunta,
+        subtítulo de período e escopo, legenda acima do gráfico. Clique nos
+        itens da legenda para esconder a série.
+      -->
+      <section class="gx-card" aria-label="Receita e despesa por mês">
+        <div class="gx-card__head">
+          <div class="gx-card__titles">
+            <h4 class="gx-card__title">Receita e despesa por mês</h4>
+            <p class="gx-card__sub">últimos 6 meses · por competência</p>
+          </div>
+        </div>
+
+        <div class="gx-card__legend">
+          <div class="gx-legend">
+            <button
+              v-for="item in DEMO_SERIES"
+              :key="item.key"
+              type="button"
+              class="gx-legend__item"
+              :aria-pressed="!demoHidden.includes(item.key)"
+              @click="demoToggle(item.key)"
+            >
+              <span class="gx-legend__sw" :style="{ '--c': item.color }"></span>
+              <span class="gx-legend__label">{{ item.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="gx-card__body">
+          <GxColumnChart
+            :data="DEMO_ROWS"
+            :series="DEMO_SERIES"
+            :hidden="demoHidden"
+            mode="grouped"
+            :y-format="demoCompact"
+            aria-label="Exemplo de receita e despesa em seis meses."
+          />
+        </div>
+      </section>
 
       <h3 class="ds__h3">Colunas empilhadas</h3>
       <div class="ds__chart">

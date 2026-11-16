@@ -87,64 +87,97 @@
       </section>
 
       <template v-else>
-        <!-- ── Evolução por mês ───────────────────────────────────────── -->
-        <section class="rep__card">
-          <div class="rep__cardHead">
-            <span class="rep__label">Evolução por mês</span>
+        <!--
+          ── Evolução por mês ─────────────────────────────────────────────
+
+          A moldura é a do sistema (`gx-card`), e não um card inventado aqui:
+          título como PERGUNTA em sentence case, subtítulo com período e
+          escopo, legenda acima do gráfico — a anatomia que o README da camada
+          `graficos/` define. O `gx-card` também declara `container-type`, que
+          é o que faz as consultas `@container` do `charts.css` valerem.
+        -->
+        <section class="gx-card" aria-label="Receita e despesa por mês">
+          <div class="gx-card__head">
+            <div class="gx-card__titles">
+              <h2 class="gx-card__title">Receita e despesa por mês</h2>
+              <p class="gx-card__sub">últimos {{ months }} meses · por competência</p>
+            </div>
           </div>
 
-          <GxColumnChart
-            :data="evolutionRows"
-            :series="evolutionSeries"
-            mode="grouped"
-            :y-format="formatCompactCurrency"
-            :aria-label="`Receita e despesa de cada mês. ${evolutionSummary}`"
-          />
+          <!--
+            Legenda clicável: esconde a série sem tirá-la da legenda, que é o
+            comportamento que o sistema especifica. Com receita e despesa na
+            mesma escala, isolar uma das duas é o jeito de ler o mês em que a
+            despesa encostou na receita.
+          -->
+          <div class="gx-card__legend">
+            <div class="gx-legend">
+              <button
+                v-for="item in evolutionSeries"
+                :key="item.key"
+                type="button"
+                class="gx-legend__item"
+                :aria-pressed="!evolutionHidden.includes(item.key)"
+                @click="toggle(evolutionHidden, item.key)"
+              >
+                <span class="gx-legend__sw" :style="{ '--c': item.color }"></span>
+                <span class="gx-legend__label">{{ item.label }}</span>
+              </button>
+            </div>
+          </div>
 
-          <ul class="rep__legend">
-            <li class="rep__legendItem">
-              <span class="rep__swatch rep__swatch--income"></span>
-              Receita
-            </li>
-            <li class="rep__legendItem">
-              <span class="rep__swatch rep__swatch--expense"></span>
-              Despesa
-            </li>
-          </ul>
+          <div class="gx-card__body">
+            <GxColumnChart
+              :data="evolutionRows"
+              :series="evolutionSeries"
+              :hidden="evolutionHidden"
+              mode="grouped"
+              :y-format="formatCompactCurrency"
+              :aria-label="`Receita e despesa de cada mês. ${evolutionSummary}`"
+            />
+          </div>
         </section>
 
         <!-- ── Comparativo por categoria ──────────────────────────────── -->
-        <section class="rep__card">
-          <div class="rep__cardHead">
-            <span class="rep__label">Comparativo por categoria</span>
+        <section class="gx-card" aria-label="Para onde o dinheiro foi">
+          <div class="gx-card__head">
+            <div class="gx-card__titles">
+              <h2 class="gx-card__title">Para onde o dinheiro foi</h2>
+              <p class="gx-card__sub">despesa por categoria, mês a mês</p>
+            </div>
           </div>
 
           <template v-if="chartCategories.length">
-            <GxColumnChart
-              :data="categoryRows"
-              :series="categorySeries"
-              mode="stacked"
-              :y-format="formatCompactCurrency"
-              :aria-label="`Despesa por categoria em cada mês. ${categoriesSummary}`"
-            />
-
-            <!-- A legenda fica aqui, e não dentro do gráfico: ela carrega
-                 também o total da janela de cada categoria, que o gráfico não
-                 mostra. -->
-            <ul class="rep__legend rep__legend--stack">
-              <li
-                v-for="item in chartCategories"
-                :key="item.categoryId ?? item.category"
-                class="rep__legendRow"
-              >
-                <span class="rep__legendName">
+            <!-- Esta legenda carrega também o total da janela de cada
+                 categoria, que o gráfico não mostra — é o `gx-legend__val`. -->
+            <div class="gx-card__legend">
+              <div class="gx-legend">
+                <button
+                  v-for="item in categorySeries"
+                  :key="item.key"
+                  type="button"
+                  class="gx-legend__item"
+                  :aria-pressed="!categoryHidden.includes(item.key)"
+                  @click="toggle(categoryHidden, item.key)"
+                >
                   <!-- A cor é da categoria, escolhida pelo usuário: é dado. -->
-                  <span class="rep__dot" :style="{ background: item.color }"></span>
-                  <span class="rep__legendText">{{ item.category }}</span>
-                </span>
-                <span class="rep__legendValue">{{ formatCurrency(item.totalInCents) }}</span>
-              </li>
-            </ul>
+                  <span class="gx-legend__sw" :style="{ '--c': item.color }"></span>
+                  <span class="gx-legend__label">{{ item.label }}</span>
+                  <span class="gx-legend__val">{{ formatCurrency(item.totalInCents) }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="gx-card__body">
+              <GxColumnChart
+                :data="categoryRows"
+                :series="categorySeries"
+                :hidden="categoryHidden"
+                mode="stacked"
+                :y-format="formatCompactCurrency"
+                :aria-label="`Despesa por categoria em cada mês. ${categoriesSummary}`"
+              />
+            </div>
           </template>
 
           <p v-else class="rep__nothing">Nenhuma despesa com categoria no período.</p>
@@ -395,8 +428,32 @@ const categorySeries = computed(() =>
     // Cor da categoria, escolhida pelo usuário: é dado, não token da paleta.
     color: item.color,
     format: formatCurrency,
+    // Só a legenda usa: é o total da categoria na janela inteira, que o
+    // gráfico não mostra porque lá cada faixa é de um mês.
+    totalInCents: item.totalInCents,
   }))
 );
+
+/**
+ * Séries escondidas pela legenda, uma lista por gráfico.
+ *
+ * Ficam aqui e não dentro do `GxColumnChart` porque a legenda é da TELA — o
+ * componente recebe `hidden` e desenha o que sobrou, sem saber quem clicou.
+ * É o mesmo contrato do `ColumnChart` da skill.
+ */
+const evolutionHidden = ref([]);
+const categoryHidden = ref([]);
+
+/**
+ * Recebe o ARRAY, não o ref: no template o ref já chega desembrulhado, e
+ * `list.value` seria `undefined`. Mutar o array direto é reativo, porque o
+ * `ref` embrulha o conteúdo também.
+ */
+function toggle(list, key) {
+  const index = list.indexOf(key);
+  if (index >= 0) list.splice(index, 1);
+  else list.push(key);
+}
 
 const categoryRows = computed(() =>
   series.value.map((item, monthIndex) => {
@@ -661,76 +718,15 @@ onMounted(load);
   color: var(--text-tertiary);
 }
 
-/* ── Legendas ──────────────────────────────────────────────────────────── */
 /*
+ * As legendas dos dois gráficos agora são as do sistema (`gx-legend`), que
+ * vêm de `graficos/charts.css` e já tratam o estado clicado com
+ * `aria-pressed`. As classes `.rep__legend*`, `.rep__swatch*` e `.rep__dot`
+ * que existiam aqui saíram junto com a marcação que as usava.
+ *
  * A altura do gráfico mora no `GxColumnChart` (240px, prop `height`) e a
- * largura ele mede sozinho com ResizeObserver. O envoltório de altura fixa que
- * existia aqui era exigência do canvas, que escrevia width/height inline a
- * cada redesenho.
+ * largura ele mede sozinho com ResizeObserver.
  */
-.rep__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font: var(--type-caption);
-  color: var(--text-secondary);
-}
-.rep__legendItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-}
-.rep__swatch {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  border-radius: var(--radius-xs);
-}
-/* Os mesmos tokens que as séries do gráfico usam: a amostra não pode divergir
-   da coluna que ela explica. */
-.rep__swatch--income {
-  background: var(--chart-positive);
-}
-.rep__swatch--expense {
-  background: var(--chart-negative);
-}
-
-.rep__legend--stack {
-  flex-direction: column;
-  gap: var(--space-1-5);
-}
-.rep__legendRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-width: 0;
-}
-.rep__legendName {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-.rep__legendText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rep__dot {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  border-radius: 50%;
-}
-.rep__legendValue {
-  flex-shrink: 0;
-  font-weight: var(--fw-medium);
-  font-variant-numeric: tabular-nums;
-}
 
 /* ── Variação mês a mês ────────────────────────────────────────────────── */
 .rep__months {
