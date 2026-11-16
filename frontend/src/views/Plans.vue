@@ -67,45 +67,46 @@
         encolhe são as colunas e a fonte.
       -->
       <section class="plans__compare">
-        <h2 class="plans__compareTitle">O que muda entre os planos</h2>
+        <h2 class="plans__compareTitle">O que o Pro abre</h2>
 
         <table class="cmp">
           <thead>
             <tr>
-              <th scope="col" class="cmp__feature">Recurso</th>
+              <th scope="col" class="cmp__feature"></th>
               <th scope="col">Grátis</th>
               <th scope="col" class="cmp__pro">{{ catalog?.name ?? "Pro" }}</th>
             </tr>
           </thead>
 
           <tbody>
-            <template v-for="group in COMPARISON" :key="group.group">
-              <tr class="cmp__groupRow">
-                <th scope="colgroup" colspan="3" class="cmp__group">{{ group.group }}</th>
-              </tr>
+            <tr v-for="row in COMPARISON" :key="row.label">
+              <th scope="row" class="cmp__feature">
+                <span class="cmp__featureName">{{ row.label }}</span>
+                <span v-if="row.hint" class="cmp__hint">{{ row.hint }}</span>
+              </th>
 
-              <tr v-for="row in group.rows" :key="row.label">
-                <th scope="row" class="cmp__feature">
-                  <span class="cmp__featureName">
-                    {{ row.label }}
-                    <span v-if="row.soon" class="cmp__soon">em breve</span>
-                  </span>
-                  <span v-if="row.hint" class="cmp__hint">{{ row.hint }}</span>
-                </th>
+              <td class="cmp__cell cmp__cell--no">
+                <GaIcon name="x" :size="16" />
+                <span class="cmp__sr">não incluído</span>
+              </td>
 
-                <td :class="cellClass(row.free)">
-                  <GaIcon :name="row.free ? 'check' : 'x'" :size="16" />
-                  <span class="cmp__sr">{{ row.free ? "incluído" : "não incluído" }}</span>
-                </td>
-
-                <td :class="cellClass(row.pro)">
-                  <GaIcon :name="row.pro ? 'check' : 'x'" :size="16" />
-                  <span class="cmp__sr">{{ row.pro ? "incluído" : "não incluído" }}</span>
-                </td>
-              </tr>
-            </template>
+              <!-- Recurso ainda não entregue mostra "em breve" no lugar do
+                   check: dizer que já existe é vender o que o app não faz. -->
+              <td v-if="row.soon" class="cmp__cell">
+                <span class="cmp__soon">em breve</span>
+              </td>
+              <td v-else class="cmp__cell cmp__cell--yes">
+                <GaIcon name="check" :size="16" />
+                <span class="cmp__sr">incluído</span>
+              </td>
+            </tr>
           </tbody>
         </table>
+
+        <p class="cmp__free">
+          Todo o resto é grátis para sempre: lançamentos sem limite, categorias, cartões, metas,
+          compras parceladas, dashboard do mês e a fatura do ciclo atual.
+        </p>
 
         <!--
           Reversão de risco logo abaixo da tabela, que é onde a objeção aparece.
@@ -204,84 +205,41 @@ import { useFormatters } from "../services/useFormatters";
 /**
  * Tabela de comparação.
  *
- * ── A regra que vale aqui ────────────────────────────────────────────────
+ * ── Por que só quatro linhas ─────────────────────────────────────────────
  *
- * Nenhuma linha promete o que o app não faz. Quem assina e não encontra o
- * recurso pede o dinheiro de volta e não volta mais — o prejuízo é maior que
- * a assinatura ganha.
+ * A primeira versão tinha treze, agrupadas, e nove delas traziam check nos
+ * dois lados. Linha igual nas duas colunas não decide nada: ela só empurra a
+ * decisão para baixo da dobra, e a pessoa desiste antes de chegar lá.
  *
- * Por isso a foto do cupom fiscal entra marcada com `soon: true`: ela está no
- * ROADMAP (3.1 a 3.3) e NÃO está implementada. A marca "em breve" aparece na
- * tela ao lado do nome, e a coluna Pro mostra o X, não o check. Quando o
- * recurso existir, é só virar `pro: true` e apagar o `soon`.
+ * Aqui ficam APENAS as diferenças. O que é grátis nos dois planos virou uma
+ * frase abaixo da tabela — continua dito, e dito em um quinto do espaço.
  *
- * Os agrupamentos existem porque uma lista corrida de 13 linhas não se lê: a
- * pessoa precisa ver que o bloco "o que já aconteceu" é todo grátis e que o
- * bloco "o que vai acontecer" é o que ela está comprando.
+ * ── A regra que não muda ─────────────────────────────────────────────────
+ *
+ * Nenhuma linha promete o que o app não faz. A foto do cupom fiscal está no
+ * ROADMAP (3.1 a 3.3) e NÃO está implementada: a coluna Pro mostra "em breve",
+ * não um check. Quem assina e não encontra o recurso pede o dinheiro de volta
+ * e não volta mais. Quando existir, é só apagar o `soon`.
  */
 const COMPARISON = [
   {
-    group: "O dia a dia",
-    rows: [
-      {
-        label: "Lançamentos sem limite",
-        hint: "receita, despesa, débito e crédito",
-        free: true,
-        pro: true,
-      },
-      { label: "Categorias, cartões e metas", free: true, pro: true },
-      { label: "Compras parceladas", hint: "cada parcela na fatura certa", free: true, pro: true },
-      { label: "Dashboard do mês corrente", free: true, pro: true },
-      { label: "Assinaturas detectadas no histórico", free: true, pro: true },
-    ],
+    label: "Relatórios de 3 a 12 meses",
+    hint: "evolução, categorias e variação mês a mês",
   },
   {
-    group: "Faturas do cartão",
-    rows: [
-      { label: "Fatura do ciclo atual", free: true, pro: true },
-      { label: "Faturas já fechadas", free: true, pro: true },
-      {
-        label: "Faturas de ciclos futuros",
-        hint: "o que as parcelas já comprometeram",
-        free: false,
-        pro: true,
-      },
-    ],
+    label: "Projeção de caixa",
+    hint: "quanto ainda vai sair nos próximos meses",
   },
   {
-    group: "Olhar para frente e para trás",
-    rows: [
-      {
-        label: "Relatórios de 3 a 12 meses",
-        hint: "evolução, categorias e variação mês a mês",
-        free: false,
-        pro: true,
-      },
-      {
-        label: "Projeção de caixa",
-        hint: "quanto sobra nos próximos meses",
-        free: false,
-        pro: true,
-      },
-      {
-        label: "Importar compra por foto do cupom fiscal",
-        hint: "lê o QR da NFC-e e lança sozinho",
-        free: false,
-        pro: false,
-        soon: true,
-      },
-    ],
+    label: "Faturas de ciclos futuros",
+    hint: "o que as parcelas já comprometeram",
   },
   {
-    group: "Seus dados",
-    rows: [
-      { label: "Exportar tudo em um arquivo", free: true, pro: true },
-      { label: "Excluir a conta e os dados", free: true, pro: true },
-    ],
+    label: "Compra por foto do cupom fiscal",
+    hint: "lê o QR da NFC-e e lança sozinho",
+    soon: true,
   },
 ];
-
-const cellClass = (included) => ["cmp__cell", included ? "cmp__cell--yes" : "cmp__cell--no"];
 
 const { formatCurrency, formatDate } = useFormatters();
 const {
@@ -533,15 +491,11 @@ async function doCancel() {
 }
 
 /*
- * O cabeçalho gruda ao rolar: numa tabela de 13 linhas, quem chega ao fim já
- * não lembra qual coluna é a paga, e a decisão depende exatamente disso.
+ * O `sticky` saiu junto com as nove linhas: com quatro, a tabela inteira cabe
+ * na tela e o cabeçalho nunca chega a sair de vista.
  */
 .cmp thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   padding: var(--space-2) var(--space-2);
-  background: var(--surface-card);
   border-block-end: 1px solid var(--border-default);
   font: var(--type-label);
   letter-spacing: var(--ls-label);
@@ -556,17 +510,14 @@ async function doCancel() {
   color: var(--brand-primary);
 }
 
-.cmp__group {
-  padding: var(--space-4) var(--space-2) var(--space-1-5);
-  font: var(--type-label);
-  letter-spacing: var(--ls-label);
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  text-align: left;
+.cmp tbody tr {
+  border-block-start: 1px solid var(--border-subtle);
 }
 
-.cmp tbody tr:not(.cmp__groupRow) {
-  border-block-start: 1px solid var(--border-subtle);
+/* O que é grátis nos dois planos: uma frase, não nove linhas de tabela. */
+.cmp__free {
+  font: var(--type-small);
+  color: var(--text-secondary);
 }
 
 /*
@@ -597,7 +548,9 @@ async function doCancel() {
 }
 
 /* "em breve" é a única marca de recurso não entregue. Ver o COMPARISON. */
+/* Ocupa a célula do Pro no lugar do check, então é inline-block e centrado. */
 .cmp__soon {
+  display: inline-block;
   padding: 1px var(--space-1-5);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
