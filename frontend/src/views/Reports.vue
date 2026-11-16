@@ -93,13 +93,12 @@
             <span class="rep__label">Evolução por mês</span>
           </div>
 
-          <GaBarChart
-            :labels="axisLabels"
+          <GxColumnChart
+            :data="evolutionRows"
             :series="evolutionSeries"
-            :line="evolutionLine"
-            :format="formatCurrency"
-            :format-tick="formatCompactCurrency"
-            :aria-label="`Receita, despesa e resultado de cada mês. ${evolutionSummary}`"
+            mode="grouped"
+            :y-format="formatCompactCurrency"
+            :aria-label="`Receita e despesa de cada mês. ${evolutionSummary}`"
           />
 
           <ul class="rep__legend">
@@ -111,10 +110,6 @@
               <span class="rep__swatch rep__swatch--expense"></span>
               Despesa
             </li>
-            <li class="rep__legendItem">
-              <span class="rep__swatch rep__swatch--result"></span>
-              Resultado
-            </li>
           </ul>
         </section>
 
@@ -125,12 +120,11 @@
           </div>
 
           <template v-if="chartCategories.length">
-            <GaBarChart
-              :labels="axisLabels"
+            <GxColumnChart
+              :data="categoryRows"
               :series="categorySeries"
               mode="stacked"
-              :format="formatCurrency"
-              :format-tick="formatCompactCurrency"
+              :y-format="formatCompactCurrency"
               :aria-label="`Despesa por categoria em cada mês. ${categoriesSummary}`"
             />
 
@@ -241,10 +235,20 @@
  *
  * ── Os gráficos saíram do canvas ─────────────────────────────────────────
  *
- * Os dois gráficos de barra eram Chart.js em canvas, e canvas não resolve
- * `var(--token)`: seis cores do design system estavam copiadas à mão como hexa
- * aqui dentro. Agora são `GaBarChart`, em HTML e CSS, e a série aponta para o
- * token — `var(--data-income)` chega como estilo inline e o navegador resolve.
+ * Os dois eram Chart.js em canvas, e canvas não resolve `var(--token)`: seis
+ * cores do design system estavam copiadas à mão como hexa aqui dentro. Agora
+ * são `GxColumnChart`, da camada `graficos/` do design system, em SVG — o
+ * token vale direto e o tema escuro vem junto.
+ *
+ * ── O resultado deixou de ser linha no gráfico ────────────────────────────
+ *
+ * A evolução mostrava receita e despesa em barras e o resultado numa linha por
+ * cima. O `ColumnChart` da skill não tem série de linha, e o `ComboChart`, que
+ * tem, é para volume × TAXA com dois eixos — não é o caso de um resultado em
+ * reais no mesmo eixo das barras.
+ *
+ * O número não se perdeu: ele é o valor grande do card do topo e aparece mês a
+ * mês na linha de resumo da seção "Variação mês a mês".
  *
  * As cores das CATEGORIAS continuam não sendo token: vêm do backend, de cada
  * categoria cadastrada pelo usuário, e é isso que casa a faixa da barra com a
@@ -253,7 +257,7 @@
 import { ref, computed, onMounted } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaNote from "@/design-system/components/GaNote.vue";
-import GaBarChart from "@/design-system/components/GaBarChart.vue";
+import GxColumnChart from "@/design-system/graficos/GxColumnChart.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import PaywallNotice from "../components/PaywallNotice.vue";
 import { useFormatters } from "../services/useFormatters";
@@ -304,7 +308,7 @@ const currentMonth = computed(() => {
  * Rótulo curto do eixo: "nov/26".
  *
  * O `label` que vem do backend é "novembro de 2026" — doze desses no eixo não
- * cabem em 375px de jeito nenhum. Mesmo abreviado, o `GaBarChart` esconde um
+ * cabem em 375px de jeito nenhum. Mesmo abreviado, o `GxColumnChart` desenha um
  * rótulo a cada dois no celular quando a janela passa de seis meses.
  */
 const MONTH_ABBR = [
@@ -327,7 +331,8 @@ function shortLabel(month) {
   return `${MONTH_ABBR[Number(monthNumber) - 1] ?? month}/${year.slice(2)}`;
 }
 
-const axisLabels = computed(() => series.value.map((item) => shortLabel(item.month)));
+/* O rótulo do eixo agora vai dentro de cada linha de dados, em `label` — o
+   `GxColumnChart` lê do próprio dado, não de uma lista paralela. */
 
 const evolutionSummary = computed(() =>
   series.value
@@ -347,53 +352,64 @@ const categoriesSummary = computed(() =>
 );
 
 /**
- * Séries do gráfico de evolução.
+ * ── Formatação dos eixos ──────────────────────────────────────────────────
  *
- * A cor vai como TOKEN, não como hexa: o `GaBarChart` é HTML, e `var(--...)`
- * em estilo inline o navegador resolve. Era isto que o canvas não fazia.
+ * Os formatos nomeados do `chartCore` (`currency`, `currencyCompact`) esperam
+ * REAIS, e aqui tudo trafega em centavos. Por isso vão funções: a divisão por
+ * 100 continua acontecendo num lugar só, no `useFormatters`.
+ *
+ * O eixo usa o compacto e o tooltip o valor cheio — o `GxColumnChart` aceita
+ * um formato por série justamente para isso.
  */
-const evolutionSeries = computed(() => [
-  {
-    key: "income",
-    label: "Receita",
-    color: "var(--data-income)",
-    data: series.value.map((item) => item.incomeInCents),
-  },
-  {
-    key: "expense",
-    label: "Despesa",
-    color: "var(--data-expense)",
-    data: series.value.map((item) => item.expenseInCents),
-  },
-]);
+const evolutionRows = computed(() =>
+  series.value.map((item) => ({
+    label: shortLabel(item.month),
+    receita: item.incomeInCents,
+    despesa: item.expenseInCents,
+  }))
+);
 
 /**
- * O resultado é linha, e não uma terceira barra: ele pode ser negativo, e
- * barra negativa ao lado de duas positivas se lê como "gastei menos", quando
- * significa o contrário.
+ * Verde e vermelho aqui significam BOM e RUIM, não direção — é a regra de
+ * cores semânticas da skill. Receita que entra é positiva, despesa é negativa,
+ * e por isso os tokens são `--chart-positive` e `--chart-negative`, e não duas
+ * cores da paleta categórica.
  */
-const evolutionLine = computed(() => ({
-  label: "Resultado",
-  color: "var(--data-result)",
-  data: series.value.map((item) => item.netResultInCents),
-}));
+const evolutionSeries = [
+  { key: "receita", label: "Receita", color: "var(--chart-positive)", format: formatCurrency },
+  { key: "despesa", label: "Despesa", color: "var(--chart-negative)", format: formatCurrency },
+];
 
 /**
- * Séries do comparativo por categoria, EMPILHADAS: a altura da coluna é a
- * despesa total do mês, e cada faixa é uma categoria. Lado a lado, doze meses
- * × seis categorias dariam 72 barras de dois pixels em 375px.
+ * Comparativo por categoria, EMPILHADO: a altura da coluna é a despesa total
+ * do mês, e cada faixa é uma categoria. Lado a lado, doze meses × seis
+ * categorias dariam 72 barras de dois pixels em 375px.
  *
- * `monthlyInCents` já vem alinhado posição por posição com a série, então vai
- * direto, sem procurar mês por chave.
+ * As chaves são posicionais (`c0`, `c1`…) porque o nome da categoria pode
+ * conter qualquer coisa e viraria chave de objeto frágil.
  */
 const categorySeries = computed(() =>
-  chartCategories.value.map((item) => ({
-    key: item.categoryId ?? item.category,
+  chartCategories.value.map((item, index) => ({
+    key: `c${index}`,
     label: item.category,
-    // Cor da categoria, escolhida pelo usuário: é dado, não token.
+    // Cor da categoria, escolhida pelo usuário: é dado, não token da paleta.
     color: item.color,
-    data: item.monthlyInCents,
+    format: formatCurrency,
   }))
+);
+
+const categoryRows = computed(() =>
+  series.value.map((item, monthIndex) => {
+    const row = { label: shortLabel(item.month) };
+
+    // `monthlyInCents` já vem alinhado posição por posição com a série, então
+    // o índice do mês serve direto, sem procurar por chave.
+    chartCategories.value.forEach((category, index) => {
+      row[`c${index}`] = category.monthlyInCents[monthIndex] ?? 0;
+    });
+
+    return row;
+  })
 );
 
 /** Largura da barra do mês, de 0 a 100, relativa ao mês de maior despesa. */
@@ -647,9 +663,10 @@ onMounted(load);
 
 /* ── Legendas ──────────────────────────────────────────────────────────── */
 /*
- * As alturas dos gráficos moram no `GaBarChart` (220px no celular, 280px a
- * partir de 768px) — o envoltório com altura fixa que existia aqui era
- * exigência do canvas, que escrevia width/height inline a cada redesenho.
+ * A altura do gráfico mora no `GxColumnChart` (240px, prop `height`) e a
+ * largura ele mede sozinho com ResizeObserver. O envoltório de altura fixa que
+ * existia aqui era exigência do canvas, que escrevia width/height inline a
+ * cada redesenho.
  */
 .rep__legend {
   display: flex;
@@ -673,18 +690,12 @@ onMounted(load);
   border-radius: var(--radius-xs);
 }
 /* Os mesmos tokens que as séries do gráfico usam: a amostra não pode divergir
-   da barra que ela explica. */
+   da coluna que ela explica. */
 .rep__swatch--income {
-  background: var(--data-income);
+  background: var(--chart-positive);
 }
 .rep__swatch--expense {
-  background: var(--data-expense);
-}
-/* O resultado é linha no gráfico, então a amostra também é uma linha. */
-.rep__swatch--result {
-  height: 3px;
-  border-radius: var(--radius-pill);
-  background: var(--data-result);
+  background: var(--chart-negative);
 }
 
 .rep__legend--stack {

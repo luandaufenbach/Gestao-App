@@ -2,23 +2,19 @@
   <div class="pie">
     <span class="pie__label">Gastos por categoria</span>
 
-    <div v-if="hasData" class="pie__body">
-      <GaDonutChart
-        :items="donutItems"
-        :format="formatCurrency"
-        :aria-label="`Gráfico de gastos por categoria. ${ariaSummary}`"
-      />
-
-      <ul class="pie__legend">
-        <li v-for="item in breakdown" :key="item.categoryId ?? item.category" class="pie__item">
-          <div class="pie__itemName">
-            <span class="pie__dot" :style="{ background: item.color }"></span>
-            <span>{{ item.category }}</span>
-          </div>
-          <span class="pie__itemValue">{{ formatCurrency(item.totalInCents) }}</span>
-        </li>
-      </ul>
-    </div>
+    <!--
+      A legenda com valor e porcentagem faz parte do `GxDonutChart`, ligada ao
+      destaque da fatia nos dois sentidos. A lista que existia aqui saiu: eram
+      duas legendas para o mesmo gráfico, e só uma reagia ao ponteiro.
+    -->
+    <GxDonutChart
+      v-if="hasData"
+      :data="donutItems"
+      :format="formatCurrency"
+      legend="bottom"
+      :size="160"
+      :aria-label="`Gastos por categoria. ${ariaSummary}`"
+    />
 
     <!--
       O estado vazio mostrava o emoji 🍕 em 30px. A skill é explícita: emoji
@@ -36,14 +32,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
-import GaDonutChart from "@/design-system/components/GaDonutChart.vue";
+import GxDonutChart from "@/design-system/graficos/GxDonutChart.vue";
 import { getCategoryBreakdown } from "@/services/api";
 import { useFormatters } from "@/services/useFormatters";
 
 /**
- * O DESENHO da rosca saiu daqui para `GaDonutChart`, no design system. O que
- * sobrou neste arquivo é o que não é gráfico: a casca do card, a busca no
- * backend, o estado vazio e a legenda com o valor de cada categoria.
+ * O GRÁFICO saiu daqui para `GxDonutChart`, na camada `graficos/` do design
+ * system. O que sobrou é o que não é gráfico: a casca do card, a busca no
+ * backend e o estado vazio.
  *
  * A separação é o que mantém o design system apresentacional — um componente
  * de lá não busca dados.
@@ -120,6 +116,12 @@ defineExpose({ refetch });
 	background: var(--surface-card);
 	box-shadow: var(--shadow-xs);
 	color: var(--text-primary);
+	/*
+	 * As consultas `@container` do `charts.css` medem o card. No sistema quem
+	 * declara o container é o `.gx-card`; aqui o card é este, então a
+	 * declaração vem para cá — sem ela a rosca não empilha no celular.
+	 */
+	container-type: inline-size;
 }
 
 .pie__label {
@@ -129,50 +131,11 @@ defineExpose({ refetch });
 	color: var(--text-tertiary);
 }
 
-.pie__body {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--space-4);
-}
-/* O tamanho da rosca e o truque de `!important` contra o estilo inline que o
-   Chart.js escreve moram agora em `GaDonutChart`. */
-
-.pie__legend {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1-5);
-	width: 100%;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-.pie__item {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-3);
-	font: var(--type-body);
-}
-.pie__itemName {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-width: 0;
-	color: var(--text-secondary);
-}
-.pie__dot {
-	width: 12px;
-	height: 12px;
-	flex-shrink: 0;
-	border-radius: 50%;
-}
-.pie__itemValue {
-	font-weight: var(--fw-medium);
-	color: var(--text-secondary);
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
-}
+/*
+ * O desenho da rosca, o tamanho e a legenda com valor e porcentagem são todos
+ * do `GxDonutChart`, e vêm de `graficos/charts.css`. Não há mais nada de
+ * gráfico neste arquivo.
+ */
 
 .pie__empty {
 	display: flex;

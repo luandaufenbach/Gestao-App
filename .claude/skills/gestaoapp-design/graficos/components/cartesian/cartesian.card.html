@@ -1,0 +1,50 @@
+<!-- @dsCard group="Gráficos" viewport="700x1040" name="Cartesianos" subtitle="Linha, área empilhada, colunas (destaque, empilhada), combo, dispersão, cascata" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<link rel="stylesheet" href="../../graficos.css">
+<style>body{margin:0;padding:16px;background:var(--bg-app,#FAFBFD);font-family:var(--chart-font);color:var(--chart-value)}.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.col{display:flex;flex-direction:column;gap:12px}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.cap{font:500 10.5px/1 var(--chart-font);letter-spacing:.08em;text-transform:uppercase;color:var(--chart-axis-text)}.gx-card{padding:16px;gap:12px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../../_ds_bundle.js"></script>
+<script>if(!(window.GestaoAppDesignSystem_8ff7d0&&window.GestaoAppDesignSystem_8ff7d0.ChartCard))document.write('<script src="../../loader.js"><\/script>');</script>
+<script src="../../exemplos/dados.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const G = (NS && NS.ChartCard) ? NS : window.Graficos;
+const X = window.GX_DEMO;
+const { ChartCard, LineChart, AreaChart, ColumnChart, ComboChart, ScatterChart, WaterfallChart, ChartLegend } = G;
+function Demo(){
+  const p = X.period('30d');
+  const pr = [{key:'high',label:'Alta',color:'var(--chart-priority-high)'},{key:'medium',label:'Média',color:'var(--chart-priority-medium)'},{key:'low',label:'Baixa',color:'var(--chart-priority-low)'}];
+  const stack = X.period('90d').rows.map((r,i)=>({label:r.label, design:Math.round(r.done*.45), dev:Math.round(r.done*.35), content:Math.round(r.done*.2)}));
+  return (<div className="col">
+    <ChartCard title="Criadas × concluídas" subtitle="Linha · comparação tracejada · meta" legend={[{label:'Concluídas',color:'var(--chart-1)',shape:'line'},{label:'Criadas',color:'var(--chart-2)',shape:'line'},{label:'Período anterior',color:'var(--chart-comparison)',dashed:true}]}>
+      <LineChart height={190} data={p.rows} references={[{value:9,label:'Meta diária'}]} highlightLast series={[{key:'done',label:'Concluídas'},{key:'created',label:'Criadas'},{key:'prev',label:'Período anterior',color:'var(--chart-comparison)',dashed:true}]} />
+    </ChartCard>
+    <div className="g2">
+      <ChartCard title="Horas por área" subtitle="Área empilhada" legend={[{label:'Design',color:'var(--chart-1)'},{label:'Dev',color:'var(--chart-2)'},{label:'Conteúdo',color:'var(--chart-3)'}]}>
+        <AreaChart stacked height={170} data={stack} yFormat="compact" series={[{key:'design',label:'Design'},{key:'dev',label:'Dev'},{key:'content',label:'Conteúdo'}]} />
+      </ChartCard>
+      <ChartCard title="Concluídas por semana" subtitle="Coluna · semana atual em destaque">
+        <ColumnChart height={196} data={X.weeks} series={[{key:'value',label:'Concluídas'}]} highlight={X.weeks.length-1} showValues />
+      </ChartCard>
+      <ChartCard title="Por prioridade" subtitle="Colunas empilhadas" legend={pr}>
+        <ColumnChart mode="stacked" height={170} data={X.priorityWeeks} series={pr} />
+      </ChartCard>
+      <ChartCard title="Entregas × % no prazo" subtitle="Combo · eixo duplo" legend={[{label:'Entregas',color:'var(--chart-seq-3)'},{label:'% no prazo',color:'var(--chart-1)',shape:'line'}]}>
+        <ComboChart height={170} data={X.combo} bar={{key:'delivered',label:'Entregas'}} line={{key:'onTime',label:'% no prazo'}} y2Domain={[60,100]} highlight={X.combo.length-1} />
+      </ChartCard>
+      <ChartCard title="Esforço × impacto" subtitle="Dispersão · bolhas · quadrantes" legend={X.scatterGroups.map((g,i)=>({label:g.label,color:g.color||'var(--chart-1)',shape:'dot'}))}>
+        <ScatterChart bubble height={210} points={X.scatter} groups={X.scatterGroups} xFormat="hours" xLabel="Esforço (h)" yLabel="Impacto" quadrants={{x:80,y:5.5,labels:['Ganhos rápidos','Grandes apostas','','Reavaliar']}} />
+      </ChartCard>
+      <ChartCard title="Horas: planejado → realizado" subtitle="Cascata · aumento = ruim">
+        <WaterfallChart height={226} steps={X.waterfall} yFormat="hours" invert />
+      </ChartCard>
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

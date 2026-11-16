@@ -1,0 +1,34 @@
+/* gestaoApp · Gráficos — data-viz tokens. Self-contained: works with or without the root design system. */
+:root{
+/* Categorical — use in order; max 4 series in lines, 6 in donuts/stacks, then group into "Outros" */
+--chart-1:#2E44F0;--chart-2:#F59E0B;--chart-3:#8B5CF6;--chart-4:#9DBD22;--chart-5:#D9468F;--chart-6:#3B9EF5;--chart-7:#178A45;--chart-8:#737886;
+/* Text that sits on top of each categorical fill */
+--chart-on-1:#FFFFFF;--chart-on-2:#0B0D14;--chart-on-3:#FFFFFF;--chart-on-4:#0B0D14;--chart-on-5:#FFFFFF;--chart-on-6:#0B0D14;--chart-on-7:#FFFFFF;--chart-on-8:#FFFFFF;
+/* Sequential (cobalt) — heatmaps, intensity, ranked tiles */
+--chart-seq-0:#F0F2F7;--chart-seq-1:#E3E7FF;--chart-seq-2:#C8CFFD;--chart-seq-3:#A3AEF9;--chart-seq-4:#6A7CFA;--chart-seq-5:#2E44F0;--chart-seq-6:#1C29A8;--chart-seq-7:#111866;
+/* Diverging (red ← neutral → cobalt) — variance vs plan, sentiment */
+--chart-div-neg-3:#A8262B;--chart-div-neg-2:#E5484D;--chart-div-neg-1:#F6B3B5;--chart-div-mid:#ECEEF3;--chart-div-pos-1:#C8CFFD;--chart-div-pos-2:#6A7CFA;--chart-div-pos-3:#1C29A8;
+/* Semantic */
+--chart-positive:#22A355;--chart-negative:#E5484D;--chart-warning:#F59E0B;--chart-neutral:#9DA2AE;--chart-highlight:#D4F55A;--chart-highlight-ink:#0B0D14;--chart-target:#0B0D14;--chart-comparison:#9DA2AE;--chart-forecast:#A3AEF9;
+--chart-status-todo:#9DA2AE;--chart-status-progress:#2E44F0;--chart-status-review:#F59E0B;--chart-status-done:#22A355;
+--chart-priority-high:#E5484D;--chart-priority-medium:#F59E0B;--chart-priority-low:#C8CDD8;
+/* Chrome */
+--chart-surface:#FFFFFF;--chart-grid:#ECEEF3;--chart-baseline:#CDD1DA;--chart-axis-text:#737886;--chart-label:#555A67;--chart-value:#0B0D14;--chart-track:#ECEEF3;--chart-band:rgba(46,68,240,.06);--chart-crosshair:#CDD1DA;
+--chart-tooltip-bg:#0B0D14;--chart-tooltip-fg:#FFFFFF;--chart-tooltip-muted:rgba(255,255,255,.62);
+--chart-border:#ECEEF3;--chart-card-shadow:0 1px 2px rgba(17,22,40,.04);
+/* Geometry */
+--chart-stroke:2.5px;--chart-stroke-thin:1.5px;--chart-dot:4px;/* @kind spacing */
+--chart-bar-radius:6px;--chart-tile-radius:8px;--chart-card-radius:14px;
+--chart-area-opacity:.18;/* @kind other */
+--chart-font:'Outfit',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;/* @kind font */
+--chart-fs-tick:11px;--chart-fs-label:12px;--chart-fs-value:13px;--chart-fs-kpi:32px;/* @kind font */
+--chart-dur:700ms;/* @kind other */
+--chart-ease:cubic-bezier(.22,1,.36,1);/* @kind other */
+}
+[data-theme="dark"]{
+--chart-surface:#151925;--chart-grid:rgba(255,255,255,.07);--chart-baseline:rgba(255,255,255,.18);--chart-axis-text:#8B90A0;--chart-label:#A7ACB9;--chart-value:#F4F5FA;--chart-track:rgba(255,255,255,.08);--chart-band:rgba(106,124,250,.10);--chart-crosshair:rgba(255,255,255,.22);
+--chart-tooltip-bg:#F4F5FA;--chart-tooltip-fg:#0B0D14;--chart-tooltip-muted:rgba(11,13,20,.6);
+--chart-border:rgba(255,255,255,.06);--chart-card-shadow:none;
+--chart-seq-0:#1B2030;--chart-seq-1:#1E2547;--chart-seq-2:#24317A;--chart-seq-3:#2E44F0;--chart-seq-4:#6A7CFA;--chart-seq-5:#A3AEF9;--chart-seq-6:#C8CFFD;--chart-seq-7:#E3E7FF;
+--chart-div-mid:#2A3040;--chart-target:#F4F5FA;--chart-priority-low:#555A67;--chart-1:#4F63F5;--chart-8:#9DA2AE;
+}

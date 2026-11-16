@@ -1,0 +1,34 @@
+<!-- @dsCard group="Gráficos" viewport="700x920" name="Especializados" subtitle="Mapa de calor (dia × hora, calendário), radar, cronograma Gantt" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<link rel="stylesheet" href="../../graficos.css">
+<style>body{margin:0;padding:16px;background:var(--bg-app,#FAFBFD);font-family:var(--chart-font);color:var(--chart-value)}.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.col{display:flex;flex-direction:column;gap:12px}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.cap{font:500 10.5px/1 var(--chart-font);letter-spacing:.08em;text-transform:uppercase;color:var(--chart-axis-text)}.gx-card{padding:16px;gap:12px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../../_ds_bundle.js"></script>
+<script>if(!(window.GestaoAppDesignSystem_8ff7d0&&window.GestaoAppDesignSystem_8ff7d0.ChartCard))document.write('<script src="../../loader.js"><\/script>');</script>
+<script src="../../exemplos/dados.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const G = (NS && NS.ChartCard) ? NS : window.Graficos;
+const X = window.GX_DEMO;
+const { ChartCard, Heatmap, RadarChart, GanttChart, ChartLegend } = G;
+function Demo(){
+  return (<div className="col">
+    <ChartCard title="Cronograma dos projetos" subtitle="Gantt · progresso · marco · hoje" flush>
+      <GanttChart start="2026-09-14" end="2026-11-15" today="2026-10-08" rows={X.projectsGantt} labelWidth={170} />
+    </ChartCard>
+    <div className="g2">
+      <ChartCard title="Quando a equipe conclui" subtitle="Dia × hora"><Heatmap rows={X.heatRows} cols={X.heatCols} values={X.heat} colLabelEvery={2} /></ChartCard>
+      <ChartCard title="Perfil de carga" subtitle="Radar · sprint atual × anterior" legend={[{label:'Sprint atual',color:'var(--chart-1)'},{label:'Anterior',color:'var(--chart-comparison)',dashed:true}]}>
+        <RadarChart axes={X.radarAxes} series={X.radar} height={210} format="hours" />
+      </ChartCard>
+    </div>
+    <ChartCard title="Calendário de entregas" subtitle="Últimas 20 semanas"><Heatmap rows={X.calRows} cols={X.calCols} values={X.calendar} maxCell={22} colLabelEvery={4} /></ChartCard>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

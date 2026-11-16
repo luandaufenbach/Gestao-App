@@ -59,3 +59,7 @@ Thumbs.db
 !.claude/agents/
 !.claude/skills/
 !.claude/launch.json
+
+# Pacote do design system exportado do Claude Design: 116 MB, nao versionado.
+# A copia consumida vive em frontend/src/design-system/ e em .claude/skills/.
+*.zip

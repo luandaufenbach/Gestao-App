@@ -1,0 +1,39 @@
+<!-- @dsCard group="Gráficos" viewport="700x860" name="Proporção e ranking" subtitle="Rosca, pizza, barras horizontais, barra de distribuição, funil, treemap" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<link rel="stylesheet" href="../../graficos.css">
+<style>body{margin:0;padding:16px;background:var(--bg-app,#FAFBFD);font-family:var(--chart-font);color:var(--chart-value)}.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.col{display:flex;flex-direction:column;gap:12px}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.cap{font:500 10.5px/1 var(--chart-font);letter-spacing:.08em;text-transform:uppercase;color:var(--chart-axis-text)}.gx-card{padding:16px;gap:12px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../../_ds_bundle.js"></script>
+<script>if(!(window.GestaoAppDesignSystem_8ff7d0&&window.GestaoAppDesignSystem_8ff7d0.ChartCard))document.write('<script src="../../loader.js"><\/script>');</script>
+<script src="../../exemplos/dados.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const G = (NS && NS.ChartCard) ? NS : window.Graficos;
+const X = window.GX_DEMO;
+const { ChartCard, DonutChart, HBarChart, DistributionBar, FunnelChart, Treemap } = G;
+const ini = (n,c) => <span className="gx-ini" style={{'--c':c}}>{n.split(' ').map(x=>x[0]).join('').slice(0,2)}</span>;
+function Demo(){
+  return (<div className="col">
+    <div className="g2">
+      <ChartCard title="Tarefas por status" subtitle="Rosca · passe o mouse"><DonutChart data={X.status} size={150} thickness={18} centerLabel="tarefas" legend="bottom" /></ChartCard>
+      <ChartCard title="Produtividade" subtitle="Ranking · meta 30">
+        <HBarChart showRank target={30} labelWidth={150} data={X.members.map(m=>Object.assign({},m,{prefix:ini(m.label,m.tone)}))} />
+      </ChartCard>
+    </div>
+    <ChartCard title="Horas por tipo de tarefa" subtitle="Barra de distribuição"><DistributionBar format="hours" data={X.types} /></ChartCard>
+    <div className="g2">
+      <ChartCard title="Fluxo de tarefas" subtitle="Funil · conversão por etapa"><FunnelChart steps={X.funnel} labelWidth={110} /></ChartCard>
+      <div className="col">
+        <ChartCard title="Horas por projeto" subtitle="Treemap"><Treemap height={190} format="hours" data={X.hoursByProject} /></ChartCard>
+        <ChartCard title="Canal de origem" subtitle="Pizza"><DonutChart variant="pie" size={92} data={[{label:'Interno',value:58},{label:'Cliente',value:31},{label:'Suporte',value:11}]} /></ChartCard>
+      </div>
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

@@ -1,0 +1,41 @@
+<!-- @dsCard group="Gráficos" viewport="700x560" name="Base — card, legenda, variação" subtitle="ChartCard (KPI, legenda interativa, rodapé, estados), ChartLegend, TrendDelta" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<link rel="stylesheet" href="../../graficos.css">
+<style>body{margin:0;padding:16px;background:var(--bg-app,#FAFBFD);font-family:var(--chart-font);color:var(--chart-value)}.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.col{display:flex;flex-direction:column;gap:12px}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.cap{font:500 10.5px/1 var(--chart-font);letter-spacing:.08em;text-transform:uppercase;color:var(--chart-axis-text)}.gx-card{padding:16px;gap:12px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../../_ds_bundle.js"></script>
+<script>if(!(window.GestaoAppDesignSystem_8ff7d0&&window.GestaoAppDesignSystem_8ff7d0.ChartCard))document.write('<script src="../../loader.js"><\/script>');</script>
+<script src="../../exemplos/dados.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const G = (NS && NS.ChartCard) ? NS : window.Graficos;
+const X = window.GX_DEMO;
+const { ChartCard, ChartLegend, TrendDelta, LineChart } = G;
+function Demo(){
+  const [hidden,setHidden] = React.useState([]);
+  const toggle = k => setHidden(h => h.includes(k) ? h.filter(x=>x!==k) : h.concat([k]));
+  const [per,setPer] = React.useState('30d');
+  const p = X.period(per);
+  const LBL = {'7d':'Últimos 7 dias','30d':'Últimos 30 dias','90d':'Últimas 13 semanas'};
+  const seg = <div className="gx-seg">{['7d','30d','90d'].map(v=><button key={v} aria-pressed={per===v} onClick={()=>setPer(v)}>{v==='7d'?'7 dias':v==='30d'?'30 dias':'Trimestre'}</button>)}</div>;
+  return (<div className="col">
+    <ChartCard title="Tarefas concluídas" subtitle={LBL[per] + ' · todos os projetos'} actions={seg} value={p.done} delta={Math.round((p.done/p.prev-1)*1000)/10} comparison="vs período anterior"
+      legend={[{key:'done',label:'Concluídas',color:'var(--chart-1)'},{key:'prev',label:'Período anterior',color:'var(--chart-comparison)',dashed:true}]} hidden={hidden} onToggleLegend={toggle}
+      footer={<><span>Fonte: tarefas</span><span>Atualizado há 5 min</span></>}>
+      <LineChart height={170} data={p.rows} hidden={hidden} highlightLast series={[{key:'done',label:'Concluídas',area:true},{key:'prev',label:'Período anterior',color:'var(--chart-comparison)',dashed:true}]} />
+    </ChartCard>
+    <div className="g3">
+      <ChartCard title="Carregando" state="loading" height={90} />
+      <ChartCard title="Sem dados" state="empty" height={90} emptyText="Escolha outro período." />
+      <ChartCard title="Erro" state="error" height={90} onRetry={()=>{}} />
+    </div>
+    <div className="row"><span className="cap" style={{width:84}}>Variação</span><TrendDelta value={12.4} /><TrendDelta value={-8} invert label="tempo de ciclo" /><TrendDelta value={2} format="number" invert /><TrendDelta value={3.1} format="pp" size="sm" /><TrendDelta value={0} /><TrendDelta value={-4.2} variant="text" /><span style={{background:'var(--chart-1)',padding:'4px 6px',borderRadius:999}}><TrendDelta value={6} onBrand size="sm" /></span></div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

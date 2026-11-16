@@ -1,0 +1,38 @@
+<!-- @dsCard group="Gráficos" viewport="700x760" name="KPIs e progresso" subtitle="MetricCard com sparkline, sparklines, gauge, anéis de progresso, bullet" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<link rel="stylesheet" href="../../graficos.css">
+<style>body{margin:0;padding:16px;background:var(--bg-app,#FAFBFD);font-family:var(--chart-font);color:var(--chart-value)}.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.col{display:flex;flex-direction:column;gap:12px}.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.cap{font:500 10.5px/1 var(--chart-font);letter-spacing:.08em;text-transform:uppercase;color:var(--chart-axis-text)}.gx-card{padding:16px;gap:12px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../../_ds_bundle.js"></script>
+<script>if(!(window.GestaoAppDesignSystem_8ff7d0&&window.GestaoAppDesignSystem_8ff7d0.ChartCard))document.write('<script src="../../loader.js"><\/script>');</script>
+<script src="../../exemplos/dados.js"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.GestaoAppDesignSystem_8ff7d0;
+const G = (NS && NS.ChartCard) ? NS : window.Graficos;
+const X = window.GX_DEMO;
+const { ChartCard, MetricCard, Sparkline, GaugeChart, RadialProgress, BulletChart } = G;
+function Demo(){
+  const S = X.spark;
+  return (<div className="col">
+    <div className="g2">
+      <MetricCard label="Tarefas concluídas" value={186} delta={12.4} spark={S.done} comparison="vs 30 dias anteriores" />
+      <MetricCard variant="brand" label="Taxa de conclusão" value="87%" delta={3.1} deltaFormat="pp" spark={S.rate} sparkVariant="line" comparison="vs 30 dias anteriores" />
+      <MetricCard label="Tempo médio de ciclo" value="2,4" unit="dias" delta={-8} invert spark={S.cycle} sparkVariant="line" sparkColor="var(--chart-positive)" />
+      <MetricCard label="Tarefas atrasadas" value={7} delta={2} deltaFormat="number" invert spark={S.late} sparkVariant="bar" sparkColor="var(--chart-negative)" />
+    </div>
+    <div className="row" style={{gap:20}}><span className="cap">Sparkline</span><Sparkline width={110} data={S.done} /><Sparkline width={110} variant="line" trendColor data={S.rate} /><Sparkline width={110} variant="line" trendColor invert data={S.late} /><Sparkline width={90} height={28} variant="bar" data={[4,6,5,7,6,8,9]} /></div>
+    <div className="g3">
+      <ChartCard title="Saúde da sprint"><GaugeChart value={78} target={85} label="de 100" format="number" size={200} zones={[{to:60,color:'var(--chart-negative)'},{to:80,color:'var(--chart-warning)'},{to:100,color:'var(--chart-positive)'}]} /></ChartCard>
+      <ChartCard title="Meta semanal"><div style={{display:'flex',justifyContent:'center'}}><RadialProgress rings={[{label:'Meta',value:24,max:28}]} centerLabel="24 de 28" size={132} /></div></ChartCard>
+      <ChartCard title="Metas pessoais"><RadialProgress rings={X.rings} size={96} thickness={8} gap={3} legend={false} centerLabel="3 metas" /></ChartCard>
+    </div>
+    <ChartCard title="Horas planejadas × realizadas" subtitle="Bullet · traço = meta · vermelho = acima do planejado"><BulletChart rows={X.bullet} format="hours" overIsBad /></ChartCard>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

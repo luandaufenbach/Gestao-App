@@ -85,10 +85,17 @@
  * trazidas: o que as telas precisavam delas já está dentro dos componentes
  * `.vue` migrados, em `<style scoped>`.
  *
- * `charts.css` é a exceção, e está marcado como tal: ele NÃO é cópia da skill.
- * Os tokens de data viz e a pastilha de valor vieram do pacote Lumen Design
- * System, traduzidos para os tokens daqui. O arquivo explica a proveniência
- * inteira no próprio cabeçalho.
+ * ── `graficos/`: a camada de data viz ─────────────────────────────────────
+ *
+ * `graficos/tokens.css` e `graficos/charts.css` são CÓPIAS LITERAIS da pasta
+ * `graficos/` da skill, pela mesma regra dos tokens: uma atualização dela tem
+ * que poder ser comparada arquivo a arquivo. Não houve uma edição sequer.
+ *
+ * Os componentes ao lado (`Gx*.vue`, `chartCore.js`) são o porte do JSX da
+ * skill para Vue, e cada um lista no cabeçalho o que não foi portado.
+ *
+ * As classes são prefixadas `gx-` e os tokens `--chart-*`, então nada aqui
+ * colide com o `ga-` do resto do sistema nem com o tema do Tailwind.
  */
 
 /* @font-face não participa da cascata de layers e não colide com nada. */
@@ -105,4 +112,7 @@
 
 @import "./components/forms.css";
 @import "./components/overlays.css";
-@import "./components/charts.css";
+
+/* Data viz. `graficos.css` da skill é só um entry com estes dois imports. */
+@import "./graficos/tokens.css";
+@import "./graficos/charts.css";

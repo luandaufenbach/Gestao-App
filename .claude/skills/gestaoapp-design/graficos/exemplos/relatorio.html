@@ -1,0 +1,58 @@
+<!-- @dsCard group="Gráficos" viewport="1280x1180" name="Relatório — modelo" subtitle="Página de relatório completa: visão geral, projetos, equipe; responsiva" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relatórios — gestaoApp</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../graficos.css">
+<style>
+body{margin:0;background:var(--bg-app,#FAFBFD);font-family:var(--chart-font);color:var(--chart-value)}
+a{color:var(--chart-1)}a:hover{color:#2337D6}
+.rp{max-width:1440px;margin:0 auto;padding:28px 28px 48px;display:flex;flex-direction:column;gap:20px}
+.rp__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.rp__crumb{font:400 12px/1 var(--chart-font);color:var(--chart-axis-text);margin-bottom:8px}
+.rp__title{margin:0;font:500 26px/1.15 var(--chart-font);letter-spacing:-0.02em}
+.rp__sub{margin:6px 0 0;font:400 13px/1.4 var(--chart-font);color:var(--chart-label)}
+.rp__actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rp__btn{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--chart-border);background:var(--chart-surface);font:500 13px/1 var(--chart-font);color:var(--chart-value);cursor:pointer}
+@media (max-width:767px){.rp{padding:16px 16px 32px;gap:16px}.rp__actions{width:100%}.rp__actions .gx-seg{flex:1;display:flex}.rp__actions .gx-seg button{flex:1}}
+@media print{.rp__actions{display:none}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script>if(!(window.GestaoAppDesignSystem_8ff7d0&&window.GestaoAppDesignSystem_8ff7d0.ChartCard))document.write('<script src="../loader.js"><\/script>');</script>
+<script src="dados.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="relatorio-conteudo.jsx"></script>
+<script type="text/babel">
+function Pagina() {
+  const [period, setPeriod] = React.useState('30d');
+  const [tab, setTab] = React.useState('geral');
+  return (
+    <main className="rp">
+      <header className="rp__head">
+        <div>
+          <div className="rp__crumb">Estúdio Norte · Relatórios</div>
+          <h1 className="rp__title">Relatórios</h1>
+          <p className="rp__sub">{PERIODO_TXT[period]} · 8 de outubro de 2026 · 5 projetos ativos</p>
+        </div>
+        <div className="rp__actions">
+          <div className="gx-seg" role="group" aria-label="Período">{RELATORIO_PERIODOS.map(function (p) { return <button key={p.value} aria-pressed={period === p.value} onClick={function () { setPeriod(p.value); }}>{p.label}</button>; })}</div>
+          <button className="rp__btn" onClick={function () { window.print(); }}>Exportar PDF</button>
+        </div>
+      </header>
+      <div className="gx-tabs" role="tablist">{RELATORIO_ABAS.map(function (t) { return <button key={t.value} role="tab" aria-selected={tab === t.value} onClick={function () { setTab(t.value); }}>{t.label}</button>; })}</div>
+      <RelatorioConteudo tab={tab} period={period} />
+    </main>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Pagina />);
+</script>
+</body>
+</html>
