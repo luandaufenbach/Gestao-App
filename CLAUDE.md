@@ -6,7 +6,7 @@ App de finanças pessoais. Backend Node/Express 5 + Mongoose 9 + Zod; frontend V
 ## Comandos
 
 ```bash
-cd backend && npm test          # 158 testes, MongoDB em memória, sem mocks
+cd backend && npm test          # 295 testes, MongoDB em memória, sem mocks
 cd backend && npm run lint:check
 cd frontend && npm run build
 ```

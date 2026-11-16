@@ -19,7 +19,7 @@ Multi-usuário, com autenticação por JWT — cada conta enxerga apenas os pró
 | Camada   | Tecnologias                                                          |
 | -------- | -------------------------------------------------------------------- |
 | Backend  | Node.js 20+, Express 5, Mongoose 9, MongoDB, Zod, JWT, bcrypt         |
-| Frontend | Vue 3 (`<script setup>`), Vite 7, Vue Router 4, Tailwind 4, Chart.js  |
+| Frontend | Vue 3 (`<script setup>`), Vite 7, Vue Router 4, Tailwind 4             |
 | Testes   | Vitest, Supertest, mongodb-memory-server                             |
 | Qualidade| ESLint 9 (flat config), Prettier                                      |
 
@@ -183,7 +183,6 @@ Todas as rotas exigem `Authorization: Bearer <token>`, exceto `/health` e
 | `GET`    | `/bank-cards/:id/invoices`      | Faturas recentes, com total e status         |
 | `GET`    | `/bank-cards/:id/invoices/:cycle` | Detalhe da fatura, agrupado por categoria  |
 | `GET`    | `/dashboard/monthly-balance`    | Saldo, receitas e despesas do mês            |
-| `GET`    | `/dashboard/saved-money`        | Valor guardado no mês                        |
 | `GET`    | `/dashboard/saved-money-total`  | Valor guardado acumulado                     |
 | `GET`    | `/dashboard/category-breakdown` | Gastos por categoria no mês                  |
 
