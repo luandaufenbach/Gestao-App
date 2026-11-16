@@ -1,5 +1,6 @@
 import { ref } from "vue";
-import * as api from "./api";
+// Imports nomeados, não `import * as api` — ver a razão em stores/bankCards.js.
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from "./api";
 
 /**
  * Composable de transações.
@@ -28,7 +29,7 @@ export function useTransactions() {
 		error.value = "";
 
 		try {
-			const data = await api.getTransactions(params);
+			const data = await getTransactions(params);
 			transactions.value = Array.isArray(data) ? data : [];
 		} catch (err) {
 			error.value = err.displayMessage ?? "Erro ao carregar transações";
@@ -40,11 +41,11 @@ export function useTransactions() {
 
 	/** Lança ApiError em caso de falha — o chamador trata e exibe. */
 	async function createNew(payload) {
-		return api.createTransaction(payload);
+		return createTransaction(payload);
 	}
 
 	async function update(id, payload) {
-		return api.updateTransaction(id, payload);
+		return updateTransaction(id, payload);
 	}
 
 	/**
@@ -52,7 +53,7 @@ export function useTransactions() {
 	 *   Padrão "single": o usuário precisa pedir explicitamente pelo grupo (C3).
 	 */
 	async function remove(id, scope = "single") {
-		const result = await api.deleteTransaction(id, scope);
+		const result = await deleteTransaction(id, scope);
 		transactions.value = transactions.value.filter((t) => t._id !== id);
 		return result;
 	}

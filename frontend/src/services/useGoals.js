@@ -1,5 +1,6 @@
 import { ref } from "vue";
-import * as api from "./api";
+// Imports nomeados, não `import * as api` — ver a razão em stores/bankCards.js.
+import { getGoals, createGoal, updateGoal, deleteGoal } from "./api";
 
 /**
  * Composable de metas.
@@ -18,7 +19,7 @@ export function useGoals() {
 		error.value = "";
 
 		try {
-			const data = await api.getGoals();
+			const data = await getGoals();
 			goals.value = Array.isArray(data) ? data : [];
 		} catch (err) {
 			error.value = err.displayMessage ?? "Erro ao carregar metas";
@@ -29,20 +30,20 @@ export function useGoals() {
 	}
 
 	async function createNew(payload) {
-		const created = await api.createGoal(payload);
+		const created = await createGoal(payload);
 		goals.value = [created, ...goals.value];
 		return created;
 	}
 
 	async function update(id, payload) {
-		const updated = await api.updateGoal(id, payload);
+		const updated = await updateGoal(id, payload);
 		const index = goals.value.findIndex((goal) => goal._id === id);
 		if (index !== -1) goals.value[index] = updated;
 		return updated;
 	}
 
 	async function remove(id) {
-		await api.deleteGoal(id);
+		await deleteGoal(id);
 		goals.value = goals.value.filter((goal) => goal._id !== id);
 	}
 

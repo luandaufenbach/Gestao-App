@@ -1,5 +1,12 @@
 import { ref, computed } from "vue";
-import * as api from "../services/api";
+/**
+ * Imports nomeados, não `import * as api` — ver a razão em stores/bankCards.js.
+ *
+ * `login` e `register` vêm com apelido porque o `useAuth()` abaixo declara
+ * funções com esses mesmos nomes. Sem o apelido, a função local sombrearia o
+ * import e `login(credentials)` chamaria a si mesma até estourar a pilha.
+ */
+import { getMe, login as loginRequest, register as registerRequest } from "../services/api";
 import { tokenStorage, setUnauthorizedHandler } from "../services/http";
 import { identifyUser, resetAnalytics, trackEvent } from "../services/analytics";
 import { useCategories } from "./categories";
@@ -76,7 +83,7 @@ async function restoreSession() {
 	}
 
 	try {
-		user.value = await api.getMe();
+		user.value = await getMe();
 
 		/**
 		 * Também aqui, e não só no `setSession`: quem volta com o token ainda
@@ -97,7 +104,7 @@ export function useAuth() {
 	async function login(credentials) {
 		loading.value = true;
 		try {
-			setSession(await api.login(credentials));
+			setSession(await loginRequest(credentials));
 		} finally {
 			loading.value = false;
 		}
@@ -106,7 +113,7 @@ export function useAuth() {
 	async function register(payload) {
 		loading.value = true;
 		try {
-			setSession(await api.register(payload));
+			setSession(await registerRequest(payload));
 			// Segundo passo do funil. Depois do setSession, para o evento já
 			// sair ligado à pessoa que acabou de ser identificada.
 			trackEvent("cadastro_concluido");

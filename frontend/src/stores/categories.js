@@ -1,5 +1,6 @@
 import { ref, computed } from "vue";
-import * as api from "../services/api";
+// Imports nomeados, não `import * as api` — ver a razão em stores/bankCards.js.
+import { getCategories, createCategory, deleteCategory } from "../services/api";
 
 /**
  * Store de categorias — singleton.
@@ -31,8 +32,7 @@ async function load({ force = false } = {}) {
 	loading.value = true;
 	error.value = "";
 
-	inFlight = api
-		.getCategories()
+	inFlight = getCategories()
 		.then((data) => {
 			categories.value = Array.isArray(data) ? data : [];
 			return categories.value;
@@ -51,7 +51,7 @@ async function load({ force = false } = {}) {
 }
 
 async function create(payload) {
-	const created = await api.createCategory(payload);
+	const created = await createCategory(payload);
 	categories.value = [...categories.value, created].sort((a, b) =>
 		a.name.localeCompare(b.name, "pt")
 	);
@@ -59,7 +59,7 @@ async function create(payload) {
 }
 
 async function remove(id) {
-	await api.deleteCategory(id);
+	await deleteCategory(id);
 	categories.value = categories.value.filter((category) => category._id !== id);
 }
 
