@@ -4,6 +4,8 @@ const rateLimit = require("express-rate-limit");
 const {
 	register,
 	login,
+	refresh,
+	logout,
 	me,
 	forgotPassword,
 	resetPassword,
@@ -16,6 +18,7 @@ const {
 	forgotPasswordSchema,
 	resetPasswordSchema,
 	verifyEmailSchema,
+	refreshTokenSchema,
 } = require("../validators/authValidators");
 const validate = require("../middlewares/validate");
 const authenticate = require("../middlewares/auth");
@@ -65,6 +68,17 @@ router.post(
 	resetPassword
 );
 router.post("/verify-email", authLimiter, validate({ body: verifyEmailSchema }), verifyEmail);
+
+/**
+ * Renovação e saída: públicas, porque quem chega aqui está com o token de
+ * ACESSO vencido — que é justamente o caso que estas rotas existem para
+ * resolver. Quem autoriza é o refresh token, conferido contra o banco.
+ *
+ * A renovação entra no mesmo limitador das credenciais: sem limite, ela aceita
+ * força bruta sobre o token da sessão, que vale tanto quanto uma senha.
+ */
+router.post("/refresh", authLimiter, validate({ body: refreshTokenSchema }), refresh);
+router.post("/logout", validate({ body: refreshTokenSchema }), logout);
 /**
  * O limitador vem ANTES do `authenticate`, de propósito: assim a requisição
  * conta para o limite mesmo quando o token é inválido. Na ordem inversa, quem

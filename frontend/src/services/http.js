@@ -18,6 +18,7 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const TOKEN_STORAGE_KEY = "gf:token";
+const REFRESH_STORAGE_KEY = "gf:refresh";
 
 export class ApiError extends Error {
 	constructor(status, message, details) {
@@ -42,6 +43,68 @@ export const tokenStorage = {
 	set: (token) => localStorage.setItem(TOKEN_STORAGE_KEY, token),
 	clear: () => localStorage.removeItem(TOKEN_STORAGE_KEY),
 };
+
+/**
+ * A sessão renovável (ROADMAP 0.9).
+ *
+ * O token de acesso agora vale minutos; é este que mantém a pessoa logada
+ * entre uma renovação e outra, e é ele que o servidor sabe cancelar.
+ */
+export const refreshStorage = {
+	get: () => localStorage.getItem(REFRESH_STORAGE_KEY),
+	set: (token) => localStorage.setItem(REFRESH_STORAGE_KEY, token),
+	clear: () => localStorage.removeItem(REFRESH_STORAGE_KEY),
+};
+
+/**
+ * Renovação em voo, compartilhada.
+ *
+ * Sem isto, uma tela que dispara quatro requisições ao abrir produziria quatro
+ * renovações simultâneas quando o acesso vencesse. Como a rotação invalida o
+ * token anterior a cada troca, três delas chegariam com um token já gasto — o
+ * que o servidor trata, corretamente, como ROUBO, e derrubaria todas as
+ * sessões da pessoa. O app se deslogaria sozinho por excesso de zelo.
+ *
+ * Então existe no máximo uma renovação por vez: quem chega no meio espera a
+ * mesma promessa.
+ */
+let refreshInFlight = null;
+
+async function refreshAccessToken() {
+	const refreshToken = refreshStorage.get();
+	if (!refreshToken) return false;
+
+	// `fetch` cru, e não o `http` daqui de baixo, para não reentrar na própria
+	// lógica de 401 — uma renovação que falha não deve tentar se renovar.
+	try {
+		const response = await fetch(`${API_URL}/auth/refresh`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ refreshToken }),
+		});
+
+		if (!response.ok) return false;
+
+		const data = await response.json();
+		tokenStorage.set(data.token);
+		refreshStorage.set(data.refreshToken);
+
+		return true;
+	} catch {
+		// Falha de rede não é sessão inválida: devolver false aqui faria o
+		// usuário ser deslogado por ficar sem sinal. Quem chamou trata.
+		return false;
+	}
+}
+
+/** Uma renovação por vez, compartilhada por todas as chamadas que esperam. */
+function renewSession() {
+	refreshInFlight ??= refreshAccessToken().finally(() => {
+		refreshInFlight = null;
+	});
+
+	return refreshInFlight;
+}
 
 /**
  * Callback disparado quando o servidor devolve 401.
@@ -108,7 +171,8 @@ function filenameFromDisposition(header) {
 async function request(
 	method,
 	path,
-	{ body, params, auth = true, responseType = "json", logoutOn401 = true } = {}
+	{ body, params, auth = true, responseType = "json", logoutOn401 = true } = {},
+	jaRenovou = false
 ) {
 	const headers = {};
 
@@ -144,8 +208,23 @@ async function request(
 	if (!response.ok) {
 		const errorPayload = await response.json().catch(() => null);
 
-		if (response.status === 401 && auth && logoutOn401 && onUnauthorized) {
-			onUnauthorized();
+		if (response.status === 401 && auth && logoutOn401) {
+			/**
+			 * Antes de derrubar a sessão, tenta renovar — este 401 provavelmente
+			 * é só o token de acesso vencido, que agora dura minutos em vez de
+			 * dias. Uma tentativa só: se a requisição refeita com o token novo
+			 * ainda der 401, o problema não era a validade.
+			 */
+			if (!jaRenovou && (await renewSession())) {
+				return request(
+					method,
+					path,
+					{ body, params, auth, responseType, logoutOn401 },
+					true
+				);
+			}
+
+			if (onUnauthorized) onUnauthorized();
 		}
 
 		throw new ApiError(

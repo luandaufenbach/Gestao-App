@@ -63,10 +63,27 @@ const verifyEmailSchema = z
 	})
 	.strict();
 
+/**
+ * Corpo de /auth/refresh e /auth/logout.
+ *
+ * O formato é fixo porque o token é gerado por nós: 32 bytes em hexadecimal,
+ * sempre 64 caracteres. Barrar o que não tem essa cara aqui evita que lixo
+ * chegue ao banco virando consulta — e deixa claro, para quem ler depois, que
+ * este token não é o JWT.
+ */
+const refreshTokenSchema = z
+	.object({
+		refreshToken: z
+			.string()
+			.regex(/^[a-f0-9]{64}$/, "Token de sessão inválido"),
+	})
+	.strict();
+
 module.exports = {
 	registerSchema,
 	loginSchema,
 	forgotPasswordSchema,
 	resetPasswordSchema,
 	verifyEmailSchema,
+	refreshTokenSchema,
 };

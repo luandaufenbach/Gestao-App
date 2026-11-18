@@ -6,8 +6,13 @@ import { ref, computed } from "vue";
  * funções com esses mesmos nomes. Sem o apelido, a função local sombrearia o
  * import e `login(credentials)` chamaria a si mesma até estourar a pilha.
  */
-import { getMe, login as loginRequest, register as registerRequest } from "../services/api";
-import { tokenStorage, setUnauthorizedHandler } from "../services/http";
+import {
+	getMe,
+	login as loginRequest,
+	register as registerRequest,
+	logout as logoutRequest,
+} from "../services/api";
+import { tokenStorage, refreshStorage, setUnauthorizedHandler } from "../services/http";
 import { identifyUser, resetAnalytics, trackEvent } from "../services/analytics";
 import { useCategories } from "./categories";
 import { useBankCards } from "./bankCards";
@@ -31,6 +36,9 @@ function setSession(response) {
 	token.value = response.token;
 	user.value = response.user;
 	tokenStorage.set(response.token);
+	// A sessão renovável: é ela que segura o login entre as renovações do
+	// token de acesso, que agora vence em minutos.
+	refreshStorage.set(response.refreshToken);
 
 	/**
 	 * Só o id. Cadastro e primeira transação acontecem em sessões diferentes,
@@ -43,10 +51,18 @@ function setSession(response) {
 	identifyUser(response.user?.id);
 }
 
-function logout() {
+/**
+ * Apaga a sessão SÓ deste navegador.
+ *
+ * É o caminho do 401: ali a sessão já morreu no servidor, e tentar revogá-la
+ * de novo seria uma chamada inútil — pior, uma chamada que pode falhar e
+ * atrasar a volta para o login.
+ */
+function clearSession() {
 	token.value = null;
 	user.value = null;
 	tokenStorage.clear();
+	refreshStorage.clear();
 
 	/**
 	 * As duas stores já tinham um reset() escrito para isto, mas ninguém o
@@ -63,10 +79,32 @@ function logout() {
 }
 
 /**
+ * Sair da conta de verdade (ROADMAP 0.9).
+ *
+ * A revogação vem PRIMEIRO e é aguardada: é o que encerra a sessão no
+ * servidor. Se falhar — sem rede, por exemplo —, a sessão local cai do mesmo
+ * jeito, porque negar a saída a quem pediu para sair é pior do que uma sessão
+ * que ainda expira sozinha pelo TTL.
+ */
+async function logout() {
+	const refreshToken = refreshStorage.get();
+
+	if (refreshToken) {
+		try {
+			await logoutRequest(refreshToken);
+		} catch {
+			// Ver acima: a saída local acontece de qualquer forma.
+		}
+	}
+
+	clearSession();
+}
+
+/**
  * Qualquer 401 vindo da API derruba a sessão automaticamente.
  * Cobre o caso do token expirado enquanto a aba estava aberta.
  */
-setUnauthorizedHandler(logout);
+setUnauthorizedHandler(clearSession);
 
 /**
  * Revalida o token guardado no localStorage ao abrir a aplicação.
@@ -93,8 +131,9 @@ async function restoreSession() {
 		 */
 		identifyUser(user.value?.id);
 	} catch {
-		// setUnauthorizedHandler já limpou a sessão em caso de 401.
-		logout();
+		// setUnauthorizedHandler já limpou a sessão em caso de 401. Aqui é a
+		// limpeza local: o token não vale mais, não há o que revogar.
+		clearSession();
 	} finally {
 		initialized.value = true;
 	}

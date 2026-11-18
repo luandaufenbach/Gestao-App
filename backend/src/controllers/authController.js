@@ -6,6 +6,7 @@ const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendPasswordResetEmail, sendEmailVerification } = require("../utils/mailer");
 const { jwtSecret, jwtExpiresIn } = require("../config/env");
+const refreshTokens = require("../services/refreshTokens");
 
 /** Categorias criadas automaticamente para um usuário novo. */
 const DEFAULT_CATEGORIES = [
@@ -63,6 +64,7 @@ const register = asyncHandler(async (req, res) => {
 
 	return res.status(201).json({
 		token: signToken(user._id),
+		refreshToken: await refreshTokens.issue(user._id),
 		user: user.toPublicJSON(),
 	});
 });
@@ -91,6 +93,7 @@ const login = asyncHandler(async (req, res) => {
 
 	return res.json({
 		token: signToken(user._id),
+		refreshToken: await refreshTokens.issue(user._id),
 		user: user.toPublicJSON(),
 	});
 });
@@ -153,6 +156,16 @@ const resetPassword = asyncHandler(async (req, res) => {
 	// Consome o token antes de salvar: o mesmo link não funciona duas vezes.
 	user.clearPasswordResetToken();
 	await user.save();
+
+	/**
+	 * Troca de senha derruba TODAS as sessões, em todos os aparelhos.
+	 *
+	 * Quem redefine a senha costuma estar fazendo exatamente isso porque
+	 * desconfia que alguém entrou. Manter as sessões antigas vivas tornaria o
+	 * gesto inútil: o invasor continuaria dentro com o refresh token que já
+	 * tinha, e a senha nova só atrapalharia o dono.
+	 */
+	await refreshTokens.revokeAllForUser(user._id);
 
 	// Sem login automático de propósito: quem abriu o link pode não ser o dono da
 	// conta (link encaminhado, navegador compartilhado). A nova senha, aí sim,
@@ -282,9 +295,39 @@ const me = asyncHandler(async (req, res) => {
 	return res.json(user.toPublicJSON());
 });
 
+/**
+ * Troca o refresh token por um par novo (ROADMAP 0.9).
+ *
+ * Rota pública de propósito: quem chega aqui está justamente com o token de
+ * acesso vencido, então exigir `authenticate` tornaria a renovação impossível.
+ * Quem autoriza é o refresh token, validado contra o banco.
+ */
+const refresh = asyncHandler(async (req, res) => {
+	const { userId, token } = await refreshTokens.rotate(req.body.refreshToken);
+
+	return res.json({ token: signToken(userId), refreshToken: token });
+});
+
+/**
+ * Encerra a sessão deste aparelho, do lado do SERVIDOR.
+ *
+ * Antes, sair da conta era apagar o token do próprio navegador — uma cópia
+ * feita antes disso continuava valendo. Agora a sessão deixa de existir onde
+ * importa.
+ *
+ * Responde 204 mesmo com token desconhecido: ver `revoke`.
+ */
+const logout = asyncHandler(async (req, res) => {
+	await refreshTokens.revoke(req.body.refreshToken);
+
+	return res.status(204).send();
+});
+
 module.exports = {
 	register,
 	login,
+	refresh,
+	logout,
 	me,
 	forgotPassword,
 	resetPassword,

@@ -32,7 +32,28 @@ module.exports = {
 	port: Number(process.env.PORT) || 3000,
 	mongoUri: process.env.MONGO_URI,
 	jwtSecret: process.env.JWT_SECRET,
-	jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
+	/**
+	 * Validade do token de ACESSO (ROADMAP 0.9).
+	 *
+	 * Era 7 dias, e um JWT não é revogável: o que foi assinado vale até vencer,
+	 * aconteça o que acontecer do lado do servidor. Sete dias de validade eram
+	 * sete dias de acesso para quem copiasse o token, e "sair da conta" era só
+	 * apagá-lo do próprio navegador.
+	 *
+	 * Quinze minutos é a janela que sobra desse risco. A sessão longa agora vive
+	 * no refresh token, que é revogável porque mora no banco.
+	 */
+	jwtExpiresIn: process.env.JWT_EXPIRES_IN || "15m",
+
+	/**
+	 * Validade da sessão renovável, em dias.
+	 *
+	 * É quanto tempo a pessoa pode ficar sem abrir o app e ainda assim voltar
+	 * sem digitar a senha. Trinta dias é o compromisso: curto o bastante para
+	 * que uma sessão esquecida num aparelho velho não valha para sempre, longo
+	 * o bastante para não transformar o app em um pedinte de senha.
+	 */
+	refreshExpiresInDays: Number(process.env.REFRESH_EXPIRES_IN_DAYS) || 30,
 	/**
 	 * Endereço público do frontend, usado para montar os links enviados por
 	 * e-mail (recuperação de senha). Sem isto o link do e-mail apontaria para a

@@ -17,6 +17,7 @@ export async function createUser(overrides = {}) {
 
 	return {
 		token: response.body.token,
+		refreshToken: response.body.refreshToken,
 		user: response.body.user,
 		auth: (req) => req.set("Authorization", `Bearer ${response.body.token}`),
 	};

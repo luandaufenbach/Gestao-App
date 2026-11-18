@@ -14,6 +14,16 @@ export const login = (payload) => http.post("/auth/login", payload, { auth: fals
 export const getMe = () => http.get("/auth/me");
 
 /**
+ * Encerra a sessão NO SERVIDOR.
+ *
+ * Sem esta chamada, sair da conta era só apagar o token do próprio navegador —
+ * qualquer cópia feita antes continuava valendo. `auth: false` porque quem
+ * autoriza é o refresh token no corpo, e o de acesso pode já ter vencido.
+ */
+export const logout = (refreshToken) =>
+	http.post("/auth/logout", { refreshToken }, { auth: false });
+
+/**
  * Pede o link de redefinição de senha.
  *
  * Responde 200 com a MESMA mensagem exista a conta ou não — a rota é

@@ -156,13 +156,21 @@ declare `meta.public`. Endpoints e telas novas nascem protegidos.
 
 ## API
 
-Todas as rotas exigem `Authorization: Bearer <token>`, exceto `/health` e
-`/auth/register` e `/auth/login`.
+Todas as rotas exigem `Authorization: Bearer <token>`, exceto `/health`,
+`/auth/register`, `/auth/login`, `/auth/refresh` e `/auth/logout`.
+
+O login devolve **dois** tokens. O de acesso vale 15 minutos e vai no cabeçalho;
+o de renovação vale 30 dias, fica guardado no banco e é o que mantém a sessão
+viva — `POST /auth/refresh` troca um pelo outro. O de renovação é descartado a
+cada uso: apresentá-lo duas vezes é tratado como cópia roubada e encerra todas
+as sessões daquela conta.
 
 | Método   | Rota                            | Descrição                                    |
 | -------- | ------------------------------- | -------------------------------------------- |
 | `POST`   | `/auth/register`                | Cria conta e devolve token                   |
 | `POST`   | `/auth/login`                   | Autentica e devolve token                    |
+| `POST`   | `/auth/refresh`                 | Troca o token de renovação por um par novo   |
+| `POST`   | `/auth/logout`                  | Encerra a sessão no servidor                 |
 | `GET`    | `/auth/me`                      | Dados do usuário autenticado                 |
 | `GET`    | `/transactions`                 | Lista. Filtros: `year`, `month`, `type`, `category`, `limit` |
 | `POST`   | `/transactions`                 | Cria (parcela automaticamente se `installments > 1`) |

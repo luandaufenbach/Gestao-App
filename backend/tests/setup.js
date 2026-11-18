@@ -17,6 +17,11 @@ process.env.JWT_SECRET = "chave-de-teste-com-mais-de-32-caracteres-para-passar-n
 process.env.MONGO_URI = "mongodb://placeholder/test";
 process.env.CORS_ORIGINS = "http://localhost:5173";
 
+// Fixada aqui porque o .env da máquina também é lido, e um valor local
+// diferente faria o teste de validade do token passar ou falhar conforme a
+// máquina — não conforme o código.
+process.env.JWT_EXPIRES_IN = "15m";
+
 // Asaas: a chave só precisa existir para o cliente não recusar antes de sair;
 // nenhuma requisição real acontece, o `fetch` é dublado no teste. O ambiente
 // fica em sandbox de propósito — errar o par chave/ambiente é o engano mais

@@ -30,7 +30,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.6 | LGPD: exportar e excluir conta | feito |
 | 0.7 | Termos de uso e política de privacidade | telas feitas — falta preencher os dados do responsável e a revisão jurídica |
 | 0.8 | Zerar `npm audit` | feito — 0 críticas e 0 altas nos dois pacotes; sobram moderadas só em ferramenta de desenvolvimento |
-| 0.9 | Refresh token com revogação | **pendente** — o JWT vale 7 dias e não há como revogar |
+| 0.9 | Refresh token com revogação | feito — acesso de 15 min, sessão de 30 dias revogável, com rotação |
 | 0.10 | Backup do Mongo com restauração testada | **pendente** — depende do tier do Atlas |
 | 1.1 | Projeção de caixa futura | feito |
 | 1.2 | Relatórios de 3 a 12 meses | feito |

@@ -4,6 +4,7 @@ const Category = require("../models/Category");
 const Goal = require("../models/Goal");
 const BankCard = require("../models/BankCard");
 const AppError = require("../utils/AppError");
+const refreshTokens = require("../services/refreshTokens");
 const asyncHandler = require("../utils/asyncHandler");
 
 /**
@@ -229,6 +230,18 @@ const deleteAccount = asyncHandler(async (req, res) => {
 	]);
 
 	await User.deleteOne({ _id: userId });
+
+	/**
+	 * As sessões renováveis vão junto (ROADMAP 0.9).
+	 *
+	 * Elas não estão no `scope` acima porque não são dado do titular, e sim
+	 * credencial — mas deixá-las para trás seria pior que lixo: um refresh token
+	 * sobrevivente continuaria emitindo tokens de acesso para uma conta que não
+	 * existe mais. O `authenticate` barraria a requisição seguinte, já que
+	 * confere a existência do usuário, mas a renovação em si responderia 200 e o
+	 * registro só sumiria quando o TTL o alcançasse.
+	 */
+	await refreshTokens.revokeAllForUser(userId);
 
 	/**
 	 * `sessionEnded` é o sinal para o frontend descartar o token e voltar para a
