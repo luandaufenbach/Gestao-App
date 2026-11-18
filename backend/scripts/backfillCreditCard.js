@@ -20,12 +20,16 @@ require("dotenv").config();
 
 const mongoose = require("mongoose");
 const { mongoUri } = require("../src/config/env");
+const { applyDnsServers } = require("../src/database");
 const Transaction = require("../src/models/Transaction");
 const BankCard = require("../src/models/BankCard");
 
 const apply = process.argv.includes("--apply");
 
 async function main() {
+	// Sem isto a consulta SRV do Atlas falha em algumas máquinas; ver o módulo.
+	applyDnsServers();
+
 	await mongoose.connect(mongoUri);
 
 	const orphanUserIds = await Transaction.distinct("user", { type: "credit", bankCard: null });

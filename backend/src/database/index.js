@@ -2,9 +2,22 @@ const dns = require("dns");
 const mongoose = require("mongoose");
 const { mongoUri, isProduction, dnsServers } = require("../config/env");
 
-// Só age quando DNS_SERVERS está definido; ver o comentário em config/env.js.
-if (dnsServers.length > 0) {
-	dns.setServers(dnsServers);
+/**
+ * Fixa os resolvedores de DNS quando DNS_SERVERS está definida.
+ *
+ * Só age quando a variável existe; ver o comentário em `config/env.js` para o
+ * caso que ela resolve.
+ *
+ * Exportada, e não mais um efeito de carga do módulo, porque os scripts de
+ * `scripts/` conectam direto pelo mongoose, sem passar por `connectDB`. Sem
+ * poder chamá-la, eles falham com `querySrv ECONNREFUSED` nas máquinas em que
+ * o c-ares não enumera os DNS do sistema — justamente onde a aplicação
+ * funciona, o que torna a falha confusa.
+ */
+function applyDnsServers() {
+	if (dnsServers.length > 0) {
+		dns.setServers(dnsServers);
+	}
 }
 
 /**
@@ -18,6 +31,8 @@ mongoose.set("bufferTimeoutMS", 5000);
 mongoose.set("strictQuery", true);
 
 async function connectDB(uri = mongoUri) {
+	applyDnsServers();
+
 	mongoose.connection.on("error", (error) => {
 		console.error("Erro na conexão com o MongoDB:", error.message);
 	});
@@ -53,4 +68,4 @@ async function disconnectDB() {
 	await mongoose.disconnect();
 }
 
-module.exports = { connectDB, disconnectDB };
+module.exports = { connectDB, disconnectDB, applyDnsServers };
