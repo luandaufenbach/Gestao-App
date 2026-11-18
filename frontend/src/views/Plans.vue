@@ -232,6 +232,7 @@ import GaIcon from "@/design-system/components/GaIcon.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import { useSubscription } from "../stores/subscription";
 import { useFormatters } from "../services/useFormatters";
+import { trackEvent } from "../services/analytics";
 
 /**
  * Tabela de comparação.
@@ -295,7 +296,10 @@ const busy = ref(false);
 const invoiceUrl = ref("");
 const confirmingCancel = ref(false);
 
-onMounted(() => load({ force: true }).catch(() => {}));
+onMounted(() => {
+  load({ force: true }).catch(() => {});
+  trackEvent("planos_abertos");
+});
 
 /** Anual primeiro: é o recomendado, e abre a leitura pelo melhor negócio. */
 const orderedPlans = computed(() =>
@@ -367,6 +371,14 @@ async function submit() {
 
   try {
     const charge = await subscribe(cpfCnpj.value, selectedPlanId.value);
+
+    /**
+     * Cobrança criada, dinheiro ainda não. É o último passo que o frontend
+     * enxerga — quem confirma o pagamento é o webhook, e esse número se lê no
+     * painel do provedor. Aqui fica o ciclo escolhido, que é o que responde se
+     * o anual realmente vende.
+     */
+    trackEvent("assinatura_iniciada", { plano: selectedPlanId.value });
     invoiceUrl.value = charge.invoiceUrl ?? "";
     showForm.value = false;
     cpfCnpj.value = "";

@@ -9,7 +9,12 @@
 
     <p v-if="loading" class="proj__state">Carregando...</p>
 
-    <PaywallNotice v-else-if="paywalled" title="Projeção faz parte do Pro" :message="error" />
+    <PaywallNotice
+      v-else-if="paywalled"
+      title="Projeção faz parte do Pro"
+      feature="projecao"
+      :message="error"
+    />
 
     <p v-else-if="error" class="proj__state proj__state--error">{{ error }}</p>
 

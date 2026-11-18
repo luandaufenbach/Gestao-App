@@ -29,7 +29,12 @@
 
     <p v-if="loading" class="rep__state">Carregando...</p>
 
-    <PaywallNotice v-else-if="paywalled" title="Relatórios fazem parte do Pro" :message="error" />
+    <PaywallNotice
+      v-else-if="paywalled"
+      title="Relatórios fazem parte do Pro"
+      feature="relatorios"
+      :message="error"
+    />
 
     <p v-else-if="error" class="rep__state rep__state--error">{{ error }}</p>
 
