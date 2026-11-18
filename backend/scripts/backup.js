@@ -66,7 +66,8 @@ async function main() {
 
 	console.log(`\n${total} documento(s) em ${colecoes.length} coleção(ões).`);
 	console.log(`Gravado em: ${pasta}`);
-	console.log("\nRestaure com: node scripts/restore.js --from <pasta> --apply");
+	console.log(`\nRestaure com: node scripts/restore.js --from "${pasta}" --uri <uri> --apply`);
+	console.log("A URI é obrigatória e nunca vem do .env — ver o topo de restore.js.");
 
 	await mongoose.disconnect();
 }

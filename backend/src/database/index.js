@@ -30,6 +30,18 @@ mongoose.set("bufferTimeoutMS", 5000);
 // não algo descartado em silêncio.
 mongoose.set("strictQuery", true);
 
+/**
+ * O destino é um banco na própria máquina?
+ *
+ * Só `127.0.0.1`, `localhost` e `::1` contam. Qualquer outro host é tratado
+ * como banco de verdade de alguém, mesmo que o NODE_ENV diga "development".
+ */
+function isLocalDatabase(uri = "") {
+	return /^mongodb(\+srv)?:\/\/(?:[^@]*@)?(127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(?:[/?]|$)/i.test(
+		uri
+	);
+}
+
 async function connectDB(uri = mongoUri) {
 	applyDnsServers();
 
@@ -53,11 +65,26 @@ async function connectDB(uri = mongoUri) {
 	 *
 	 * MOTIVO (A4): antes não havia índice nenhum e toda consulta fazia
 	 * collection scan. Em produção o ideal é criar os índices por migração
-	 * controlada — syncIndexes em uma base grande pode travar a aplicação —,
-	 * por isso aqui roda apenas fora de produção.
+	 * controlada — syncIndexes em uma base grande pode travar a aplicação.
+	 *
+	 * A guarda olha o DESTINO, não o modo.
+	 *
+	 * Checar só `isProduction` não bastava: o .env de desenvolvimento aponta
+	 * para o banco de produção, então `npm run dev` sincronizava índices na
+	 * base real. E `syncIndexes` não apenas cria — ele APAGA do banco todo
+	 * índice ausente do schema. Subir uma branch antiga localmente derrubava,
+	 * em silêncio, índices que a produção usa, e as consultas voltavam a varrer
+	 * a coleção inteira sem erro nenhum para denunciar.
+	 *
+	 * Fora de um banco local, o caminho é `scripts/createIndexes.js`, que só
+	 * cria e nunca apaga.
 	 */
-	if (!isProduction) {
+	if (!isProduction && isLocalDatabase(uri)) {
 		await Promise.all(mongoose.modelNames().map((name) => mongoose.model(name).syncIndexes()));
+	} else if (!isProduction) {
+		console.warn(
+			"Índices NÃO sincronizados: o banco não é local. Use scripts/createIndexes.js."
+		);
 	}
 
 	console.log("MongoDB conectado");
@@ -68,4 +95,4 @@ async function disconnectDB() {
 	await mongoose.disconnect();
 }
 
-module.exports = { connectDB, disconnectDB, applyDnsServers };
+module.exports = { connectDB, disconnectDB, applyDnsServers, isLocalDatabase };
