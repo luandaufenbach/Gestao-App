@@ -88,6 +88,9 @@ export function useSubscription() {
 	 */
 	const grandfatheredUntil = computed(() => state.value?.grandfatheredUntil ?? null);
 
+	/** A cobranca esta ligada? Com ela desligada, nao ha o que oferecer. */
+	const paywallEnabled = computed(() => state.value?.paywallEnabled === true);
+
 	/** Cobrança criada e ainda não paga: a tela de planos mostra o Pix pendente. */
 	const isAwaitingPayment = computed(() => status.value === "past_due" && !hasPaidAccess.value);
 
@@ -101,6 +104,7 @@ export function useSubscription() {
 		catalog,
 		defaultPlanId,
 		grandfatheredUntil,
+		paywallEnabled,
 		isAwaitingPayment,
 		load,
 		subscribe,

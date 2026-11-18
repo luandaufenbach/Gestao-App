@@ -41,7 +41,8 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 2.1 | Planos e estado de assinatura no `User` | feito |
 | 2.2 | Gateway de pagamento com Pix | código feito (Asaas, Pix) — **falta a conta**: sem ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN a assinatura recusa com mensagem clara |
 | 2.3 | Paywall por middleware | feito — interface trata o 402 e tem tela de planos; falta só ligar `PAYWALL_ENABLED` |
-| 2.4 | Cortesia a quem é anterior ao paywall | feito — 60 dias para quem já usava; falta o momento de conversão |
+| 2.4 | Cortesia a quem é anterior ao paywall | feito — 60 dias para quem já usava |
+| 2.5 | Momento de conversão | feito — convite ao voltar um mês que tem lançamentos |
 | 3.1 a 3.3 | — | **pendente** |
 | 3.4 | Detecção de assinaturas recorrentes | feito — fica no grátis |
 | 4.1 | PWA instalável | feito |

@@ -4,7 +4,7 @@ const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const asaas = require("../services/asaas");
 const { PLANS, DEFAULT_PLAN_ID, findPlan, daysForPlanId } = require("../config/plans");
-const { asaasWebhookToken } = require("../config/env");
+const { asaasWebhookToken, paywallEnabled } = require("../config/env");
 const { reportServerError } = require("../config/monitoring");
 
 /**
@@ -34,6 +34,14 @@ const getMySubscription = asyncHandler(async (req, res) => {
 		hasPaidAccess: user.hasPaidAccess(),
 		/** Data da cortesia, ou nulo. A tela usa para explicar de onde vem o acesso. */
 		grandfatheredUntil: user.grandfatheredUntil(),
+		/**
+		 * Se a cobranca esta de pe.
+		 *
+		 * A interface precisa disto para nao convidar ninguem a pagar por algo
+		 * que, com o paywall desligado, ja esta aberto para todo mundo — oferta
+		 * de um recurso que a pessoa ja tem soa a desatencao, e com razao.
+		 */
+		paywallEnabled,
 		/**
 		 * O catálogo inteiro, não um plano só: é a tela que escolhe o que
 		 * mostrar, e o preço nunca é escrito no frontend.

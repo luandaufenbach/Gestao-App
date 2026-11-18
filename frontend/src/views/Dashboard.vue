@@ -38,6 +38,12 @@
       nenhum. Fica ACIMA do grid porque é a única coisa nesta tela que um
       usuário novo consegue usar — os seis cards abaixo estão todos vazios.
     -->
+    <!--
+      O convite ao Pro aparece ao voltar um mês: é quando olhar para trás
+      deixa de ser hipótese e vira o que a pessoa está fazendo.
+    -->
+    <ProInvite :year="selectedYear" :month="selectedMonth" />
+
     <OnboardingGuide
       ref="onboarding"
       @add-card="openCardForm"
@@ -144,6 +150,7 @@ import RecurringCard from "../components/cards/RecurringCard.vue";
 import TransactionsList from "../components/TransactionsList.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
 import OnboardingGuide from "../components/OnboardingGuide.vue";
+import ProInvite from "../components/ProInvite.vue";
 import { useMonthNavigation } from "../services/useMonthNavigation";
 import { definePageAction } from "../stores/pageAction";
 
