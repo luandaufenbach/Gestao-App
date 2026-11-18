@@ -30,10 +30,14 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.6 | LGPD: exportar e excluir conta | feito |
 | 0.7 | Termos de uso e política de privacidade | telas feitas — falta preencher os dados do responsável e a revisão jurídica |
 | 0.8 | Zerar `npm audit` | feito — 0 críticas e 0 altas nos dois pacotes; sobram moderadas só em ferramenta de desenvolvimento |
+| 0.9 | Refresh token com revogação | **pendente** — o JWT vale 7 dias e não há como revogar |
+| 0.10 | Backup do Mongo com restauração testada | **pendente** — depende do tier do Atlas |
 | 1.1 | Projeção de caixa futura | feito |
 | 1.2 | Relatórios de 3 a 12 meses | feito |
 | 1.3 | Tokens, fontes e ícones do design system | feito |
 | 1.4 | Telas migradas, uma a uma | feito — nenhum dos 32 `.vue` tem classe utilitária do Tailwind em `class=` |
+| 1.5 | Onboarding do primeiro uso | **pendente** — conta nova cai em dashboard vazio |
+| 1.6 | Lançamento rápido no celular | **pendente** — não medido |
 | 2.1 | Planos e estado de assinatura no `User` | feito |
 | 2.2 | Gateway de pagamento com Pix | código feito (Asaas, Pix) — **falta a conta**: sem ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN a assinatura recusa com mensagem clara |
 | 2.3 | Paywall por middleware | feito — interface trata o 402 e tem tela de planos; falta só ligar `PAYWALL_ENABLED` |
@@ -74,10 +78,26 @@ Nada aqui é funcionalidade. É o que impede a verba de anúncio de ser desperdi
 | 0.6 | LGPD: exportar e excluir conta | Usuário baixa os próprios dados em JSON e apaga a conta sem abrir chamado | `seguranca-lgpd` |
 | 0.7 | Termos de uso e política de privacidade | Links acessíveis antes do cadastro | — |
 | 0.8 | Zerar `npm audit` | 0 vulnerabilidades altas nos dois pacotes | `seguranca-lgpd` |
+| 0.9 | Refresh token com revogação | Token de acesso curto, sessão renovada sem novo login e revogada no logout | `seguranca-lgpd` |
+| 0.10 | Backup do Mongo com restauração testada | Backup automático ativo e uma restauração já executada em banco separado | — |
 
 **O 0.1 vem primeiro.** Hoje a aplicação dorme e a primeira visita espera cerca de
 50 segundos. Anúncio que cai em tela parada perde o visitante antes de qualquer
 funcionalidade existir.
+
+**Já coberto, não vira item.** O limite de tentativas no login, no cadastro e na
+recuperação existe (`authLimiter`, 10 por 15 minutos em `routes/auth.js`), e a
+exclusão da conta com os dados é o 0.6. O que falta de segurança são o 0.9 e o 0.10.
+
+**O 0.10 é o mais urgente dos dois**, e não depende de código: já existem dados
+financeiros de gente real no Atlas. Backup que nunca foi restaurado não é backup,
+é crença — por isso o aceite exige a restauração feita, não só ativada.
+
+**O 0.9 troca um prazo ruim nos dois sentidos.** O JWT de hoje vale sete dias:
+token roubado continua válido por uma semana sem revogação possível, e quem não
+foi roubado é deslogado a cada sete dias. Acesso curto com renovação resolve os
+dois lados, e é pré-requisito para cobrar — a partir do 2.x existe dado de
+pagamento atrás dessa sessão.
 
 ---
 
@@ -102,6 +122,8 @@ fatura cada uma cai. Falta consulta e tela.
 | - | ---- | ------ | ------ |
 | 1.3 | Tokens, fontes e ícones do design system | Tokens CSS e fontes locais carregando; um componente base migrado | `design-system` |
 | 1.4 | Telas migradas, uma a uma | Nenhuma tela mistura o visual antigo com o novo | `design-system` |
+| 1.5 | Onboarding do primeiro uso | Conta nova chega ao primeiro lançamento sem passar por tela vazia | `frontend-vue` |
+| 1.6 | Lançamento rápido no celular | Registrar um gasto no celular leva menos de 15 segundos, da abertura ao salvo | `frontend-vue` |
 
 A skill `gestaoapp-design` está em `.claude/skills/gestaoapp-design/`. Os componentes
 dela são React; o projeto é Vue — o trabalho é portar padrão, não copiar arquivo.
@@ -118,7 +140,7 @@ vira conversão ou desistência.
 | - | ---- | ------ | ------ |
 | 2.1 | Planos e estado de assinatura no `User` | Campo de plano, status e validade, com índice | **feito** |
 | 2.2 | Gateway de pagamento com Pix | Assinatura criada, renovada e cancelada; webhook idempotente | **feito** — falta a conta e as chaves |
-| 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | **feito** — desligado até 2.2 e até a interface tratar o 402 |
+| 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | **feito** — falta só ligar `PAYWALL_ENABLED` |
 | 2.4 | Teste grátis e expiração | Fim do teste não apaga dado nem trava a leitura do histórico | `backend-api` + `frontend-vue` |
 
 No Brasil, Pix é obrigatório. Asaas e Mercado Pago atendem; cartão recorrente sozinho
@@ -200,9 +222,18 @@ justifica o plano mais caro, não o que atrai o primeiro usuário.
 ## Ordem resumida
 
 ```
-0.1 → 0.2 → 0.4 → 0.5 → 1.1 → 0.6 → 0.7 → 2.x → 3.1 → 3.4 → 4.x → 5.1
+0.1 → 0.10 → 0.2 → 0.4 → 0.5 → 1.1 → 1.5 → 1.6 → 0.6 → 0.7 → 0.9 → 2.x → 3.1 → 3.4 → 4.x → 5.1
 ```
 
 A projeção de caixa (1.1) entra antes da cobrança porque o paywall precisa ter o que
 vender. O cupom fiscal (3.1) entra depois da cobrança porque é o recurso mais caro de
 construir e o que mais pode falhar na validação.
+
+O backup (0.10) subiu para o segundo lugar porque o risco já existe: há dados reais
+no banco agora, e a ordem anterior o deixava para depois do anúncio.
+
+O onboarding (1.5) e o lançamento no celular (1.6) entram depois do 1.1 e antes do
+paywall. O motivo é o mesmo nos dois: tráfego pago que chega a um dashboard vazio, ou
+a um formulário ruim no celular, não vira assinatura — e aí o 2.x cobra por um valor
+que o usuário ainda não viu. Controle de gasto se faz no celular, na hora da compra;
+se esse caminho for ruim, o resto do roteiro não é aproveitado.
