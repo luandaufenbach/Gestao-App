@@ -41,7 +41,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 2.1 | Planos e estado de assinatura no `User` | feito |
 | 2.2 | Gateway de pagamento com Pix | código feito (Asaas, Pix) — **falta a conta**: sem ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN a assinatura recusa com mensagem clara |
 | 2.3 | Paywall por middleware | feito — interface trata o 402 e tem tela de planos; falta só ligar `PAYWALL_ENABLED` |
-| 2.4 | Teste grátis e expiração | **pendente** — depende do 2.2 |
+| 2.4 | Cortesia a quem é anterior ao paywall | feito — 60 dias para quem já usava; falta o momento de conversão |
 | 3.1 a 3.3 | — | **pendente** |
 | 3.4 | Detecção de assinaturas recorrentes | feito — fica no grátis |
 | 4.1 | PWA instalável | feito |
@@ -141,7 +141,8 @@ vira conversão ou desistência.
 | 2.1 | Planos e estado de assinatura no `User` | Campo de plano, status e validade, com índice | **feito** |
 | 2.2 | Gateway de pagamento com Pix | Assinatura criada, renovada e cancelada; webhook idempotente | **feito** — falta a conta e as chaves |
 | 2.3 | Paywall por middleware | Recurso pago recusa com 402 e mensagem clara; recurso grátis continua aberto | **feito** — falta só ligar `PAYWALL_ENABLED` |
-| 2.4 | Teste grátis e expiração | Fim do teste não apaga dado nem trava a leitura do histórico | `backend-api` + `frontend-vue` |
+| 2.4 | Cortesia a quem é anterior ao paywall | Quem já usava não perde acesso de um dia para o outro, e sabe até quando | **feito** |
+| 2.5 | Momento de conversão | O convite ao Pro aparece quando o histórico torna o recurso útil, não antes | `frontend-vue` |
 
 No Brasil, Pix é obrigatório. Asaas e Mercado Pago atendem; cartão recorrente sozinho
 reduz muito a conversão.

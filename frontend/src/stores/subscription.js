@@ -80,6 +80,14 @@ export function useSubscription() {
 	/** Qual plano vem pré-selecionado. Quem decide é o backend. */
 	const defaultPlanId = computed(() => state.value?.defaultPlanId ?? null);
 
+	/**
+	 * Até quando vale a cortesia de quem já usava o app antes do paywall.
+	 *
+	 * Separado de `hasPaidAccess`: cortesia NÃO é assinatura, e confundir as
+	 * duas faria a tela anunciar um plano ativo que ninguém comprou.
+	 */
+	const grandfatheredUntil = computed(() => state.value?.grandfatheredUntil ?? null);
+
 	/** Cobrança criada e ainda não paga: a tela de planos mostra o Pix pendente. */
 	const isAwaitingPayment = computed(() => status.value === "past_due" && !hasPaidAccess.value);
 
@@ -92,6 +100,7 @@ export function useSubscription() {
 		validUntil,
 		catalog,
 		defaultPlanId,
+		grandfatheredUntil,
 		isAwaitingPayment,
 		load,
 		subscribe,

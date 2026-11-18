@@ -23,7 +23,10 @@ async function requirePaidPlan(req, res, next) {
 	let user;
 
 	try {
-		user = await User.findById(req.userId).select("subscription");
+		// `createdAt` entra na projecao porque a cortesia a quem e anterior ao
+		// paywall depende dela. Sem o campo, `grandfatheredUntil()` devolve nulo
+		// e todo usuario antigo seria cobrado como recem-chegado.
+		user = await User.findById(req.userId).select("subscription createdAt");
 	} catch (error) {
 		// Banco fora do ar é problema do servidor, não da assinatura: deixa o
 		// errorHandler registrar e devolver 500, em vez de cobrar de quem pagou.
@@ -35,7 +38,7 @@ async function requirePaidPlan(req, res, next) {
 		return next(AppError.unauthorized("Token inválido"));
 	}
 
-	if (user.hasPaidAccess()) return next();
+	if (user.mayUsePaidFeatures()) return next();
 
 	return next(
 		AppError.paymentRequired(

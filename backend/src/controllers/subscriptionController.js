@@ -23,7 +23,7 @@ const addDays = (date, days) => new Date(date.getTime() + days * 24 * 60 * 60 * 
 
 /** Estado da assinatura de quem está logado, para a tela de planos. */
 const getMySubscription = asyncHandler(async (req, res) => {
-	const user = await User.findById(req.userId).select("subscription");
+	const user = await User.findById(req.userId).select("subscription createdAt");
 
 	if (!user) throw AppError.unauthorized("Token inválido");
 
@@ -32,6 +32,8 @@ const getMySubscription = asyncHandler(async (req, res) => {
 		status: user.subscription?.status ?? "none",
 		validUntil: user.subscription?.validUntil ?? null,
 		hasPaidAccess: user.hasPaidAccess(),
+		/** Data da cortesia, ou nulo. A tela usa para explicar de onde vem o acesso. */
+		grandfatheredUntil: user.grandfatheredUntil(),
 		/**
 		 * O catálogo inteiro, não um plano só: é a tela que escolhe o que
 		 * mostrar, e o preço nunca é escrito no frontend.

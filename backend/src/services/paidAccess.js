@@ -15,8 +15,10 @@ const { cycleForPurchase } = require("../utils/invoiceCycle");
 async function hasPaidAccess(userId) {
 	if (!paywallEnabled) return true;
 
-	const user = await User.findById(userId).select("subscription");
-	return Boolean(user?.hasPaidAccess());
+	// `createdAt` entra na projeção porque a cortesia a quem é anterior ao
+	// paywall depende dela — sem o campo, todo mundo pareceria recém-chegado.
+	const user = await User.findById(userId).select("subscription createdAt");
+	return Boolean(user?.mayUsePaidFeatures());
 }
 
 /**

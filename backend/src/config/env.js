@@ -99,6 +99,21 @@ module.exports = {
 	paywallEnabled: process.env.PAYWALL_ENABLED === "true",
 
 	/**
+	 * Quando o paywall passou a valer (ROADMAP 2.4).
+	 *
+	 * Quem já usava o app antes desta data não perde nada de um dia para o
+	 * outro: ganha um período de cortesia para decidir com calma. Cobrar
+	 * retroativamente de quem entrou quando tudo era grátis é a forma mais
+	 * rápida de perder justamente os usuários que mais têm a dizer sobre o
+	 * produto — e são eles que respondem se o preço faz sentido.
+	 *
+	 * Vazia desliga a cortesia: numa base nova, ninguém é antigo.
+	 */
+	paywallStartsAt: process.env.PAYWALL_STARTS_AT
+		? new Date(process.env.PAYWALL_STARTS_AT)
+		: null,
+
+	/**
 	 * Asaas (ROADMAP 2.2). VAZIO = assinatura indisponível, e tentar assinar
 	 * falha com mensagem clara em vez de um 401 do provedor.
 	 *

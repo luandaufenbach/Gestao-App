@@ -18,6 +18,17 @@
         </template>
       </GaNote>
 
+      <!--
+        Quem é anterior ao paywall precisa saber TRÊS coisas: que o acesso
+        continua, até quando, e que ninguém vai cobrar sem avisar. Omitir a
+        data transformaria a cortesia em susto no dia em que ela acabasse.
+      -->
+      <GaNote v-else-if="grandfatheredUntil" tone="info" icon="star">
+        Você já usava o app antes do plano pago existir, então tudo continua aberto para você até
+        {{ formatDate(grandfatheredUntil) }} — sem cobrança e sem cartão. Depois dessa data, os
+        recursos do Pro passam a precisar de assinatura; o resto do app segue grátis, como sempre.
+      </GaNote>
+
       <GaNote v-else-if="isAwaitingPayment" tone="warning" icon="clock">
         Cobrança criada e ainda não paga. O acesso abre assim que o Pix for compensado — costuma
         levar poucos minutos.
@@ -283,6 +294,7 @@ const {
   validUntil,
   catalog,
   defaultPlanId,
+  grandfatheredUntil,
   isAwaitingPayment,
   load,
   subscribe,

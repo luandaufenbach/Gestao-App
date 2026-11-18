@@ -2,6 +2,17 @@ const crypto = require("node:crypto");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const { PLAN_IDS } = require("../config/plans");
+const { paywallStartsAt } = require("../config/env");
+
+/**
+ * Dias de cortesia para quem já usava o app antes do paywall.
+ *
+ * Sessenta e não sete: o que se vende aqui é a leitura do HISTÓRICO — projeção
+ * e relatórios de meses. Prazo curto mostraria gráfico vazio para quem acabou
+ * de chegar; para quem já tem meses lançados, dois meses são tempo de ver o
+ * valor em dois fechamentos de fatura e decidir sem pressa.
+ */
+const GRACE_DAYS = 60;
 
 const SALT_ROUNDS = 12;
 
@@ -221,6 +232,39 @@ UserSchema.index(
  *
  * Sem `validUntil` não há acesso pago — é o estado de quem nunca assinou.
  */
+/**
+ * Até quando este usuário tem cortesia por ser anterior ao paywall, ou `null`.
+ *
+ * Separado de `hasPaidAccess` de propósito: quem está na cortesia NÃO tem
+ * assinatura. Misturar os dois faria a tela de planos anunciar "Pro ativo até"
+ * sem data nenhuma, e faria o app achar que já recebeu um dinheiro que nunca
+ * entrou.
+ */
+UserSchema.methods.grandfatheredUntil = function grandfatheredUntil() {
+	if (!paywallStartsAt) return null;
+	if (!this.createdAt || this.createdAt >= paywallStartsAt) return null;
+
+	const fim = new Date(paywallStartsAt);
+	fim.setUTCDate(fim.getUTCDate() + GRACE_DAYS);
+
+	return fim;
+};
+
+/**
+ * A pergunta que os recursos pagos fazem: posso abrir isto para esta pessoa?
+ *
+ * É a soma de "pagou" com "é de antes do paywall e ainda está na cortesia".
+ * Todo portão de recurso pago pergunta AQUI; `hasPaidAccess` responde outra
+ * coisa — se existe assinatura em dia — e serve para a tela de planos.
+ */
+UserSchema.methods.mayUsePaidFeatures = function mayUsePaidFeatures(now = new Date()) {
+	if (this.hasPaidAccess(now)) return true;
+
+	const cortesia = this.grandfatheredUntil();
+
+	return Boolean(cortesia && cortesia > now);
+};
+
 UserSchema.methods.hasPaidAccess = function hasPaidAccess(now = new Date()) {
 	const { status, validUntil } = this.subscription ?? {};
 	if (!validUntil) return false;
