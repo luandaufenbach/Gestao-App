@@ -1,4 +1,5 @@
 const express = require("express");
+const { PLANS } = require("../config/plans");
 const { z } = require("zod");
 
 const {
@@ -27,7 +28,18 @@ const document = z
 	});
 
 router.get("/me", getMySubscription);
-router.post("/", validate({ body: z.object({ cpfCnpj: document }).strict() }), subscribe);
+/**
+ * O id do plano é opcional: sem ele, o controller usa o padrão do catálogo.
+ * A lista de ids sai do próprio catálogo, então um plano novo não exige
+ * lembrar de editar esta linha.
+ */
+const planId = z.enum(Object.keys(PLANS)).optional();
+
+router.post(
+	"/",
+	validate({ body: z.object({ cpfCnpj: document, planId }).strict() }),
+	subscribe
+);
 router.delete("/", cancelMySubscription);
 
 module.exports = router;

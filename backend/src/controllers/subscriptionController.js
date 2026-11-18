@@ -3,7 +3,7 @@ const WebhookEvent = require("../models/WebhookEvent");
 const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const asaas = require("../services/asaas");
-const { PRO } = require("../config/plans");
+const { PLANS, DEFAULT_PLAN_ID, findPlan, daysForPlanId } = require("../config/plans");
 const { asaasWebhookToken } = require("../config/env");
 const { reportServerError } = require("../config/monitoring");
 
@@ -19,9 +19,6 @@ const { reportServerError } = require("../config/monitoring");
  * guarda os ids e devolve o link de cobrança.
  */
 
-/** Quantos dias de acesso cada pagamento confirmado concede. */
-const DAYS_PER_CYCLE = 31;
-
 const addDays = (date, days) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 
 /** Estado da assinatura de quem está logado, para a tela de planos. */
@@ -35,7 +32,12 @@ const getMySubscription = asyncHandler(async (req, res) => {
 		status: user.subscription?.status ?? "none",
 		validUntil: user.subscription?.validUntil ?? null,
 		hasPaidAccess: user.hasPaidAccess(),
-		catalog: PRO,
+		/**
+		 * O catálogo inteiro, não um plano só: é a tela que escolhe o que
+		 * mostrar, e o preço nunca é escrito no frontend.
+		 */
+		catalog: Object.values(PLANS),
+		defaultPlanId: DEFAULT_PLAN_ID,
 	});
 });
 
@@ -46,7 +48,16 @@ const getMySubscription = asyncHandler(async (req, res) => {
  * cliente, e sem cliente não existe cobrança.
  */
 const subscribe = asyncHandler(async (req, res) => {
-	const { cpfCnpj } = req.body;
+	const { cpfCnpj, planId } = req.body;
+
+	/**
+	 * O plano vem do cliente, mas quem decide o PREÇO é o catálogo. O corpo da
+	 * requisição só escolhe um id; qualquer valor monetário que viesse junto
+	 * seria ignorado. É a diferença entre o cliente pedir "o anual" e o cliente
+	 * dizer quanto vai pagar.
+	 */
+	const plan = findPlan(planId ?? DEFAULT_PLAN_ID);
+	if (!plan) throw AppError.badRequest("Plano inválido.");
 
 	const user = await User.findById(req.userId);
 	if (!user) throw AppError.unauthorized("Token inválido");
@@ -71,7 +82,7 @@ const subscribe = asyncHandler(async (req, res) => {
 
 	const subscription = await asaas.createSubscription({
 		customerId,
-		plan: PRO,
+		plan,
 		// Primeira cobrança para hoje: o Pix é à vista, não há o que postergar.
 		firstDueDate: new Date(),
 		userId: user._id,
@@ -79,7 +90,7 @@ const subscribe = asyncHandler(async (req, res) => {
 
 	user.subscription.customerId = customerId;
 	user.subscription.subscriptionId = subscription.id;
-	user.subscription.plan = PRO.id;
+	user.subscription.plan = plan.id;
 	/**
 	 * `past_due` e não `active`: a cobrança existe e ainda não foi paga. Não
 	 * há `validUntil`, então `hasPaidAccess()` continua falso — o acesso só
@@ -155,8 +166,13 @@ async function applyEvent(event, body) {
 				: now;
 
 		user.subscription.status = "active";
-		user.subscription.plan = PRO.id;
-		user.subscription.validUntil = addDays(base, DAYS_PER_CYCLE);
+		/**
+		 * O ciclo contratado vem do que foi gravado na assinatura, não do
+		 * evento: o Asaas avisa que ENTROU dinheiro, não por quantos dias. Sem
+		 * isto, um pagamento anual concederia 31 dias e o cliente voltaria a
+		 * pagar onze meses antes da hora.
+		 */
+		user.subscription.validUntil = addDays(base, daysForPlanId(user.subscription.plan));
 		await user.save();
 		return;
 	}

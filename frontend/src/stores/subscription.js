@@ -46,8 +46,8 @@ async function load({ force = false } = {}) {
  * de pagamento. Mentir aqui mostraria "Pro" para quem ainda não pagou, e a
  * primeira tela paga devolveria 402 logo em seguida.
  */
-async function subscribe(cpfCnpj) {
-	const charge = await createSubscription(cpfCnpj);
+async function subscribe(cpfCnpj, planId) {
+	const charge = await createSubscription(cpfCnpj, planId);
 	await load({ force: true });
 	return charge;
 }
@@ -69,7 +69,16 @@ export function useSubscription() {
 	const hasPaidAccess = computed(() => state.value?.hasPaidAccess === true);
 	const status = computed(() => state.value?.status ?? "none");
 	const validUntil = computed(() => state.value?.validUntil ?? null);
-	const catalog = computed(() => state.value?.catalog ?? null);
+	/**
+	 * Os planos como o backend os devolve — lista, não objeto.
+	 *
+	 * O preço NUNCA é escrito no frontend: em dois lugares, divergiria no dia
+	 * em que um deles mudasse, e quem descobriria seria o cliente.
+	 */
+	const catalog = computed(() => state.value?.catalog ?? []);
+
+	/** Qual plano vem pré-selecionado. Quem decide é o backend. */
+	const defaultPlanId = computed(() => state.value?.defaultPlanId ?? null);
 
 	/** Cobrança criada e ainda não paga: a tela de planos mostra o Pix pendente. */
 	const isAwaitingPayment = computed(() => status.value === "past_due" && !hasPaidAccess.value);
@@ -82,6 +91,7 @@ export function useSubscription() {
 		status,
 		validUntil,
 		catalog,
+		defaultPlanId,
 		isAwaitingPayment,
 		load,
 		subscribe,

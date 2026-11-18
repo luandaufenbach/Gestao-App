@@ -98,17 +98,90 @@ describe("criar assinatura", () => {
 		expect(estado.body.status).toBe("past_due");
 	});
 
+	/** O que o provedor recebeu na chamada de criar assinatura. */
+	const corpoEnviado = (fetchMock) =>
+		JSON.parse(
+			fetchMock.mock.calls.find(([url]) => String(url).endsWith("/subscriptions"))[1].body
+		);
+
 	it("envia o valor em reais, não em centavos", async () => {
 		const fetchMock = mockAsaas();
-		await assinar().expect(201);
+		await assinar({ cpfCnpj: "12345678909", planId: "pro_mensal" }).expect(201);
 
-		const chamada = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/subscriptions"));
-		const enviado = JSON.parse(chamada[1].body);
+		const enviado = corpoEnviado(fetchMock);
 
-		expect(enviado.value).toBe(14.9);
+		expect(enviado.value).toBe(24.9);
 		expect(enviado.billingType).toBe("PIX");
 		expect(enviado.cycle).toBe("MONTHLY");
 		expect(enviado.nextDueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+	});
+
+	it("sem plano informado, assina o anual — o padrão do catálogo", async () => {
+		const fetchMock = mockAsaas();
+		await assinar().expect(201);
+
+		const enviado = corpoEnviado(fetchMock);
+
+		expect(enviado.value).toBe(179);
+		expect(enviado.cycle).toBe("YEARLY");
+	});
+
+	it("recusa plano que não existe no catálogo", async () => {
+		mockAsaas();
+
+		await assinar({ cpfCnpj: "12345678909", planId: "pro_vitalicio" }).expect(400);
+	});
+
+	/**
+	 * O webhook avisa que entrou dinheiro, não por quantos dias. Sem ler o
+	 * ciclo contratado, um pagamento anual concederia 31 dias e o cliente
+	 * voltaria a pagar onze meses antes da hora.
+	 */
+	it("pagamento do anual concede o ano, não o mês", async () => {
+		mockAsaas();
+		await assinar({ cpfCnpj: "12345678909", planId: "pro_anual" }).expect(201);
+
+		await notificar({
+			id: "evt_anual_1",
+			event: "PAYMENT_RECEIVED",
+			payment: { subscription: "sub_000001" },
+		}).expect(200);
+
+		const estado = await minhaAssinatura();
+		const dias = Math.round(
+			(new Date(estado.body.validUntil) - Date.now()) / (24 * 60 * 60 * 1000)
+		);
+
+		expect(estado.body.hasPaidAccess).toBe(true);
+		expect(dias).toBeGreaterThan(300);
+	});
+
+	it("pagamento do mensal concede o mês", async () => {
+		mockAsaas();
+		await assinar({ cpfCnpj: "12345678909", planId: "pro_mensal" }).expect(201);
+
+		await notificar({
+			id: "evt_mensal_1",
+			event: "PAYMENT_RECEIVED",
+			payment: { subscription: "sub_000001" },
+		}).expect(200);
+
+		const estado = await minhaAssinatura();
+		const dias = Math.round(
+			(new Date(estado.body.validUntil) - Date.now()) / (24 * 60 * 60 * 1000)
+		);
+
+		expect(dias).toBeGreaterThan(29);
+		expect(dias).toBeLessThan(35);
+	});
+
+	it("o catálogo devolve os dois ciclos", async () => {
+		const estado = await minhaAssinatura();
+		const ids = estado.body.catalog.map((plano) => plano.id);
+
+		expect(ids).toContain("pro_mensal");
+		expect(ids).toContain("pro_anual");
+		expect(estado.body.defaultPlanId).toBe("pro_anual");
 	});
 
 	it("aceita CPF com máscara e recusa documento de tamanho inválido", async () => {

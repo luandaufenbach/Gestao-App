@@ -1,6 +1,7 @@
 const crypto = require("node:crypto");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { PLAN_IDS } = require("../config/plans");
 
 const SALT_ROUNDS = 12;
 
@@ -124,7 +125,9 @@ const UserSchema = new mongoose.Schema(
 		subscription: {
 			plan: {
 				type: String,
-				enum: ["free", "pro"],
+				// A lista vem do catálogo: plano novo não pode exigir que alguém
+				// lembre de editar o enum aqui também.
+				enum: PLAN_IDS,
 				default: "free",
 			},
 			status: {

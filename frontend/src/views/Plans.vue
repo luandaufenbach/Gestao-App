@@ -33,12 +33,43 @@
 
         <article class="plans__card plans__card--pro">
           <span class="plans__ribbon">Mais completo</span>
-          <span class="plans__label plans__label--pro">{{ catalog?.name ?? "Pro" }}</span>
-          <p class="plans__price">
-            {{ priceLabel }}
-            <span class="plans__per">por mês</span>
-          </p>
-          <p class="plans__cardSub">{{ yearLabel }}</p>
+          <span class="plans__label plans__label--pro">Pro</span>
+
+          <!--
+            O anual vem marcado porque é o que sustenta a aquisição paga: o
+            dinheiro entra inteiro no primeiro dia. O mensal existe sobretudo
+            como âncora — é contra ele que o desconto do anual aparece.
+          -->
+          <div class="plans__cycles" role="radiogroup" aria-label="Ciclo de cobrança">
+            <button
+              v-for="plano in orderedPlans"
+              :key="plano.id"
+              type="button"
+              role="radio"
+              :aria-checked="plano.id === selectedPlanId"
+              class="plans__cycle"
+              :class="{ 'plans__cycle--on': plano.id === selectedPlanId }"
+              @click="selectedPlanId = plano.id"
+            >
+              <span class="plans__cycleHead">
+                <span class="plans__cycleName">{{ plano.name }}</span>
+                <span v-if="savingsFor(plano)" class="plans__save">
+                  -{{ savingsFor(plano) }}%
+                </span>
+              </span>
+
+              <span class="plans__price">
+                {{ formatCurrency(plano.priceInCents) }}
+                <span class="plans__per">
+                  {{ plano.cycle === "YEARLY" ? "por ano" : "por mês" }}
+                </span>
+              </span>
+
+              <span v-if="monthlyEquivalent(plano)" class="plans__cardSub">
+                equivale a {{ monthlyEquivalent(plano) }} por mês
+              </span>
+            </button>
+          </div>
 
           <GaButton
             v-if="hasPaidAccess || isAwaitingPayment"
@@ -74,7 +105,7 @@
             <tr>
               <th scope="col" class="cmp__feature"></th>
               <th scope="col">Grátis</th>
-              <th scope="col" class="cmp__pro">{{ catalog?.name ?? "Pro" }}</th>
+              <th scope="col" class="cmp__pro">Pro</th>
             </tr>
           </thead>
 
@@ -193,7 +224,7 @@
  * partir de `config/plans.js` — número de preço em duas fontes diverge no dia
  * em que uma das duas muda, e quem descobre é o cliente.
  */
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import GaNote from "@/design-system/components/GaNote.vue";
 import GaButton from "@/design-system/components/GaButton.vue";
 import GaField from "@/design-system/components/GaField.vue";
@@ -250,6 +281,7 @@ const {
   status,
   validUntil,
   catalog,
+  defaultPlanId,
   isAwaitingPayment,
   load,
   subscribe,
@@ -265,23 +297,52 @@ const confirmingCancel = ref(false);
 
 onMounted(() => load({ force: true }).catch(() => {}));
 
-const priceLabel = computed(() =>
-  catalog.value?.priceInCents ? formatCurrency(catalog.value.priceInCents) : "—"
+/** Anual primeiro: é o recomendado, e abre a leitura pelo melhor negócio. */
+const orderedPlans = computed(() =>
+  [...catalog.value].sort((a, b) => b.priceInCents - a.priceInCents)
 );
 
+const selectedPlanId = ref(null);
+
 /**
- * Âncora de preço: o mesmo valor dito no ano.
+ * A escolha inicial vem do backend, não daqui.
  *
- * É a única comparação que entra, e ela é ARITMÉTICA — sai do preço que o
- * backend devolve, multiplicado por doze. Nada de "menos que um café", que
- * inventa um preço de café, nem de desconto, contador ou número de assinantes,
- * que seriam números que não existem.
+ * `immediate` porque o catálogo chega DEPOIS da montagem: fixar no
+ * `onMounted` pegaria a lista ainda vazia e deixaria nada selecionado, e o
+ * botão de assinar mandaria `null`.
  */
-const yearLabel = computed(() => {
-  const cents = catalog.value?.priceInCents;
-  if (!cents) return "";
-  return `${formatCurrency(cents * 12)} por ano, cobrados mês a mês`;
-});
+watch(
+  defaultPlanId,
+  (id) => {
+    if (id && !selectedPlanId.value) selectedPlanId.value = id;
+  },
+  { immediate: true }
+);
+
+const mensal = computed(() => catalog.value.find((plano) => plano.cycle === "MONTHLY") ?? null);
+
+/**
+ * Quanto o ciclo longo economiza contra doze meses do mensal.
+ *
+ * ARITMÉTICA, não enfeite: sai dos dois preços que o backend devolve. Nada de
+ * desconto inventado, contador ou "menos que um café" — números que não
+ * existem viram promessa quebrada no primeiro cliente que faz a conta.
+ */
+function savingsFor(plano) {
+  if (plano.cycle !== "YEARLY" || !mensal.value) return null;
+
+  const doze = mensal.value.priceInCents * 12;
+  const desconto = Math.round(((doze - plano.priceInCents) / doze) * 100);
+
+  return desconto > 0 ? desconto : null;
+}
+
+/** O anual dito em linguagem de mensalidade, que é como se compara preço. */
+function monthlyEquivalent(plano) {
+  if (plano.cycle !== "YEARLY") return null;
+
+  return formatCurrency(Math.round(plano.priceInCents / 12));
+}
 
 /**
  * O cancelamento preserva o período já pago, e a mensagem precisa dizer isso:
@@ -305,7 +366,7 @@ async function submit() {
   busy.value = true;
 
   try {
-    const charge = await subscribe(cpfCnpj.value);
+    const charge = await subscribe(cpfCnpj.value, selectedPlanId.value);
     invoiceUrl.value = charge.invoiceUrl ?? "";
     showForm.value = false;
     cpfCnpj.value = "";
@@ -433,6 +494,56 @@ async function doCancel() {
 
 .plans__label--pro {
   color: var(--cobalt-500);
+}
+
+.plans__cycles {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.plans__cycle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-3);
+  text-align: start;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+/* A borda cobalt é o que diz qual está escolhido. Um círculo de rádio some
+   em tela pequena; a cor do contorno, não. */
+.plans__cycle--on {
+  border-color: var(--cobalt-500);
+  background: var(--surface-selected);
+}
+
+.plans__cycle:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.plans__cycleHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.plans__cycleName {
+  font: var(--type-label);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.plans__save {
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-pill);
+  background: var(--feedback-success-bg);
+  font: var(--type-micro);
+  color: var(--feedback-success);
 }
 
 .plans__price {

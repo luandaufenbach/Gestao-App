@@ -219,6 +219,7 @@ export const getMySubscription = () => http.get("/subscriptions/me");
  * Cria a assinatura e devolve `invoiceUrl`, a página do Asaas com o Pix.
  * O CPF é exigido pelo provedor; não é guardado na nossa base.
  */
-export const createSubscription = (cpfCnpj) => http.post("/subscriptions", { cpfCnpj });
+export const createSubscription = (cpfCnpj, planId) =>
+	http.post("/subscriptions", { cpfCnpj, planId });
 
 export const cancelSubscription = () => http.delete("/subscriptions");
