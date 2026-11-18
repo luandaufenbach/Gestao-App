@@ -31,7 +31,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 0.7 | Termos de uso e política de privacidade | telas feitas — falta preencher os dados do responsável e a revisão jurídica |
 | 0.8 | Zerar `npm audit` | feito — 0 críticas e 0 altas nos dois pacotes; sobram moderadas só em ferramenta de desenvolvimento |
 | 0.9 | Refresh token com revogação | feito — acesso de 15 min, sessão de 30 dias revogável, com rotação |
-| 0.10 | Backup do Mongo com restauração testada | **parcial** — script pronto e restauração provada fiel em banco separado; falta rodar contra produção e definir a rotina |
+| 0.10 | Backup do Mongo com restauração testada | **parcial** — cópia da produção feita e restaurada em banco separado, fiel nas 7 coleções; falta só a ROTINA automática |
 | 1.1 | Projeção de caixa futura | feito |
 | 1.2 | Relatórios de 3 a 12 meses | feito |
 | 1.3 | Tokens, fontes e ícones do design system | feito |
