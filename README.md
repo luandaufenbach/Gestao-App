@@ -249,6 +249,32 @@ node scripts/backfillCreditCard.js          # simula
 node scripts/backfillCreditCard.js --apply  # grava
 ```
 
+### Operação do banco
+
+Todos simulam por padrão; nenhum grava sem `--apply`. O `.env` aponta para
+produção, então leia o cabeçalho de cada um antes de rodar.
+
+```bash
+# Cópia de segurança (Extended JSON, preserva ObjectId e Date)
+node scripts/backup.js
+node scripts/backup.js --out /outro/caminho
+
+# Restaurar. A URI é OBRIGATÓRIA e nunca vem do .env: restore é a operação
+# que sobrescreve, e herdar a URI faria um argumento esquecido virar desastre.
+node scripts/restore.js --from backups/<data> --uri <uri>
+node scripts/restore.js --from backups/<data> --uri <uri> --apply
+
+# Criar em produção os índices declarados nos schemas.
+# connectDB só sincroniza índices FORA de produção, então todo índice novo
+# precisa deste passo lá — sem ele, o TTL das sessões não existe e a coleção
+# cresce sem limite.
+node scripts/createIndexes.js
+node scripts/createIndexes.js --apply
+```
+
+As cópias caem em `backend/backups/`, que está no `.gitignore`: são dados
+financeiros reais e não entram no repositório.
+
 O script só age quando o usuário tem exatamente um cartão de crédito; com mais
 de um ele apenas relata, porque não há como adivinhar onde a compra foi feita.
 

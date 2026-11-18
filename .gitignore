@@ -63,3 +63,7 @@ Thumbs.db
 # Pacote do design system exportado do Claude Design: 116 MB, nao versionado.
 # A copia consumida vive em frontend/src/design-system/ e em .claude/skills/.
 *.zip
+
+# Copias de seguranca do banco (scripts/backup.js). Sao dados financeiros
+# REAIS de usuarios: nunca entram no repositorio.
+backups/
