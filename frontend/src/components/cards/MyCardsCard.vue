@@ -62,7 +62,7 @@
       Adicionar cartão
     </button>
 
-    <form v-if="showForm" class="cards__form" @submit.prevent="saveCard">
+    <form v-if="showForm" ref="formElement" class="cards__form" @submit.prevent="saveCard">
       <h3 class="cards__formTitle">Novo cartão</h3>
 
       <input
@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, nextTick, useTemplateRef } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
 import GaIcon from "@/design-system/components/GaIcon.vue";
 import GaSelect from "@/design-system/components/GaSelect.vue";
@@ -217,6 +217,7 @@ const {
 const deleteConfirmation = useDeleteConfirmation(remove);
 
 const showForm = ref(false);
+const formElement = useTemplateRef("formElement");
 const saving = ref(false);
 const errorMessage = ref("");
 
@@ -320,6 +321,29 @@ async function saveCard() {
 }
 
 onMounted(loadBankCards);
+
+/**
+ * Abre o formulário sem alternar, e rola até ele.
+ *
+ * O `toggleForm` do botão não serve a quem chama de fora: o guia de primeiro
+ * uso (`OnboardingGuide`) pede "abra", e alternar fecharia o formulário se ele
+ * já estivesse aberto. Não existe rota de cartões — o cadastro vive aqui
+ * dentro —, então abrir daqui é o caminho, e não uma tela nova.
+ *
+ * Rolar é parte da ação, não enfeite: no celular esta coluna fica abaixo de
+ * todo o grid, e um formulário que abre fora da área visível pareceria botão
+ * que não fez nada. O `nextTick` é obrigatório — o elemento só existe depois
+ * de o `v-if` reagir.
+ */
+async function openForm() {
+  showForm.value = true;
+  errorMessage.value = "";
+
+  await nextTick();
+  formElement.value?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+defineExpose({ openForm });
 </script>
 
 <style scoped>

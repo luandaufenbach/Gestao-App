@@ -33,6 +33,17 @@
       </GaButton>
     </div>
 
+    <!--
+      Guia de primeiro uso: só aparece enquanto a conta não tem lançamento
+      nenhum. Fica ACIMA do grid porque é a única coisa nesta tela que um
+      usuário novo consegue usar — os seis cards abaixo estão todos vazios.
+    -->
+    <OnboardingGuide
+      ref="onboarding"
+      @add-card="openCardForm"
+      @add-transaction="showModal = true"
+    />
+
     <div class="dash__grid">
       <div class="dash__col">
         <div class="dash__stats">
@@ -72,7 +83,7 @@
         vazio enorme embaixo dos cartões.
       -->
       <div class="dash__side">
-        <MyCardsCard />
+        <MyCardsCard ref="myCards" />
         <RecurringCard ref="recurringCard" />
       </div>
     </div>
@@ -132,6 +143,7 @@ import MyCardsCard from "../components/cards/MyCardsCard.vue";
 import RecurringCard from "../components/cards/RecurringCard.vue";
 import TransactionsList from "../components/TransactionsList.vue";
 import NewTransactionalModal from "../components/NewTransactionalModal.vue";
+import OnboardingGuide from "../components/OnboardingGuide.vue";
 import { useMonthNavigation } from "../services/useMonthNavigation";
 import { definePageAction } from "../stores/pageAction";
 
@@ -152,6 +164,8 @@ const invoicesCard = useTemplateRef("invoicesCard");
 const goalsCard = useTemplateRef("goalsCard");
 const recurringCard = useTemplateRef("recurringCard");
 const pieChart = useTemplateRef("pieChart");
+const onboarding = useTemplateRef("onboarding");
+const myCards = useTemplateRef("myCards");
 
 /**
  * BUG CORRIGIDO (A5 — requisições duplicadas):
@@ -175,6 +189,16 @@ function refreshAll() {
   // Um lançamento novo pode fechar o terceiro mês de uma assinatura.
   recurringCard.value?.refetch();
   pieChart.value?.refetch();
+  // O guia de primeiro uso some no lançamento que acabou de nascer.
+  onboarding.value?.refetch();
+}
+
+/**
+ * Abre o cadastro de cartão a pedido do guia de primeiro uso. A própria card
+ * cuida de rolar até o formulário — ela é quem conhece o próprio DOM.
+ */
+function openCardForm() {
+  myCards.value?.openForm();
 }
 
 function handleTransactionCreated() {
