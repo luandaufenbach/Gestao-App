@@ -27,6 +27,25 @@ export const MONTH_NAMES = [
  * O mês corrente é lido em UTC para casar com o intervalo calculado no
  * backend (ver backend/src/utils/date.js — bug C2).
  */
+/**
+ * O dia de HOJE no calendário de quem está olhando, como `AAAA-MM-DD`.
+ *
+ * MOTIVO: `new Date().toISOString().slice(0, 10)` devolve o dia em UTC, que
+ * depois das 21h no horário de Brasília já é o dia seguinte. Quem lançasse um
+ * jantar às 22h recebia a data de amanhã preenchida — e data errada num app
+ * financeiro muda o mês do saldo e a fatura em que a compra cai.
+ *
+ * O dia local é o que a pessoa chama de "hoje", e é esse que o backend grava
+ * como `00:00:00.000Z` do dia ESCOLHIDO, não do fuso (ver utils/date.js).
+ */
+export function todayISO() {
+	const now = new Date();
+	const mes = String(now.getMonth() + 1).padStart(2, "0");
+	const dia = String(now.getDate()).padStart(2, "0");
+
+	return `${now.getFullYear()}-${mes}-${dia}`;
+}
+
 export function useMonthNavigation() {
 	const now = new Date();
 	const selectedYear = ref(now.getUTCFullYear());

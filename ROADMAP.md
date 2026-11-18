@@ -37,7 +37,7 @@ coisa do roteiro que a compra do domínio destrava de fato.
 | 1.3 | Tokens, fontes e ícones do design system | feito |
 | 1.4 | Telas migradas, uma a uma | feito — nenhum dos 32 `.vue` tem classe utilitária do Tailwind em `class=` |
 | 1.5 | Onboarding do primeiro uso | feito — guia de 3 passos acima dos cards, some no primeiro lançamento |
-| 1.6 | Lançamento rápido no celular | **pendente** — não medido |
+| 1.6 | Lançamento rápido no celular | feito — abre com a data de hoje, foco no valor e teclado decimal; os 5 campos cabem sem rolar |
 | 2.1 | Planos e estado de assinatura no `User` | feito |
 | 2.2 | Gateway de pagamento com Pix | código feito (Asaas, Pix) — **falta a conta**: sem ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN a assinatura recusa com mensagem clara |
 | 2.3 | Paywall por middleware | feito — interface trata o 402 e tem tela de planos; falta só ligar `PAYWALL_ENABLED` |

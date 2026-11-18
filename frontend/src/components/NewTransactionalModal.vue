@@ -1,7 +1,7 @@
 <template>
   <GaModal title="Nova transação" size="lg" @close="closeModal">
     <form id="new-transaction-form" class="newtx__form" @submit.prevent="saveTransaction">
-      <TransactionFormFields :form="form" :categories="categories" />
+      <TransactionFormFields ref="campos" :form="form" :categories="categories" />
 
       <p v-if="form.errorMessage.value" class="newtx__error">
         {{ form.errorMessage.value }}
@@ -37,12 +37,13 @@
  * com os dois em caixas separadas — sem ele, um `type="submit"` fora do
  * `<form>` não envia nada.
  */
-import { ref, onMounted } from "vue";
+import { ref, onMounted, useTemplateRef } from "vue";
 import GaButton from "@/design-system/components/GaButton.vue";
 import GaModal from "@/design-system/components/GaModal.vue";
 import { useTransactions } from "../services/useTransactions";
 import { useCategories } from "../stores/categories";
 import { useTransactionForm } from "../services/useTransactionForm";
+import { todayISO } from "../services/useMonthNavigation";
 import TransactionFormFields from "./TransactionFormFields.vue";
 
 const props = defineProps({
@@ -59,8 +60,36 @@ const { categories, load: loadCategories } = useCategories();
 
 const form = useTransactionForm();
 const saving = ref(false);
+const campos = useTemplateRef("campos");
 
 const pad = (num) => String(num).padStart(2, "0");
+
+/**
+ * A data que já vem preenchida.
+ *
+ * Antes era SEMPRE o dia 1º do mês visualizado. No dashboard — que é a tela
+ * padrão e passa o mês — quem abria o modal no dia 17 para registrar um café
+ * recebia 01/11 e precisava corrigir. Quem não percebesse gravava o gasto
+ * dezesseis dias no passado, possivelmente em outra fatura.
+ *
+ * Agora: mês corrente sugere HOJE, que é o caso de quase todo lançamento.
+ * Outro mês continua sugerindo o dia 1º, que é o palpite certo para quem está
+ * revisando um mês passado.
+ *
+ * A comparação usa o calendário local nos dois lados. Na virada do mês o
+ * dashboard pode estar em UTC um dia à frente; aí os meses não batem, cai no
+ * dia 1º do mês visto e continua coerente com o que está na tela.
+ */
+function dataSugerida() {
+  const hoje = todayISO();
+
+  if (!props.year || !props.month) return hoje;
+
+  const [anoHoje, mesHoje] = hoje.split("-");
+  const mesmoMes = Number(anoHoje) === props.year && Number(mesHoje) === props.month;
+
+  return mesmoMes ? hoje : `${props.year}-${pad(props.month)}-01`;
+}
 
 onMounted(() => {
   loadCategories();
@@ -72,10 +101,15 @@ onMounted(() => {
    * mudança de props, apenas para preencher um valor inicial. Como o modal é
    * criado e destruído a cada abertura (v-if), definir no onMounted basta.
    */
-  form.date.value =
-    props.year && props.month
-      ? `${props.year}-${pad(props.month)}-01`
-      : new Date().toISOString().slice(0, 10);
+  form.date.value = dataSugerida();
+
+  /**
+   * O valor recebe o foco: é o único campo que todo lançamento digita, e no
+   * celular isso já abre o teclado numérico — uma tocada a menos no caminho
+   * mais usado do app. Só aqui, não na edição, onde o cursor no valor seria
+   * um convite a mexer no que não se queria mexer.
+   */
+  campos.value?.focusAmount();
 });
 
 async function saveTransaction() {

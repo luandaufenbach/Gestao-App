@@ -68,7 +68,20 @@
     variant="number"
     :hint="installmentHint"
   >
-    <input :id="id" v-model="amount" type="number" step="0.01" min="0" />
+    <!--
+      inputmode="decimal" é o que faz o teclado do celular abrir já com a
+      vírgula. Só type="number" dá um teclado numérico sem separador decimal
+      em parte dos aparelhos, e aí o valor quebrado vira uma caça à tecla.
+    -->
+    <input
+      :id="id"
+      ref="amountInput"
+      v-model="amount"
+      type="number"
+      inputmode="decimal"
+      step="0.01"
+      min="0"
+    />
   </GaField>
 
   <GaField v-slot="{ id }" class="fields__wide" label="Descrição" variant="area">
@@ -119,7 +132,7 @@
  * Os três campos que não são seletores (data, parcelas, valor, descrição)
  * seguem no `GaField` com slot, como antes.
  */
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch, useTemplateRef } from "vue";
 import GaField from "@/design-system/components/GaField.vue";
 import GaSelect from "@/design-system/components/GaSelect.vue";
 import { useFormatters } from "../services/useFormatters";
@@ -254,6 +267,14 @@ const goalOptions = computed(() => [
 ]);
 
 const { formatCurrency, parseCurrencyToCents } = useFormatters();
+
+const amountInput = useTemplateRef("amountInput");
+
+function focusAmount() {
+  amountInput.value?.focus();
+}
+
+defineExpose({ focusAmount });
 
 const isInstallmentPurchase = computed(
   () => supportsInstallments.value && Number(installments.value) > 1
